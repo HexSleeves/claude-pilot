@@ -113,3 +113,47 @@ func TestBackendConfig(t *testing.T) {
 		t.Errorf("Default backend '%s' should be one of: %v", config.Backend, validBackends)
 	}
 }
+
+func TestHomeDirectoryExpansion(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Tilde only",
+			input:    "~",
+			expected: "/expected/home",
+		},
+		{
+			name:     "Tilde with path",
+			input:    "~/test/path",
+			expected: "/expected/home/test/path",
+		},
+		{
+			name:     "No tilde",
+			input:    "/absolute/path",
+			expected: "/absolute/path",
+		},
+		{
+			name:     "Relative path",
+			input:    "relative/path",
+			expected: "relative/path",
+		},
+		{
+			name:     "Empty path",
+			input:    "",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ExpandHomePath(tt.input, "/expected/home")
+			if result != tt.expected {
+				t.Errorf("expandHomePath(%q, %q) = %q, want %q", 
+					tt.input, "/expected/home", result, tt.expected)
+			}
+		})
+	}
+}

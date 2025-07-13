@@ -37,7 +37,12 @@ func DisplayAvailableSessions(sessions []*interfaces.Session) {
 		fmt.Printf("  %s %s\n", Arrow(), Highlight("claude-pilot create [session-name]"))
 	} else {
 		for _, s := range sessions {
-			fmt.Printf("  %s %s (%s)\n", Arrow(), Highlight(s.Name), Dim(s.ID[:8]))
+			idDisplay := s.ID
+			if len(s.ID) > 8 {
+				idDisplay = s.ID[:8]
+			}
+
+			fmt.Printf("  %s %s (%s)\n", Arrow(), Highlight(s.Name), Dim(idDisplay))
 		}
 	}
 }

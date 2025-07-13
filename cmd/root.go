@@ -8,6 +8,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+const DEFAULT_CONFIG_FILE = "claude-pilot.yaml"
+const DEFAULT_CONFIG_DIR = ".config/claude-pilot"
+
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
@@ -63,7 +66,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/"+DEFAULT_CONFIG_DIR+"/"+DEFAULT_CONFIG_FILE+")")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
 	// Bind flags to viper

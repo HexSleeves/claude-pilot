@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -177,6 +178,11 @@ func (cm *ConfigManager) Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// Expand home directory paths
+	if err := cm.expandHomePaths(); err != nil {
+		return nil, fmt.Errorf("failed to expand home directory paths: %w", err)
+	}
+
 	// Validate and set computed values
 	if err := cm.validateAndSetDefaults(); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
@@ -285,6 +291,11 @@ func (cm *ConfigManager) createDefaultConfigFileAt(configFilePath string) error 
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
 	// Create the default config content with comments
 	defaultConfigContent := `# Claude Pilot Configuration
 # Configuration file for Claude Pilot - AI session manager
@@ -297,7 +308,7 @@ backend: auto
 
 # Directory where session metadata is stored
 # Will be created automatically if it doesn't exist
-sessions_dir: $HOME/.config/claude-pilot/sessions
+sessions_dir: ` + filepath.Join(homeDir, ".config", "claude-pilot", "sessions") + `
 
 # Default shell command to run (claude CLI)
 default_shell: claude
@@ -328,4 +339,34 @@ zellij:
 	}
 
 	return nil
+}
+
+// expandHomePaths expands ~ to the user's home directory in all path fields
+func (cm *ConfigManager) expandHomePaths() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	// Expand SessionsDir
+	cm.config.SessionsDir = ExpandHomePath(cm.config.SessionsDir, homeDir)
+
+	// Expand BackendPath if it starts with ~
+	cm.config.BackendPath = ExpandHomePath(cm.config.BackendPath, homeDir)
+
+	// Expand ZellijConfig.LayoutFile if it starts with ~
+	cm.config.Zellij.LayoutFile = ExpandHomePath(cm.config.Zellij.LayoutFile, homeDir)
+
+	return nil
+}
+
+// ExpandHomePath expands ~ to homeDir if path starts with ~/
+func ExpandHomePath(path, homeDir string) string {
+	if path == "~" {
+		return homeDir
+	}
+	if strings.HasPrefix(path, "~/") {
+		return filepath.Join(homeDir, path[2:])
+	}
+	return path
 }

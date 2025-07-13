@@ -203,6 +203,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.deleteSession(m.selectedSession.ID)
 			}
 
+		case key.Matches(msg, keys.Escape):
+			if m.state == StateHelp {
+				m.state = StateSessionList
+			}
+			return m, nil
+
 		case key.Matches(msg, keys.Help):
 			if m.state == StateHelp {
 				m.state = StateSessionList
