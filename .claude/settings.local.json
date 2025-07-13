@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(gemini:*)", "Bash(./claude-pilot:*)", "Bash(go get:*)"],
+    "allow": [
+      "Bash(gemini:*)",
+      "Bash(./claude-pilot:*)",
+      "Bash(go get:*)",
+      "Bash(find:*)"
+    ],
     "deny": []
   }
 }

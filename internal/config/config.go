@@ -70,11 +70,11 @@ type ZellijConfig struct {
 
 // DefaultConfig returns a configuration with sensible defaults
 func DefaultConfig() *Config {
-	configDir, _ := os.UserConfigDir()
+	homeDir, _ := os.UserHomeDir()
 	return &Config{
 		Backend:      "auto", // Auto-detect available backend
 		BackendPath:  "",     // Use system PATH
-		SessionsDir:  filepath.Join(configDir, "claude-pilot", "sessions"),
+		SessionsDir:  filepath.Join(homeDir, ".config", "claude-pilot", "sessions"),
 		DefaultShell: "claude",
 		LogLevel:     "info",
 		UI: UIConfig{
@@ -113,15 +113,27 @@ func (cm *ConfigManager) Load() (*Config, error) {
 	viper.SetConfigType("yaml")
 
 	if cm.configFile != "" {
+		// Ensure the directory for the custom config file exists
+		configDir := filepath.Dir(cm.configFile)
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create config directory for custom config: %w", err)
+		}
 		viper.SetConfigFile(cm.configFile)
 	} else {
-		configDir, err := os.UserConfigDir()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get home directory: %w", err)
 		}
 
-		viper.AddConfigPath(configDir)
-		viper.SetConfigName(".claude-pilot")
+		claudePilotConfigDir := filepath.Join(homeDir, ".config", "claude-pilot")
+
+		// Ensure config directory exists
+		if err := os.MkdirAll(claudePilotConfigDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create config directory: %w", err)
+		}
+
+		viper.AddConfigPath(claudePilotConfigDir)
+		viper.SetConfigName("claude-pilot")
 	}
 
 	// Set environment variable prefix
@@ -134,8 +146,28 @@ func (cm *ConfigManager) Load() (*Config, error) {
 	// Try to read config file
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found, use defaults
-			return cm.config, nil
+			// Config file not found, create a default one
+			var configPath string
+			if cm.configFile != "" {
+				configPath = cm.configFile
+			} else {
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					return cm.config, nil // Use defaults if we can't determine config dir
+				}
+				configPath = filepath.Join(homeDir, ".config", "claude-pilot", "claude-pilot.yaml")
+			}
+
+			if err := cm.createDefaultConfigFileAt(configPath); err != nil {
+				// If we can't create the config file, just use defaults without error
+				// This ensures the application works even if filesystem is read-only
+				return cm.config, nil
+			}
+			// Try to read the newly created config file
+			if err := viper.ReadInConfig(); err != nil {
+				// If we still can't read it, just use defaults
+				return cm.config, nil
+			}
 		}
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -240,6 +272,59 @@ func (cm *ConfigManager) validateAndSetDefaults() error {
 	}
 	if !isValid {
 		return fmt.Errorf("invalid log level '%s', must be one of: %v", cm.config.LogLevel, validLevels)
+	}
+
+	return nil
+}
+
+// createDefaultConfigFileAt creates a default config file at the specified path
+func (cm *ConfigManager) createDefaultConfigFileAt(configFilePath string) error {
+	// Ensure the directory for the config file exists
+	configDir := filepath.Dir(configFilePath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Create the default config content with comments
+	defaultConfigContent := `# Claude Pilot Configuration
+# Configuration file for Claude Pilot - AI session manager
+#
+# For more information, visit: https://github.com/your-username/claude-pilot
+
+# Backend selection: auto, tmux, or zellij
+# 'auto' will automatically detect and prefer tmux if available
+backend: auto
+
+# Directory where session metadata is stored
+# Will be created automatically if it doesn't exist
+sessions_dir: $HOME/.config/claude-pilot/sessions
+
+# Default shell command to run (claude CLI)
+default_shell: claude
+
+# UI configuration
+ui:
+  # Interface mode: cli or tui
+  # cli: Traditional command-line interface
+  # tui: Interactive terminal user interface
+  mode: cli
+
+  # Theme settings (reserved for future use)
+  theme: default
+
+# Backend-specific configurations
+tmux:
+  # Prefix for tmux session names (optional)
+  session_prefix: claude-
+
+zellij:
+  # Custom layout file for zellij sessions (optional)
+  layout_file: ""
+`
+
+	// Write the default config file
+	if err := os.WriteFile(configFilePath, []byte(defaultConfigContent), 0644); err != nil {
+		return fmt.Errorf("failed to write default config file: %w", err)
 	}
 
 	return nil

@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"claude-pilot/internal/tui"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -30,9 +29,27 @@ var rootCmd = &cobra.Command{
   detach    Detach from a specific session
   kill      Terminate a session
   kill-all  Terminate all sessions
+  tui       Launch interactive terminal UI
 
 Use "claude-pilot [command] --help" for more information about a command.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Check if UI mode is set to TUI in config
+		ctx, err := InitializeCommand()
+		if err != nil {
+			// If we can't initialize, just show help
+			cmd.Help()
+			return
+		}
+
+		// Auto-launch TUI if ui.mode is set to "tui"
+		if ctx.Config.UI.Mode == "tui" {
+			if err := tui.RunTUI(ctx.SessionManager); err != nil {
+				HandleError(err, "run TUI")
+			}
+			return
+		}
+
+		// Default behavior: show help
 		cmd.Help()
 	},
 }
@@ -46,31 +63,16 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.claude-pilot.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
 	// Bind flags to viper
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 }
 
-// initConfig reads in config file and ENV variables if set.
+// initConfig sets up environment variable handling for Viper
+// The actual config loading is handled by ConfigManager in InitializeCommand()
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		configDir, err := os.UserConfigDir()
-		cobra.CheckErr(err)
-
-		viper.AddConfigPath(configDir)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".claude-pilot")
-	}
-
+	viper.SetEnvPrefix("CLAUDE_PILOT")
 	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		if viper.GetBool("verbose") {
-			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-		}
-	}
 }

@@ -10,6 +10,22 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
+// sessionStatusToMultiplexerDisplay converts session status to multiplexer display format
+func sessionStatusToMultiplexerDisplay(status interfaces.SessionStatus) string {
+	switch status {
+	case interfaces.StatusConnected:
+		return FormatTmuxStatus("attached")
+	case interfaces.StatusActive:
+		return FormatTmuxStatus("running")
+	case interfaces.StatusInactive:
+		return FormatTmuxStatus("stopped")
+	case interfaces.StatusError:
+		return FormatTmuxStatus("error")
+	default:
+		return Dim("unknown")
+	}
+}
+
 // SessionTable creates a formatted table for displaying sessions
 func SessionTable(sessions []*interfaces.Session, mux interfaces.TerminalMultiplexer) string {
 	if len(sessions) == 0 {
@@ -38,25 +54,8 @@ func SessionTable(sessions []*interfaces.Session, mux interfaces.TerminalMultipl
 
 	// Add rows
 	for _, sess := range sessions {
-		// Get multiplexer session status
-		var muxStatus string
-		if mux != nil {
-			if mux.IsSessionRunning(sess.Name) {
-				if muxSession, err := mux.GetSession(sess.Name); err == nil {
-					if muxSession.IsAttached() {
-						muxStatus = FormatTmuxStatus("attached")
-					} else {
-						muxStatus = FormatTmuxStatus("running")
-					}
-				} else {
-					muxStatus = FormatTmuxStatus("running")
-				}
-			} else {
-				muxStatus = FormatTmuxStatus("stopped")
-			}
-		} else {
-			muxStatus = Dim("unknown")
-		}
+		// Use the session status computed by SessionService
+		muxStatus := sessionStatusToMultiplexerDisplay(sess.Status)
 
 		t.AppendRow(table.Row{
 			Highlight(sess.ID[:8] + "..."), // Truncate ID for readability
@@ -92,27 +91,14 @@ func SessionDetail(sess *interfaces.Session, mux interfaces.TerminalMultiplexer)
 	builder.WriteString(Title("Session Details") + "\n")
 	builder.WriteString(HorizontalLine(50) + "\n\n")
 
-	// Multiplexer status
-	muxStatus := "unknown"
-	if mux.IsSessionRunning(sess.Name) {
-		if muxSession, err := mux.GetSession(sess.Name); err == nil {
-			if muxSession.IsAttached() {
-				muxStatus = "attached"
-			} else {
-				muxStatus = "running"
-			}
-		} else {
-			muxStatus = "running"
-		}
-	} else {
-		muxStatus = "stopped"
-	}
+	// Use the session status computed by SessionService
+	muxStatusDisplay := sessionStatusToMultiplexerDisplay(sess.Status)
 
 	// Basic info
 	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("ID:"), sess.ID))
 	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Name:"), Title(sess.Name)))
 	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Status:"), FormatStatus(string(sess.Status))))
-	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Backend:"), FormatTmuxStatus(muxStatus)))
+	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Backend:"), muxStatusDisplay))
 	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Created:"), formatTime(sess.CreatedAt)))
 	builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Last Active:"), formatTimeAgo(sess.LastActive)))
 	builder.WriteString(fmt.Sprintf("%-15s %d\n", Bold("Messages:"), len(sess.Messages)))

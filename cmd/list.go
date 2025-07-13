@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
-	"claude-pilot/internal/config"
 	"claude-pilot/internal/interfaces"
-	"claude-pilot/internal/manager"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -25,30 +22,20 @@ Examples:
   claude-pilot list --sort=name # Sort by name instead of last activity`,
 	Aliases: []string{"ls"},
 	Run: func(cmd *cobra.Command, args []string) {
+		// Initialize common command context
+		ctx, err := InitializeCommand()
+		if err != nil {
+			HandleError(err, "initialize command")
+		}
+
 		// Get flags
 		showAll, _ := cmd.Flags().GetBool("all")
 		sortBy, _ := cmd.Flags().GetString("sort")
 
-		// Load configuration
-		configManager := config.NewConfigManager("")
-		cfg, err := configManager.Load()
-		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to load configuration: %v", err)))
-			os.Exit(1)
-		}
-
-		// Create session manager
-		sm, err := manager.NewSessionManager(cfg)
-		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to initialize session manager: %v", err)))
-			os.Exit(1)
-		}
-
 		// Get all sessions
-		sessions, err := sm.ListSessions()
+		sessions, err := ctx.SessionManager.ListSessions()
 		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to list sessions: %v", err)))
-			os.Exit(1)
+			HandleError(err, "list sessions")
 		}
 
 		// Filter sessions if not showing all
@@ -84,7 +71,7 @@ Examples:
 
 		// Display header
 		fmt.Println(ui.Title("Claude Pilot Sessions"))
-		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), sm.GetConfig().Backend)
+		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), ctx.Config.Backend)
 		fmt.Println()
 
 		if len(sessions) == 0 {
@@ -101,10 +88,10 @@ Examples:
 		}
 
 		// Display sessions table
-		fmt.Println(ui.SessionTable(sessions, sm.GetMultiplexer()))
+		fmt.Println(ui.SessionTable(sessions, ctx.SessionManager.GetMultiplexer()))
 		fmt.Println()
 
-		// Show summary
+		// Show summary using common function
 		activeCount := 0
 		inactiveCount := 0
 		for _, sess := range sessions {
@@ -115,24 +102,14 @@ Examples:
 			}
 		}
 
-		if showAll {
-			fmt.Printf("%s Total: %d sessions (%d active, %d inactive)\n",
-				ui.InfoMsg("Summary:"), len(sessions), activeCount, inactiveCount)
-		} else {
-			fmt.Printf("%s Active sessions: %d\n",
-				ui.InfoMsg("Summary:"), activeCount)
-			if inactiveCount > 0 {
-				fmt.Printf("  %s Use --all to show %d inactive sessions\n",
-					ui.Dim("Note:"), inactiveCount)
-			}
-		}
+		ui.DisplaySessionSummary(len(sessions), activeCount, inactiveCount, showAll)
 
-		// Show helpful commands
-		fmt.Println()
-		fmt.Println(ui.InfoMsg("Available commands:"))
-		fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot attach <session-name>"))
-		fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot kill <session-name>"))
-		fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
+		// Show helpful commands using common function
+		ui.DisplayAvailableCommands(
+			"claude-pilot attach <session-name>",
+			"claude-pilot kill <session-name>",
+			"claude-pilot create [session-name]",
+		)
 	},
 }
 

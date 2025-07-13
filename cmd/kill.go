@@ -2,11 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
-	"claude-pilot/internal/config"
-	"claude-pilot/internal/manager"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -24,84 +20,53 @@ Examples:
   claude-pilot kill --force my-session # Skip confirmation prompt`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		// Initialize common command context
+		ctx, err := InitializeCommand()
+		if err != nil {
+			HandleError(err, "initialize command")
+		}
+
 		identifier := args[0]
 		force, _ := cmd.Flags().GetBool("force")
 
-		// Load configuration
-		configManager := config.NewConfigManager("")
-		cfg, err := configManager.Load()
-		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to load configuration: %v", err)))
-			os.Exit(1)
-		}
-
-		// Create session manager
-		sm, err := manager.NewSessionManager(cfg)
-		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to initialize session manager: %v", err)))
-			os.Exit(1)
-		}
-
 		// Get the session to verify it exists
-		sess, err := sm.GetSession(identifier)
+		sess, err := ctx.SessionManager.GetSession(identifier)
 		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Session not found: %v", err)))
-			os.Exit(1)
+			HandleError(err, "find session")
 		}
 
 		// Show session details
 		fmt.Println(ui.WarningMsg(fmt.Sprintf("About to terminate session '%s'", sess.Name)))
 		fmt.Println()
 
-		// Show session details
-		fmt.Printf("%-15s %s\n", ui.Bold("ID:"), sess.ID)
-		fmt.Printf("%-15s %s\n", ui.Bold("Name:"), ui.Title(sess.Name))
-		fmt.Printf("%-15s %s\n", ui.Bold("Status:"), ui.FormatStatus(string(sess.Status)))
-		fmt.Printf("%-15s %s\n", ui.Bold("Backend:"), cfg.Backend)
-		fmt.Printf("%-15s %s\n", ui.Bold("Created:"), sess.CreatedAt.Format("2006-01-02 15:04:05"))
-		if sess.ProjectPath != "" {
-			fmt.Printf("%-15s %s\n", ui.Bold("Project:"), sess.ProjectPath)
-		}
-		fmt.Printf("%-15s %d\n", ui.Bold("Messages:"), len(sess.Messages))
-
+		// Show session details using common function (with messages)
+		ui.DisplaySessionDetailsWithMessages(sess, ctx.Config.Backend)
 		fmt.Println()
 
-		// Confirmation prompt (unless forced)
+		// Confirmation prompt (unless forced) using common function
 		if !force {
-			fmt.Print(ui.Prompt("Are you sure you want to terminate this session? [y/N]: "))
-			var response string
-			fmt.Scanln(&response)
-
-			response = strings.ToLower(strings.TrimSpace(response))
-			if response != "y" && response != "yes" {
+			if !ConfirmAction("Are you sure you want to terminate this session? [y/N]: ") {
 				fmt.Println(ui.InfoMsg("Session termination cancelled."))
 				return
 			}
 		}
 
 		// Delete the session
-		if err := sm.DeleteSession(identifier); err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to terminate session: %v", err)))
-			os.Exit(1)
+		if err := ctx.SessionManager.DeleteSession(identifier); err != nil {
+			HandleError(err, "terminate session")
 		}
 
 		// Success message
 		fmt.Println(ui.SuccessMsg(fmt.Sprintf("Session '%s' has been terminated", sess.Name)))
 
-		// Show remaining sessions count
-		remainingSessions, err := sm.ListSessions()
+		// Show remaining sessions count using common function
+		remainingSessions, err := ctx.SessionManager.ListSessions()
 		if err != nil {
 			fmt.Println(ui.WarningMsg("Failed to check remaining sessions"))
 			return
 		}
 
-		if len(remainingSessions) > 0 {
-			fmt.Printf("%s %d sessions remaining\n", ui.InfoMsg("Status:"), len(remainingSessions))
-			fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot list"))
-		} else {
-			fmt.Println(ui.InfoMsg("No sessions remaining"))
-			fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
-		}
+		ui.DisplayRemainingSessionsInfo(remainingSessions)
 	},
 }
 
@@ -115,28 +80,18 @@ Examples:
   claude-pilot kill-all              # Kill all sessions with confirmation
   claude-pilot kill-all --force      # Skip confirmation prompt`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Initialize common command context
+		ctx, err := InitializeCommand()
+		if err != nil {
+			HandleError(err, "initialize command")
+		}
+
 		force, _ := cmd.Flags().GetBool("force")
 
-		// Load configuration
-		configManager := config.NewConfigManager("")
-		cfg, err := configManager.Load()
-		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to load configuration: %v", err)))
-			os.Exit(1)
-		}
-
-		// Create session manager
-		sm, err := manager.NewSessionManager(cfg)
-		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to initialize session manager: %v", err)))
-			os.Exit(1)
-		}
-
 		// Get all sessions
-		sessions, err := sm.ListSessions()
+		sessions, err := ctx.SessionManager.ListSessions()
 		if err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to list sessions: %v", err)))
-			os.Exit(1)
+			HandleError(err, "list sessions")
 		}
 
 		if len(sessions) == 0 {
@@ -147,26 +102,20 @@ Examples:
 		// Show sessions to be terminated
 		fmt.Println(ui.WarningMsg(fmt.Sprintf("About to terminate %d sessions:", len(sessions))))
 		fmt.Println()
-		fmt.Println(ui.SessionTable(sessions, sm.GetMultiplexer()))
+		fmt.Println(ui.SessionTable(sessions, ctx.SessionManager.GetMultiplexer()))
 		fmt.Println()
 
-		// Confirmation prompt (unless forced)
+		// Confirmation prompt (unless forced) using common function
 		if !force {
-			fmt.Print(ui.Prompt(fmt.Sprintf("Are you sure you want to terminate all %d sessions? [y/N]: ", len(sessions))))
-			var response string
-			fmt.Scanln(&response)
-
-			response = strings.ToLower(strings.TrimSpace(response))
-			if response != "y" && response != "yes" {
+			if !ConfirmAction(fmt.Sprintf("Are you sure you want to terminate all %d sessions? [y/N]: ", len(sessions))) {
 				fmt.Println(ui.InfoMsg("Session termination cancelled."))
 				return
 			}
 		}
 
 		// Delete all sessions
-		if err := sm.KillAllSessions(); err != nil {
-			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Failed to terminate all sessions: %v", err)))
-			os.Exit(1)
+		if err := ctx.SessionManager.KillAllSessions(); err != nil {
+			HandleError(err, "terminate all sessions")
 		}
 
 		// Success message

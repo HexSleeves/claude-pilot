@@ -1,0 +1,34 @@
+# Claude Pilot Configuration
+# Configuration file for Claude Pilot - AI session manager
+#
+# For more information, visit: https://github.com/HexSleeves/claude-pilot
+
+# Backend selection: auto, tmux, or zellij
+# 'auto' will automatically detect and prefer tmux if available
+backend: auto
+
+# Directory where session metadata is stored
+# Will be created automatically if it doesn't exist
+sessions_dir: $HOME/.config/claude-pilot/sessions
+
+# Default shell command to run (claude CLI)
+default_shell: claude
+
+# UI configuration
+ui:
+  # Interface mode: cli or tui
+  # cli: Traditional command-line interface
+  # tui: Interactive terminal user interface
+  mode: cli
+
+  # Theme settings (reserved for future use)
+  theme: default
+
+# Backend-specific configurations
+tmux:
+  # Prefix for tmux session names (optional)
+  session_prefix: claude-
+
+zellij:
+  # Custom layout file for zellij sessions (optional)
+  layout_file: ""
