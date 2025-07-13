@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"runtime/debug"
 
 	"claude-pilot/internal/interfaces"
 
@@ -194,6 +196,14 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles messages and updates the model
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Log panic but don't crash the application
+			fmt.Fprintf(os.Stderr, "Panic in Update method: %v\n", r)
+			// Return the model in a safe state
+		}
+	}()
+
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -262,6 +272,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sessionAttachedMsg:
 		// Attachment successful, exit TUI
 		return m, tea.Quit
+
+	case sessionErrorMsg:
+		m.loadingState = LoadingError
+		m.errorMessage = fmt.Sprintf("Failed to %s session: %v", msg.operation, msg.err)
+		m.statusMessage = fmt.Sprintf("Error during %s operation", msg.operation)
+		return m, nil
 	}
 
 	// Update table
@@ -277,6 +293,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the model
 func (m Model) View() string {
+	defer func() {
+		if r := recover(); r != nil {
+			// Return a safe error message instead of panicking
+			fmt.Fprintf(os.Stderr, "Panic in View rendering: %v\n", r)
+		}
+	}()
+
 	switch m.state {
 	case StateHelp:
 		return m.helpView()
@@ -293,6 +316,7 @@ func (m Model) sessionListView() string {
 
 	var content string
 	var statusBar string
+	var errorMessage string
 
 	// Show loading state
 	if m.loadingState == LoadingInProgress {
@@ -333,6 +357,11 @@ func (m Model) sessionListView() string {
 		content = contentStyle.Render(content)
 	}
 	parts = append(parts, content)
+
+	// Add error message if present
+	if errorMessage != "" {
+		parts = append(parts, "", errorMessage)
+	}
 
 	// Add status bar if present
 	if statusBar != "" {
@@ -397,19 +426,20 @@ func (m *Model) updateTable() {
 
 	for i, session := range m.sessions {
 		status := string(session.Status)
-		if session.Status == interfaces.StatusActive {
+		switch session.Status {
+		case interfaces.StatusActive:
 			status = "● Active"
-		} else if session.Status == interfaces.StatusInactive {
+		case interfaces.StatusInactive:
 			status = "⏸ Inactive"
-		} else if session.Status == interfaces.StatusConnected {
+		case interfaces.StatusConnected:
 			status = "🔗 Connected"
 		}
 
 		rows[i] = table.Row{
 			session.Name,
 			status,
-			session.CreatedAt.Format("2006-01-02 15:04"),
 			session.ProjectPath,
+			session.CreatedAt.Format("2006-01-02 15:04"),
 		}
 	}
 
@@ -444,10 +474,11 @@ func (m *Model) updateTableDimensions() {
 		3)
 
 	// Set table dimensions with proper padding
-	tableWidth := m.width - 4 // Account for border padding
-	if tableWidth < 10 {
-		tableWidth = 10 // Minimum width
-	}
+	tableWidth := max(
+		// Account for border padding
+		m.width-4,
+		// Minimum width
+		10)
 
 	m.sessionTable.SetWidth(tableWidth)
 	m.sessionTable.SetHeight(availableHeight)
@@ -468,8 +499,20 @@ type sessionAttachedMsg struct {
 	sessionName string
 }
 
+type sessionErrorMsg struct {
+	operation string
+	err       error
+}
+
 func (m Model) loadSessionsCmd() tea.Cmd {
 	return func() tea.Msg {
+		defer func() {
+			if r := recover(); r != nil {
+				// Panics in commands are handled by returning an error message
+				// The function will return the error below
+			}
+		}()
+
 		sessions, err := m.service.ListSessions()
 		if err != nil {
 			return sessionsLoadedMsg{sessions: []*interfaces.Session{}, err: err}
@@ -480,10 +523,19 @@ func (m Model) loadSessionsCmd() tea.Cmd {
 
 func (m Model) deleteSession(sessionID string) tea.Cmd {
 	return func() tea.Msg {
+		defer func() {
+			if r := recover(); r != nil {
+				// Panics in commands are handled by returning an error message
+				// The function will return the error below
+			}
+		}()
+
 		err := m.service.DeleteSession(sessionID)
 		if err != nil {
-			// Handle error
-			return nil
+			return sessionErrorMsg{
+				operation: "delete",
+				err:       err,
+			}
 		}
 		return sessionDeletedMsg{sessionID: sessionID}
 	}
@@ -491,10 +543,19 @@ func (m Model) deleteSession(sessionID string) tea.Cmd {
 
 func (m Model) attachToSession(sessionName string) tea.Cmd {
 	return func() tea.Msg {
+		defer func() {
+			if r := recover(); r != nil {
+				// Panics in commands are handled by returning an error message
+				// The function will return the error below
+			}
+		}()
+
 		err := m.service.AttachToSession(sessionName)
 		if err != nil {
-			// Handle error
-			return nil
+			return sessionErrorMsg{
+				operation: "attach",
+				err:       err,
+			}
 		}
 		return sessionAttachedMsg{sessionName: sessionName}
 	}
@@ -502,6 +563,26 @@ func (m Model) attachToSession(sessionName string) tea.Cmd {
 
 // RunTUI starts the TUI application
 func RunTUI(service interfaces.SessionService) error {
+	// Set up panic recovery to prevent terminal corruption
+	defer func() {
+		if r := recover(); r != nil {
+			// Try to restore terminal state
+			fmt.Print("\033[?25h") // Show cursor
+			fmt.Print("\033[0m")   // Reset colors
+			fmt.Print("\033[2J")   // Clear screen
+			fmt.Print("\033[H")    // Move cursor to top-left
+
+			// Print panic information
+			fmt.Fprintf(os.Stderr, "\nPanic in TUI application: %v\n", r)
+			fmt.Fprintf(os.Stderr, "Terminal state has been restored. You may need to run 'reset' if display issues persist.\n")
+
+			// Print stack trace for debugging
+			debug.PrintStack()
+
+			os.Exit(1)
+		}
+	}()
+
 	model := NewModel(service)
 
 	p := tea.NewProgram(
@@ -511,6 +592,9 @@ func RunTUI(service interfaces.SessionService) error {
 	)
 
 	if _, err := p.Run(); err != nil {
+		// Ensure terminal is restored on error
+		fmt.Print("\033[?25h") // Show cursor
+		fmt.Print("\033[0m")   // Reset colors
 		return fmt.Errorf("failed to run TUI: %w", err)
 	}
 

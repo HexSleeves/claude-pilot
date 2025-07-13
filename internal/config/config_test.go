@@ -51,7 +51,7 @@ func TestConfigManagerCreation(t *testing.T) {
 
 func TestConfigManagerOperations(t *testing.T) {
 	cm := NewConfigManager("")
-	
+
 	// Test getting initial config
 	config := cm.GetConfig()
 	if config == nil {
@@ -72,7 +72,7 @@ func TestConfigManagerOperations(t *testing.T) {
 
 func TestUIConfig(t *testing.T) {
 	config := DefaultConfig()
-	
+
 	// Test that UI config exists
 	if config.UI.Mode == "" {
 		t.Error("UI mode should not be empty")
@@ -94,7 +94,7 @@ func TestUIConfig(t *testing.T) {
 
 func TestBackendConfig(t *testing.T) {
 	config := DefaultConfig()
-	
+
 	// Test that backend is set
 	if config.Backend == "" {
 		t.Error("Backend should not be empty")
@@ -151,7 +151,7 @@ func TestHomeDirectoryExpansion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := ExpandHomePath(tt.input, "/expected/home")
 			if result != tt.expected {
-				t.Errorf("expandHomePath(%q, %q) = %q, want %q", 
+				t.Errorf("expandHomePath(%q, %q) = %q, want %q",
 					tt.input, "/expected/home", result, tt.expected)
 			}
 		})

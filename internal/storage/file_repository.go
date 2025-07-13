@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"claude-pilot/internal/interfaces"
+	"claude-pilot/internal/utils"
 )
+
+var IGNORE_FILES = []string{".name_index.json"}
 
 // NameIndex maps session names to IDs for fast lookup
 type NameIndex struct {
@@ -107,6 +111,11 @@ func (r *FileSessionRepository) List() ([]*interfaces.Session, error) {
 		return nil, fmt.Errorf("failed to glob session files: %w", err)
 	}
 
+	// Filter out ignored files
+	files = utils.Filter(files, func(file string) bool {
+		return !slices.Contains(IGNORE_FILES, filepath.Base(file))
+	})
+
 	// Pre-allocate slice with known capacity to avoid reallocation
 	sessions := make([]*interfaces.Session, 0, len(files))
 	for _, file := range files {
@@ -176,7 +185,7 @@ func (r *FileSessionRepository) getIndexPath() string {
 // loadNameIndex loads the name index from disk
 func (r *FileSessionRepository) loadNameIndex() error {
 	indexPath := r.getIndexPath()
-	
+
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
 		return err
@@ -184,18 +193,18 @@ func (r *FileSessionRepository) loadNameIndex() error {
 
 	r.indexMutex.Lock()
 	defer r.indexMutex.Unlock()
-	
+
 	return json.Unmarshal(data, r.nameIndex)
 }
 
 // saveNameIndex saves the name index to disk
 func (r *FileSessionRepository) saveNameIndex() error {
 	indexPath := r.getIndexPath()
-	
+
 	r.indexMutex.RLock()
 	data, err := json.MarshalIndent(r.nameIndex, "", "  ")
 	r.indexMutex.RUnlock()
-	
+
 	if err != nil {
 		return err
 	}
@@ -224,11 +233,11 @@ func (r *FileSessionRepository) rebuildNameIndex() error {
 func (r *FileSessionRepository) writeFileAtomic(filename string, data []byte, perm os.FileMode) error {
 	// Write to a temporary file first
 	tempFile := filename + ".tmp"
-	
+
 	if err := os.WriteFile(tempFile, data, perm); err != nil {
 		return err
 	}
-	
+
 	// Atomically move the temp file to the final location
 	return os.Rename(tempFile, filename)
 }

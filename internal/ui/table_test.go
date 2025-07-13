@@ -207,4 +207,3 @@ func TestTruncateText(t *testing.T) {
 		})
 	}
 }
-
