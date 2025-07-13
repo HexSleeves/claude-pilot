@@ -39,10 +39,17 @@ func InitializeCommand() (*CommandContext, error) {
 	// Get verbose flag from viper
 	verbose := viper.GetBool("verbose")
 
+	// Check for LOG_LEVEL environment variable to override config
+	logLevel := cfg.Logging.Level
+	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
+		// Override with environment variable if set
+		logLevel = envLogLevel
+	}
+
 	// Create logger based on configuration and flags
 	loggerBuilder := logger.NewBuilder().
 		WithEnabled(cfg.Logging.Enabled || verbose). // Enable if configured OR verbose flag is set
-		WithLevel(cfg.Logging.Level).
+		WithLevel(logLevel).
 		WithFile(cfg.Logging.File).
 		WithMaxSize(cfg.Logging.MaxSize).
 		WithTUIMode(cfg.UI.Mode == "tui").

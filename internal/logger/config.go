@@ -67,10 +67,7 @@ func (b *Builder) WithTUIMode(tuiMode bool) *Builder {
 // WithVerbose enables verbose logging
 func (b *Builder) WithVerbose(verbose bool) *Builder {
 	b.config.Verbose = verbose
-	if verbose {
-		// In verbose mode, enable debug level logging
-		b.config.Level = slog.LevelDebug
-	}
+	// Don't change the log level - verbose only controls output destination
 	return b
 }
 
