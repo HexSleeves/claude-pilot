@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 
 	"claude-pilot/internal/interfaces"
+	"claude-pilot/internal/tui/components"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -44,6 +45,9 @@ type Model struct {
 	// Components
 	sessionTable table.Model
 	sessionList  list.Model
+	statusBar    *components.StatusBarModel
+	help         *components.HelpModel
+	loading      *components.LoadingModel
 
 	// Data
 	sessions        []*interfaces.Session
@@ -145,8 +149,8 @@ func NewModel(service interfaces.SessionService) *Model {
 	columns := []table.Column{
 		{Title: "Name", Width: 20},
 		{Title: "Status", Width: 10},
-		{Title: "Created", Width: 20},
 		{Title: "Project", Width: 30},
+		{Title: "Created", Width: 20},
 	}
 
 	t := table.New(
@@ -174,10 +178,13 @@ func NewModel(service interfaces.SessionService) *Model {
 	loadingStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#3498DB"))
 
-	return &Model{
+	model := &Model{
 		service:      service,
 		state:        StateSessionList,
 		sessionTable: t,
+		statusBar:    components.NewStatusBarModel(),
+		help:         components.NewHelpModel(),
+		loading:      components.NewLoadingModel(),
 		loadingState: LoadingIdle,
 		baseStyle:    baseStyle,
 		titleStyle:   titleStyle,
@@ -185,6 +192,8 @@ func NewModel(service interfaces.SessionService) *Model {
 		successStyle: successStyle,
 		loadingStyle: loadingStyle,
 	}
+
+	return model
 }
 
 // Init initializes the model
@@ -205,6 +214,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}()
 
 	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -212,6 +222,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		// Update table dimensions based on available space
 		m.updateTableDimensions()
+
+		// Update component dimensions
+		m.statusBar.SetWidth(msg.Width)
+		m.loading.SetWidth(msg.Width)
+		m.help.SetDimensions(msg.Width, msg.Height)
 
 	case tea.KeyMsg:
 		switch {
@@ -282,13 +297,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Update table
 	m.sessionTable, cmd = m.sessionTable.Update(msg)
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
+	// Update components
+	var statusBarModel components.StatusBarModel
+	var loadingModel components.LoadingModel
+	var helpModel components.HelpModel
+
+	statusBarModel, cmd = m.statusBar.Update(msg)
+	*m.statusBar = statusBarModel
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
+	loadingModel, cmd = m.loading.Update(msg)
+	*m.loading = loadingModel
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
+	helpModel, cmd = m.help.Update(msg)
+	*m.help = helpModel
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
 
 	// Update selected session based on table cursor
 	if len(m.sessions) > 0 && m.sessionTable.Cursor() < len(m.sessions) {
 		m.selectedSession = m.sessions[m.sessionTable.Cursor()]
 	}
 
-	return m, cmd
+	// Return combined commands
+	if len(cmds) > 0 {
+		return m, tea.Batch(cmds...)
+	}
+
+	return m, nil
 }
 
 // View renders the model
@@ -318,12 +364,13 @@ func (m Model) sessionListView() string {
 	var statusBar string
 	var errorMessage string
 
-	// Show loading state
+	// Show loading state using the loading component
 	if m.loadingState == LoadingInProgress {
-		content = m.loadingStyle.Render("🔄 Loading sessions...")
+		m.loading.SetMessage(m.statusMessage)
+		content = m.loading.View()
 	} else if len(m.sessions) == 0 {
 		if m.loadingState == LoadingError {
-			content = m.errorStyle.Render("❌ " + m.errorMessage)
+			content = m.loading.ViewError(m.errorMessage)
 		} else {
 			content = "No sessions found. Press 'c' to create a new session."
 		}
@@ -331,16 +378,21 @@ func (m Model) sessionListView() string {
 		content = m.baseStyle.Render(m.sessionTable.View())
 	}
 
-	// Status bar with current state
+	// Status bar using the status bar component
+	m.statusBar.SetWidth(m.width)
 	switch m.loadingState {
 	case LoadingInProgress:
-		statusBar = m.loadingStyle.Render(m.statusMessage)
+		m.statusBar.SetLoading(m.statusMessage)
 	case LoadingSuccess:
-		statusBar = m.successStyle.Render(m.statusMessage)
+		m.statusBar.SetSuccess(m.statusMessage)
 	case LoadingError:
-		statusBar = m.errorStyle.Render(m.statusMessage)
+		m.statusBar.SetError(m.statusMessage)
 	default:
-		statusBar = ""
+		m.statusBar.Clear()
+	}
+
+	if m.statusBar.IsVisible() {
+		statusBar = m.statusBar.View()
 	}
 
 	help := lipgloss.NewStyle().
@@ -365,10 +417,6 @@ func (m Model) sessionListView() string {
 
 	// Add status bar if present
 	if statusBar != "" {
-		if m.width > 0 {
-			statusStyle := lipgloss.NewStyle().Width(m.width)
-			statusBar = statusStyle.Render(statusBar)
-		}
 		parts = append(parts, "", statusBar)
 	}
 
@@ -384,40 +432,9 @@ func (m Model) sessionListView() string {
 
 // helpView renders the help screen
 func (m Model) helpView() string {
-	title := m.titleStyle.Render("Claude Pilot - Help")
-
-	helpText := `
-Key Bindings:
-  ↑/k, ↓/j    Navigate sessions
-  enter       View session details
-  c           Create new session
-  a           Attach to selected session
-  d           Delete selected session
-  r           Refresh session list
-  ?           Toggle this help
-  q           Quit application
-
-Session Status:
-  ● Active    Session is running
-  ⏸ Inactive  Session exists but not running
-  🔗 Connected Someone is attached to session
-
-Press ? again to return to session list.
-`
-
-	// Apply width constraint if terminal size is available
-	if m.width > 0 {
-		contentStyle := lipgloss.NewStyle().
-			Width(m.width).
-			Padding(0, 1)
-		helpText = contentStyle.Render(helpText)
-	}
-
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		title,
-		helpText,
-	)
+	// Use the help component for rendering
+	m.help.SetDimensions(m.width, m.height)
+	return m.help.View()
 }
 
 // updateTable updates the table with current session data
@@ -425,7 +442,7 @@ func (m *Model) updateTable() {
 	rows := make([]table.Row, len(m.sessions))
 
 	for i, session := range m.sessions {
-		status := string(session.Status)
+		var status string
 		switch session.Status {
 		case interfaces.StatusActive:
 			status = "● Active"
@@ -433,6 +450,8 @@ func (m *Model) updateTable() {
 			status = "⏸ Inactive"
 		case interfaces.StatusConnected:
 			status = "🔗 Connected"
+		default:
+			status = string(session.Status)
 		}
 
 		rows[i] = table.Row{
@@ -464,7 +483,7 @@ func (m *Model) updateTableDimensions() {
 
 	// Add status bar height if present
 	if m.loadingState != LoadingIdle {
-		statusBar := m.loadingStyle.Render("Status")
+		statusBar := m.loading.View()                // Use loading model for status bar
 		usedHeight += lipgloss.Height(statusBar) + 1 // status + empty line
 	}
 
