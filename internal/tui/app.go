@@ -48,6 +48,7 @@ type Model struct {
 	statusBar    *components.StatusBarModel
 	help         *components.HelpModel
 	loading      *components.LoadingModel
+	notification *components.NotificationModel
 
 	// Data
 	sessions        []*interfaces.Session
@@ -167,7 +168,7 @@ func NewModel(service interfaces.SessionService) *Model {
 	titleStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FF6B35")).
 		Bold(true).
-		Padding(0, 1)
+		Padding(0, 0)
 
 	errorStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#E74C3C"))
@@ -185,6 +186,7 @@ func NewModel(service interfaces.SessionService) *Model {
 		statusBar:    components.NewStatusBarModel(),
 		help:         components.NewHelpModel(),
 		loading:      components.NewLoadingModel(),
+		notification: components.NewNotificationModel(),
 		loadingState: LoadingIdle,
 		baseStyle:    baseStyle,
 		titleStyle:   titleStyle,
@@ -227,6 +229,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusBar.SetWidth(msg.Width)
 		m.loading.SetWidth(msg.Width)
 		m.help.SetDimensions(msg.Width, msg.Height)
+		m.notification.SetDimensions(msg.Width, msg.Height)
 
 	case tea.KeyMsg:
 		switch {
@@ -236,20 +239,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Refresh):
 			m.loadingState = LoadingInProgress
 			m.statusMessage = "Refreshing sessions..."
-			return m, m.loadSessionsCmd()
+			// Start loading animation
+			loadingCmd := m.loading.StartLoading("Refreshing sessions...")
+			return m, tea.Batch(m.loadSessionsCmd(), loadingCmd)
 
 		case key.Matches(msg, keys.Create):
 			// TODO: Implement session creation
-			return m, nil
+			notificationCmd := m.notification.ShowInfo("Session creation not yet implemented")
+			return m, notificationCmd
 
 		case key.Matches(msg, keys.Attach):
 			if m.selectedSession != nil {
-				return m, m.attachToSession(m.selectedSession.Name)
+				m.loadingState = LoadingInProgress
+				m.statusMessage = "Attaching to session..."
+				loadingCmd := m.loading.StartLoading("Attaching to session " + m.selectedSession.Name + "...")
+				return m, tea.Batch(m.attachToSession(m.selectedSession.Name), loadingCmd)
 			}
 
 		case key.Matches(msg, keys.Delete):
 			if m.selectedSession != nil {
-				return m, m.deleteSession(m.selectedSession.ID)
+				m.loadingState = LoadingInProgress
+				m.statusMessage = "Deleting session..."
+				loadingCmd := m.loading.StartLoading("Deleting session " + m.selectedSession.Name + "...")
+				return m, tea.Batch(m.deleteSession(m.selectedSession.ID), loadingCmd)
 			}
 
 		case key.Matches(msg, keys.Escape):
@@ -269,30 +281,66 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sessionsLoadedMsg:
 		m.sessions = msg.sessions
-		m.loadingState = LoadingSuccess
-		m.statusMessage = "Sessions loaded successfully"
+		m.loading.StopLoading()
+
 		if msg.err != nil {
 			m.loadingState = LoadingError
 			m.errorMessage = msg.err.Error()
 			m.statusMessage = "Failed to load sessions"
+			// Show error notification
+			notificationCmd := m.notification.ShowError("Failed to load sessions: " + msg.err.Error())
+			return m, notificationCmd
+		} else {
+			m.loadingState = LoadingSuccess
+			m.statusMessage = fmt.Sprintf("Loaded %d sessions", len(m.sessions))
+			// Show success notification
+			// notificationCmd := m.notification.ShowSuccess(m.statusMessage)
+			m.updateTable()
+			m.updateTableDimensions()
+			return m, cmd
 		}
-		m.updateTable()
-		m.updateTableDimensions()
 
 	case sessionDeletedMsg:
+		m.loading.StopLoading()
 		m.loadingState = LoadingInProgress
 		m.statusMessage = "Refreshing sessions..."
-		return m, m.loadSessionsCmd()
+		// Show success notification and refresh
+		notificationCmd := m.notification.ShowSuccess("Session deleted successfully")
+		loadingCmd := m.loading.StartLoading("Refreshing sessions...")
+		return m, tea.Batch(m.loadSessionsCmd(), loadingCmd, notificationCmd)
 
 	case sessionAttachedMsg:
-		// Attachment successful, exit TUI
+		m.loading.StopLoading()
+		// Show success notification before exiting
+		m.notification.ShowSuccess("Successfully attached to session")
 		return m, tea.Quit
 
 	case sessionErrorMsg:
-		m.loadingState = LoadingError
-		m.errorMessage = fmt.Sprintf("Failed to %s session: %v", msg.operation, msg.err)
-		m.statusMessage = fmt.Sprintf("Error during %s operation", msg.operation)
-		return m, nil
+		m.loading.StopLoading()
+		// Don't change loading state to LoadingError - just show the error notification
+		// Show error notification with the specific error message
+		notificationCmd := m.notification.ShowError(fmt.Sprintf("Failed to %s session: %v", msg.operation, msg.err))
+		return m, notificationCmd
+
+	case components.TickMsg:
+		// Handle loading animation ticks
+		if m.loading.IsLoading() {
+			loadingModel, cmd := m.loading.Update(msg)
+			*m.loading = loadingModel
+			return m, cmd
+		}
+
+	case components.ClearStatusMsg:
+		// Handle status bar auto-clear
+		statusBarModel, cmd := m.statusBar.Update(msg)
+		*m.statusBar = statusBarModel
+		return m, cmd
+
+	case components.HideNotificationMsg:
+		// Handle notification auto-hide
+		notificationModel, cmd := m.notification.Update(msg)
+		*m.notification = notificationModel
+		return m, cmd
 	}
 
 	// Update table
@@ -305,6 +353,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var statusBarModel components.StatusBarModel
 	var loadingModel components.LoadingModel
 	var helpModel components.HelpModel
+	var notificationModel components.NotificationModel
 
 	statusBarModel, cmd = m.statusBar.Update(msg)
 	*m.statusBar = statusBarModel
@@ -320,6 +369,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	helpModel, cmd = m.help.Update(msg)
 	*m.help = helpModel
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
+	notificationModel, cmd = m.notification.Update(msg)
+	*m.notification = notificationModel
 	if cmd != nil {
 		cmds = append(cmds, cmd)
 	}
@@ -364,9 +419,8 @@ func (m Model) sessionListView() string {
 	var statusBar string
 	var errorMessage string
 
-	// Show loading state using the loading component
-	if m.loadingState == LoadingInProgress {
-		m.loading.SetMessage(m.statusMessage)
+	// Show loading state using the enhanced loading component
+	if m.loadingState == LoadingInProgress && m.loading.IsLoading() {
 		content = m.loading.View()
 	} else if len(m.sessions) == 0 {
 		if m.loadingState == LoadingError {
@@ -378,15 +432,17 @@ func (m Model) sessionListView() string {
 		content = m.baseStyle.Render(m.sessionTable.View())
 	}
 
-	// Status bar using the status bar component
+	// Status bar using the enhanced status bar component
 	m.statusBar.SetWidth(m.width)
 	switch m.loadingState {
 	case LoadingInProgress:
 		m.statusBar.SetLoading(m.statusMessage)
 	case LoadingSuccess:
-		m.statusBar.SetSuccess(m.statusMessage)
+		statusBarCmd := m.statusBar.SetSuccess(m.statusMessage)
+		_ = statusBarCmd // Handle the command if needed
 	case LoadingError:
-		m.statusBar.SetError(m.statusMessage)
+		statusBarCmd := m.statusBar.SetError(m.statusMessage)
+		_ = statusBarCmd // Handle the command if needed
 	default:
 		m.statusBar.Clear()
 	}
@@ -427,7 +483,19 @@ func (m Model) sessionListView() string {
 	}
 	parts = append(parts, "", help)
 
-	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+	mainView := lipgloss.JoinVertical(lipgloss.Left, parts...)
+
+	// Overlay notification if visible
+	if m.notification.IsVisible() {
+		notification := m.notification.View()
+		// For now, just append the notification at the top
+		// In a more advanced implementation, you could overlay it
+		return notification + "\n" + mainView
+	}
+
+	mainViewStyle := lipgloss.NewStyle().PaddingLeft(2).PaddingRight(2)
+
+	return mainViewStyle.Render(mainView)
 }
 
 // helpView renders the help screen
@@ -485,6 +553,12 @@ func (m *Model) updateTableDimensions() {
 	if m.loadingState != LoadingIdle {
 		statusBar := m.loading.View()                // Use loading model for status bar
 		usedHeight += lipgloss.Height(statusBar) + 1 // status + empty line
+	}
+
+	// Add notification height if present
+	if m.notification.IsVisible() {
+		notification := m.notification.View()
+		usedHeight += lipgloss.Height(notification) + 1 // notification + empty line
 	}
 
 	// Calculate available height for content

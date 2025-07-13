@@ -23,8 +23,8 @@ type Config struct {
 	// DefaultShell is the command to run in new sessions
 	DefaultShell string `mapstructure:"default_shell" yaml:"default_shell"`
 
-	// LogLevel controls the verbosity of logging
-	LogLevel string `mapstructure:"log_level" yaml:"log_level"`
+	// Logging configuration
+	Logging LoggingConfig `mapstructure:"logging" yaml:"logging"`
 
 	// UI configuration
 	UI UIConfig `mapstructure:"ui" yaml:"ui"`
@@ -69,6 +69,21 @@ type ZellijConfig struct {
 	Theme string `mapstructure:"theme" yaml:"theme"`
 }
 
+// LoggingConfig contains logging configuration
+type LoggingConfig struct {
+	// Enabled controls whether logging is active (disabled by default)
+	Enabled bool `mapstructure:"enabled" yaml:"enabled"`
+
+	// Level sets the minimum log level (debug, info, warn, error)
+	Level string `mapstructure:"level" yaml:"level"`
+
+	// File is the path to the log file
+	File string `mapstructure:"file" yaml:"file"`
+
+	// MaxSize is the maximum size in MB before rotation (0 = no rotation)
+	MaxSize int64 `mapstructure:"max_size" yaml:"max_size"`
+}
+
 // DefaultConfig returns a configuration with sensible defaults
 func DefaultConfig() *Config {
 	homeDir, _ := os.UserHomeDir()
@@ -77,7 +92,12 @@ func DefaultConfig() *Config {
 		BackendPath:  "",     // Use system PATH
 		SessionsDir:  filepath.Join(homeDir, ".config", "claude-pilot", "sessions"),
 		DefaultShell: "claude",
-		LogLevel:     "info",
+		Logging: LoggingConfig{
+			Enabled: false, // Disabled by default per requirements
+			Level:   "info",
+			File:    filepath.Join(homeDir, ".config", "claude-pilot", "claude-pilot.log"),
+			MaxSize: 10, // 10MB max log file size
+		},
 		UI: UIConfig{
 			Mode:      "cli",
 			Theme:     "default",
@@ -197,7 +217,7 @@ func (cm *ConfigManager) Save() error {
 	viper.Set("backend_path", cm.config.BackendPath)
 	viper.Set("sessions_dir", cm.config.SessionsDir)
 	viper.Set("default_shell", cm.config.DefaultShell)
-	viper.Set("log_level", cm.config.LogLevel)
+	viper.Set("logging", cm.config.Logging)
 	viper.Set("ui", cm.config.UI)
 	viper.Set("tmux", cm.config.Tmux)
 	viper.Set("zellij", cm.config.Zellij)
@@ -223,7 +243,10 @@ func (cm *ConfigManager) setDefaults() {
 	viper.SetDefault("backend_path", defaults.BackendPath)
 	viper.SetDefault("sessions_dir", defaults.SessionsDir)
 	viper.SetDefault("default_shell", defaults.DefaultShell)
-	viper.SetDefault("log_level", defaults.LogLevel)
+	viper.SetDefault("logging.enabled", defaults.Logging.Enabled)
+	viper.SetDefault("logging.level", defaults.Logging.Level)
+	viper.SetDefault("logging.file", defaults.Logging.File)
+	viper.SetDefault("logging.max_size", defaults.Logging.MaxSize)
 	viper.SetDefault("ui.mode", defaults.UI.Mode)
 	viper.SetDefault("ui.theme", defaults.UI.Theme)
 	viper.SetDefault("ui.show_icons", defaults.UI.ShowIcons)
@@ -271,13 +294,13 @@ func (cm *ConfigManager) validateAndSetDefaults() error {
 	validLevels := []string{"debug", "info", "warn", "error"}
 	isValid = false
 	for _, level := range validLevels {
-		if cm.config.LogLevel == level {
+		if cm.config.Logging.Level == level {
 			isValid = true
 			break
 		}
 	}
 	if !isValid {
-		return fmt.Errorf("invalid log level '%s', must be one of: %v", cm.config.LogLevel, validLevels)
+		return fmt.Errorf("invalid log level '%s', must be one of: %v", cm.config.Logging.Level, validLevels)
 	}
 
 	return nil
@@ -312,6 +335,21 @@ sessions_dir: ` + filepath.Join(homeDir, ".config", "claude-pilot", "sessions") 
 
 # Default shell command to run (claude CLI)
 default_shell: claude
+
+# Logging configuration
+logging:
+  # Enable/disable logging (disabled by default)
+  # Logging can also be enabled with the --verbose/-v flag
+  enabled: false
+  
+  # Log level: debug, info, warn, error
+  level: info
+  
+  # Path to log file (will be created automatically)
+  file: ` + filepath.Join(homeDir, ".config", "claude-pilot", "claude-pilot.log") + `
+  
+  # Maximum log file size in MB before rotation (0 = no rotation)
+  max_size: 10
 
 # UI configuration
 ui:
@@ -356,6 +394,9 @@ func (cm *ConfigManager) expandHomePaths() error {
 
 	// Expand ZellijConfig.LayoutFile if it starts with ~
 	cm.config.Zellij.LayoutFile = ExpandHomePath(cm.config.Zellij.LayoutFile, homeDir)
+
+	// Expand Logging.File if it starts with ~
+	cm.config.Logging.File = ExpandHomePath(cm.config.Logging.File, homeDir)
 
 	return nil
 }

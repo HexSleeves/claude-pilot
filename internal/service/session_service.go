@@ -5,6 +5,9 @@ import (
 	"time"
 
 	"claude-pilot/internal/interfaces"
+	"claude-pilot/internal/logger"
+
+	"log/slog"
 
 	"github.com/google/uuid"
 )
@@ -13,24 +16,46 @@ import (
 type SessionService struct {
 	repository  interfaces.SessionRepository
 	multiplexer interfaces.TerminalMultiplexer
+	logger      *logger.Logger
 }
 
 // NewSessionService creates a new session service
 func NewSessionService(repository interfaces.SessionRepository, multiplexer interfaces.TerminalMultiplexer) *SessionService {
+	// Create a disabled logger by default for backward compatibility
+	disabledLogger, _ := logger.Setup.Disabled().Build()
 	return &SessionService{
 		repository:  repository,
 		multiplexer: multiplexer,
+		logger:      disabledLogger,
+	}
+}
+
+// NewSessionServiceWithLogger creates a new session service with a logger
+func NewSessionServiceWithLogger(repository interfaces.SessionRepository, multiplexer interfaces.TerminalMultiplexer, log *logger.Logger) *SessionService {
+	return &SessionService{
+		repository:  repository,
+		multiplexer: multiplexer,
+		logger:      log,
 	}
 }
 
 // CreateSession creates a new session with both metadata and multiplexer session
 func (s *SessionService) CreateSession(name, description, projectPath string) (*interfaces.Session, error) {
+	start := time.Now()
+
 	if name == "" {
 		name = fmt.Sprintf("session-%s", time.Now().Format("20060102-150405"))
 	}
 
+	s.logger.Debug("Creating session",
+		"name", name,
+		"description", description,
+		"project_path", projectPath)
+
 	// Check if session with same name already exists
 	if s.repository.Exists(name) {
+		s.logger.Warn("Session creation failed: name already exists",
+			"name", name)
 		return nil, fmt.Errorf("session with name '%s' already exists", name)
 	}
 
@@ -48,6 +73,10 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 
 	// Save session metadata first
 	if err := s.repository.Save(session); err != nil {
+		s.logger.Error("Failed to save session metadata",
+			"session_id", session.ID,
+			"name", name,
+			"error", err)
 		return nil, fmt.Errorf("failed to save session metadata: %w", err)
 	}
 
@@ -59,25 +88,52 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 		Command:     "claude",
 	}
 
+	s.logger.Debug("Creating multiplexer session",
+		"session_id", session.ID,
+		"name", name,
+		"command", req.Command,
+		"working_dir", req.WorkingDir)
+
 	_, err := s.multiplexer.CreateSession(req)
 	if err != nil {
 		// If multiplexer session creation fails, mark session as inactive but keep metadata
 		session.Status = interfaces.StatusInactive
 		s.repository.Save(session)
+		s.logger.Error("Failed to create multiplexer session",
+			"session_id", session.ID,
+			"name", name,
+			"error", err)
 		return session, fmt.Errorf("session created but failed to create multiplexer session: %w", err)
 	}
 
 	// Update session status
 	session.Status = interfaces.StatusActive
 	if err := s.repository.Save(session); err != nil {
+		s.logger.Error("Failed to update session status",
+			"session_id", session.ID,
+			"name", name,
+			"error", err)
 		return session, fmt.Errorf("session created but failed to update status: %w", err)
 	}
 
 	// Save index after session creation (important operations)
 	if err := s.repository.SaveIndex(); err != nil {
 		// Index save failure is not critical, just log it
-		fmt.Printf("Warning: failed to save name index: %v\n", err)
+		s.logger.Warn("Failed to save name index after session creation",
+			"session_id", session.ID,
+			"name", name,
+			"error", err)
 	}
+
+	s.logger.Performance("CreateSession", start,
+		slog.String("session_id", session.ID),
+		slog.String("name", name),
+		slog.String("project_path", projectPath))
+
+	s.logger.Info("Session created successfully",
+		"session_id", session.ID,
+		"name", name,
+		"status", string(session.Status))
 
 	return session, nil
 }
@@ -99,13 +155,24 @@ func (s *SessionService) GetSession(identifier string) (*interfaces.Session, err
 
 // ListSessions returns all sessions with their current status
 func (s *SessionService) ListSessions() ([]*interfaces.Session, error) {
+	start := time.Now()
+
+	s.logger.Debug("Listing sessions")
+
 	sessions, err := s.repository.List()
 	if err != nil {
+		s.logger.Error("Failed to list sessions from repository", "error", err)
 		return nil, fmt.Errorf("failed to list sessions: %w", err)
 	}
 
+	s.logger.Debug("Retrieved sessions from repository", "count", len(sessions))
+
 	// Batch update status for all sessions
 	s.batchUpdateSessionStatus(sessions)
+
+	s.logger.Performance("ListSessions", start, slog.Int("session_count", len(sessions)))
+
+	s.logger.Debug("Sessions listed successfully", "count", len(sessions))
 
 	return sessions, nil
 }
@@ -122,49 +189,88 @@ func (s *SessionService) UpdateSession(session *interfaces.Session) error {
 
 // DeleteSession removes a session and its multiplexer session
 func (s *SessionService) DeleteSession(identifier string) error {
+	start := time.Now()
+
+	s.logger.Debug("Deleting session", "identifier", identifier)
+
 	session, err := s.GetSession(identifier)
 	if err != nil {
+		s.logger.Error("Failed to find session for deletion",
+			"identifier", identifier,
+			"error", err)
 		return err
 	}
 
+	sessionLogger := s.logger.WithSession(session.ID, session.Name)
+
 	// Kill the multiplexer session if it's running
 	if s.multiplexer.IsSessionRunning(session.Name) {
+		sessionLogger.Debug("Killing running multiplexer session")
 		if err := s.multiplexer.KillSession(session.Name); err != nil {
+			sessionLogger.Error("Failed to kill multiplexer session", "error", err)
 			return fmt.Errorf("failed to kill multiplexer session: %w", err)
 		}
 	}
 
 	// Remove session metadata
 	if err := s.repository.Delete(session.ID); err != nil {
+		sessionLogger.Error("Failed to delete session metadata", "error", err)
 		return fmt.Errorf("failed to delete session metadata: %w", err)
 	}
 
 	// Save index after deletion (important operations)
 	if err := s.repository.SaveIndex(); err != nil {
 		// Index save failure is not critical, just log it
-		fmt.Printf("Warning: failed to save name index: %v\n", err)
+		sessionLogger.Warn("Failed to save name index after session deletion", "error", err)
 	}
+
+	s.logger.Performance("DeleteSession", start,
+		slog.String("session_id", session.ID),
+		slog.String("name", session.Name))
+
+	sessionLogger.Info("Session deleted successfully")
 
 	return nil
 }
 
 // AttachToSession connects to an existing session
 func (s *SessionService) AttachToSession(identifier string) error {
+	start := time.Now()
+
+	s.logger.Debug("Attaching to session", "identifier", identifier)
+
 	session, err := s.GetSession(identifier)
 	if err != nil {
+		s.logger.Error("Failed to find session for attachment",
+			"identifier", identifier,
+			"error", err)
 		return err
 	}
+
+	sessionLogger := s.logger.WithSession(session.ID, session.Name)
 
 	// Update session status to connected
 	session.Status = interfaces.StatusConnected
 	session.LastActive = time.Now()
 	if err := s.repository.Save(session); err != nil {
 		// Don't fail attachment due to metadata update failure
-		fmt.Printf("Warning: failed to update session metadata: %v\n", err)
+		sessionLogger.Warn("Failed to update session metadata before attachment", "error", err)
 	}
 
+	sessionLogger.Info("Attaching to multiplexer session")
+
 	// Attach to the multiplexer session
-	return s.multiplexer.AttachToSession(session.Name)
+	err = s.multiplexer.AttachToSession(session.Name)
+	if err != nil {
+		sessionLogger.Error("Failed to attach to multiplexer session", "error", err)
+		return err
+	}
+
+	s.logger.Performance("AttachToSession", start,
+		slog.String("session_id", session.ID),
+		slog.String("name", session.Name))
+
+	return nil
 }
 
 // AddMessage adds a message to a session's conversation history

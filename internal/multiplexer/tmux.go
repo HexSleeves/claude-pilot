@@ -2,6 +2,7 @@ package multiplexer
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strconv"
@@ -9,12 +10,14 @@ import (
 	"time"
 
 	"claude-pilot/internal/interfaces"
+	"claude-pilot/internal/logger"
 )
 
 // TmuxMultiplexer implements the TerminalMultiplexer interface for tmux
 type TmuxMultiplexer struct {
 	sessionPrefix string
 	tmuxPath      string
+	logger        *logger.Logger
 }
 
 // TmuxSession implements the MultiplexerSession interface
@@ -72,13 +75,23 @@ func (s *TmuxSession) IsRunning() bool {
 
 // NewTmuxMultiplexer creates a new tmux multiplexer instance
 func NewTmuxMultiplexer(sessionPrefix string) (*TmuxMultiplexer, error) {
+	// Create a disabled logger by default for backward compatibility
+	disabledLogger, _ := logger.Setup.Disabled().Build()
+	return NewTmuxMultiplexerWithLogger(sessionPrefix, disabledLogger)
+}
+
+// NewTmuxMultiplexerWithLogger creates a new tmux multiplexer instance with logger
+func NewTmuxMultiplexerWithLogger(sessionPrefix string, log *logger.Logger) (*TmuxMultiplexer, error) {
 	if sessionPrefix == "" {
 		sessionPrefix = "claude-pilot"
 	}
 
+	log.Debug("Initializing tmux multiplexer", "session_prefix", sessionPrefix)
+
 	// Try to find tmux binary
 	tmuxPath := "tmux" // default
 	if _, err := exec.LookPath("tmux"); err != nil {
+		log.Debug("tmux not found in PATH, trying common locations")
 		// Try common locations
 		paths := []string{
 			"/opt/homebrew/bin/tmux",
@@ -88,15 +101,25 @@ func NewTmuxMultiplexer(sessionPrefix string) (*TmuxMultiplexer, error) {
 		for _, path := range paths {
 			if _, err := os.Stat(path); err == nil {
 				tmuxPath = path
+				log.Debug("Found tmux binary", "path", path)
 				break
 			}
 		}
+	} else {
+		log.Debug("Found tmux in PATH")
 	}
 
-	return &TmuxMultiplexer{
+	tm := &TmuxMultiplexer{
 		sessionPrefix: sessionPrefix,
 		tmuxPath:      tmuxPath,
-	}, nil
+		logger:        log,
+	}
+
+	log.Info("Tmux multiplexer initialized",
+		"session_prefix", sessionPrefix,
+		"tmux_path", tmuxPath)
+
+	return tm, nil
 }
 
 // GetName returns the name of the multiplexer backend
@@ -126,10 +149,20 @@ func (tm *TmuxMultiplexer) IsAvailable() bool {
 
 // CreateSession creates a new tmux session
 func (tm *TmuxMultiplexer) CreateSession(req interfaces.CreateSessionRequest) (interfaces.MultiplexerSession, error) {
+	start := time.Now()
 	tmuxName := fmt.Sprintf("%s-%s", tm.sessionPrefix, req.Name)
+
+	tm.logger.Debug("Creating tmux session",
+		"name", req.Name,
+		"tmux_name", tmuxName,
+		"command", req.Command,
+		"working_dir", req.WorkingDir)
 
 	// Check if tmux session already exists
 	if tm.HasSession(req.Name) {
+		tm.logger.Warn("Tmux session creation failed: already exists",
+			"name", req.Name,
+			"tmux_name", tmuxName)
 		return nil, fmt.Errorf("tmux session '%s' already exists", req.Name)
 	}
 
@@ -149,7 +182,14 @@ func (tm *TmuxMultiplexer) CreateSession(req interfaces.CreateSessionRequest) (i
 		cmd = exec.Command(tm.tmuxPath, "new-session", "-d", "-s", tmuxName, command)
 	}
 
+	tm.logger.DebugCommand(tm.tmuxPath, cmd.Args[1:], req.WorkingDir)
+
 	if err := cmd.Run(); err != nil {
+		tm.logger.Error("Failed to create tmux session",
+			"name", req.Name,
+			"tmux_name", tmuxName,
+			"command", strings.Join(cmd.Args, " "),
+			"error", err)
 		return nil, fmt.Errorf("failed to create tmux session: %w", err)
 	}
 
@@ -164,6 +204,15 @@ func (tm *TmuxMultiplexer) CreateSession(req interfaces.CreateSessionRequest) (i
 		isAttached:  false,
 		isRunning:   true,
 	}
+
+	tm.logger.Performance("CreateSession", start,
+		slog.String("name", req.Name),
+		slog.String("tmux_name", tmuxName))
+
+	tm.logger.Info("Tmux session created successfully",
+		"name", req.Name,
+		"tmux_name", tmuxName,
+		"command", command)
 
 	return session, nil
 }
