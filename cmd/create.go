@@ -41,7 +41,7 @@ Examples:
 		projectPath = GetProjectPath(projectPath)
 
 		// Create the session
-		sess, err := ctx.SessionManager.CreateSession(sessionName, description, projectPath)
+		sess, err := ctx.Service.CreateSession(sessionName, description, projectPath)
 		if err != nil {
 			HandleError(err, "create session")
 		}

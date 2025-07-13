@@ -33,14 +33,15 @@ Examples:
 		sortBy, _ := cmd.Flags().GetString("sort")
 
 		// Get all sessions
-		sessions, err := ctx.SessionManager.ListSessions()
+		sessions, err := ctx.Service.ListSessions()
 		if err != nil {
 			HandleError(err, "list sessions")
 		}
 
 		// Filter sessions if not showing all
 		if !showAll {
-			var activeSessions []*interfaces.Session
+			// Pre-allocate with estimated capacity (assume most sessions are active)
+			activeSessions := make([]*interfaces.Session, 0, len(sessions))
 			for _, sess := range sessions {
 				if sess.Status == interfaces.StatusActive || sess.Status == interfaces.StatusConnected {
 					activeSessions = append(activeSessions, sess)
@@ -88,7 +89,7 @@ Examples:
 		}
 
 		// Display sessions table
-		fmt.Println(ui.SessionTable(sessions, ctx.SessionManager.GetMultiplexer()))
+		fmt.Println(ui.SessionTable(sessions, ctx.Multiplexer))
 		fmt.Println()
 
 		// Show summary using common function

@@ -7,14 +7,18 @@ import (
 	"strings"
 
 	"claude-pilot/internal/config"
-	"claude-pilot/internal/manager"
+	"claude-pilot/internal/interfaces"
+	"claude-pilot/internal/multiplexer"
+	"claude-pilot/internal/service"
+	"claude-pilot/internal/storage"
 	"claude-pilot/internal/ui"
 )
 
 // CommandContext holds common dependencies for all commands
 type CommandContext struct {
-	Config         *config.Config
-	SessionManager *manager.SessionManager
+	Config      *config.Config
+	Service     interfaces.SessionService
+	Multiplexer interfaces.TerminalMultiplexer
 }
 
 // InitializeCommand handles common initialization for all commands
@@ -28,15 +32,25 @@ func InitializeCommand() (*CommandContext, error) {
 		return nil, fmt.Errorf("load configuration: %w", err)
 	}
 
-	// Create session manager
-	sm, err := manager.NewSessionManager(cfg)
+	// Create multiplexer instance based on configuration
+	mux, err := multiplexer.CreateMultiplexer(cfg.Backend, cfg.Tmux.SessionPrefix)
 	if err != nil {
-		return nil, fmt.Errorf("initialize session manager: %w", err)
+		return nil, fmt.Errorf("failed to create multiplexer: %w", err)
 	}
 
+	// Create repository
+	repository, err := storage.NewFileSessionRepository(cfg.SessionsDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create repository: %w", err)
+	}
+
+	// Create service
+	sessionService := service.NewSessionService(repository, mux)
+
 	return &CommandContext{
-		Config:         cfg,
-		SessionManager: sm,
+		Config:      cfg,
+		Service:     sessionService,
+		Multiplexer: mux,
 	}, nil
 }
 

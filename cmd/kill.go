@@ -30,7 +30,7 @@ Examples:
 		force, _ := cmd.Flags().GetBool("force")
 
 		// Get the session to verify it exists
-		sess, err := ctx.SessionManager.GetSession(identifier)
+		sess, err := ctx.Service.GetSession(identifier)
 		if err != nil {
 			HandleError(err, "find session")
 		}
@@ -52,7 +52,7 @@ Examples:
 		}
 
 		// Delete the session
-		if err := ctx.SessionManager.DeleteSession(identifier); err != nil {
+		if err := ctx.Service.DeleteSession(identifier); err != nil {
 			HandleError(err, "terminate session")
 		}
 
@@ -60,7 +60,7 @@ Examples:
 		fmt.Println(ui.SuccessMsg(fmt.Sprintf("Session '%s' has been terminated", sess.Name)))
 
 		// Show remaining sessions count using common function
-		remainingSessions, err := ctx.SessionManager.ListSessions()
+		remainingSessions, err := ctx.Service.ListSessions()
 		if err != nil {
 			fmt.Println(ui.WarningMsg("Failed to check remaining sessions"))
 			return
@@ -89,7 +89,7 @@ Examples:
 		force, _ := cmd.Flags().GetBool("force")
 
 		// Get all sessions
-		sessions, err := ctx.SessionManager.ListSessions()
+		sessions, err := ctx.Service.ListSessions()
 		if err != nil {
 			HandleError(err, "list sessions")
 		}
@@ -102,7 +102,7 @@ Examples:
 		// Show sessions to be terminated
 		fmt.Println(ui.WarningMsg(fmt.Sprintf("About to terminate %d sessions:", len(sessions))))
 		fmt.Println()
-		fmt.Println(ui.SessionTable(sessions, ctx.SessionManager.GetMultiplexer()))
+		fmt.Println(ui.SessionTable(sessions, ctx.Multiplexer))
 		fmt.Println()
 
 		// Confirmation prompt (unless forced) using common function
@@ -114,7 +114,7 @@ Examples:
 		}
 
 		// Delete all sessions
-		if err := ctx.SessionManager.KillAllSessions(); err != nil {
+		if err := ctx.Service.KillAllSessions(); err != nil {
 			HandleError(err, "terminate all sessions")
 		}
 

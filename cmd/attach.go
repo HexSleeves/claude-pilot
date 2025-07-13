@@ -30,14 +30,14 @@ Examples:
 		identifier := args[0]
 
 		// Get the session
-		sess, err := ctx.SessionManager.GetSession(identifier)
+		sess, err := ctx.Service.GetSession(identifier)
 		if err != nil {
 			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Session not found: %v", err)))
 			fmt.Println()
 			fmt.Println(ui.InfoMsg("Available sessions:"))
 
 			// Show available sessions using common function
-			sessions, err := ctx.SessionManager.ListSessions()
+			sessions, err := ctx.Service.ListSessions()
 			if err != nil {
 				HandleError(err, "list sessions")
 			}
@@ -47,7 +47,7 @@ Examples:
 		}
 
 		// Check if session is running
-		if !ctx.SessionManager.IsSessionRunning(sess.Name) {
+		if !ctx.Service.IsSessionRunning(sess.Name) {
 			fmt.Println(ui.WarningMsg(fmt.Sprintf("Session '%s' is not running. It may have been terminated.", sess.Name)))
 			fmt.Println(ui.InfoMsg("You can recreate it with: claude-pilot create " + sess.Name))
 			os.Exit(1)
@@ -59,7 +59,7 @@ Examples:
 		fmt.Println()
 
 		// Attach to the session
-		if err := ctx.SessionManager.AttachToSession(identifier); err != nil {
+		if err := ctx.Service.AttachToSession(identifier); err != nil {
 			HandleError(err, "attach to session")
 		}
 

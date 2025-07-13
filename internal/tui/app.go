@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"claude-pilot/internal/interfaces"
-	"claude-pilot/internal/manager"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -23,12 +22,22 @@ const (
 	StateHelp
 )
 
+// LoadingState represents the loading state of async operations
+type LoadingState int
+
+const (
+	LoadingIdle LoadingState = iota
+	LoadingInProgress
+	LoadingSuccess
+	LoadingError
+)
+
 // Model represents the main TUI application model
 type Model struct {
-	sessionManager *manager.SessionManager
-	state          AppState
-	width          int
-	height         int
+	service interfaces.SessionService
+	state   AppState
+	width   int
+	height  int
 
 	// Components
 	sessionTable table.Model
@@ -38,11 +47,17 @@ type Model struct {
 	sessions        []*interfaces.Session
 	selectedSession *interfaces.Session
 
+	// Loading and error states
+	loadingState  LoadingState
+	errorMessage  string
+	statusMessage string
+
 	// Styling
 	baseStyle    lipgloss.Style
 	titleStyle   lipgloss.Style
 	errorStyle   lipgloss.Style
 	successStyle lipgloss.Style
+	loadingStyle lipgloss.Style
 }
 
 // keyMap defines the key bindings for the application
@@ -123,7 +138,7 @@ func DefaultKeyMap() keyMap {
 var keys = DefaultKeyMap()
 
 // NewModel creates a new TUI model
-func NewModel(sessionManager *manager.SessionManager) *Model {
+func NewModel(service interfaces.SessionService) *Model {
 	// Create table columns for session display
 	columns := []table.Column{
 		{Title: "Name", Width: 20},
@@ -154,20 +169,27 @@ func NewModel(sessionManager *manager.SessionManager) *Model {
 	successStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#2ECC71"))
 
+	loadingStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#3498DB"))
+
 	return &Model{
-		sessionManager: sessionManager,
-		state:          StateSessionList,
-		sessionTable:   t,
-		baseStyle:      baseStyle,
-		titleStyle:     titleStyle,
-		errorStyle:     errorStyle,
-		successStyle:   successStyle,
+		service:      service,
+		state:        StateSessionList,
+		sessionTable: t,
+		loadingState: LoadingIdle,
+		baseStyle:    baseStyle,
+		titleStyle:   titleStyle,
+		errorStyle:   errorStyle,
+		successStyle: successStyle,
+		loadingStyle: loadingStyle,
 	}
 }
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return m.loadSessions
+	m.loadingState = LoadingInProgress
+	m.statusMessage = "Loading sessions..."
+	return m.loadSessionsCmd()
 }
 
 // Update handles messages and updates the model
@@ -178,8 +200,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.sessionTable.SetWidth(msg.Width - 4)
-		m.sessionTable.SetHeight(msg.Height - 8)
+		// Update table dimensions based on available space
+		m.updateTableDimensions()
 
 	case tea.KeyMsg:
 		switch {
@@ -187,7 +209,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case key.Matches(msg, keys.Refresh):
-			return m, m.loadSessions
+			m.loadingState = LoadingInProgress
+			m.statusMessage = "Refreshing sessions..."
+			return m, m.loadSessionsCmd()
 
 		case key.Matches(msg, keys.Create):
 			// TODO: Implement session creation
@@ -220,10 +244,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sessionsLoadedMsg:
 		m.sessions = msg.sessions
+		m.loadingState = LoadingSuccess
+		m.statusMessage = "Sessions loaded successfully"
+		if msg.err != nil {
+			m.loadingState = LoadingError
+			m.errorMessage = msg.err.Error()
+			m.statusMessage = "Failed to load sessions"
+		}
 		m.updateTable()
+		m.updateTableDimensions()
 
 	case sessionDeletedMsg:
-		return m, m.loadSessions
+		m.loadingState = LoadingInProgress
+		m.statusMessage = "Refreshing sessions..."
+		return m, m.loadSessionsCmd()
 
 	case sessionAttachedMsg:
 		// Attachment successful, exit TUI
@@ -258,24 +292,65 @@ func (m Model) sessionListView() string {
 	title := m.titleStyle.Render("Claude Pilot - Session Manager")
 
 	var content string
-	if len(m.sessions) == 0 {
-		content = "No sessions found. Press 'c' to create a new session."
+	var statusBar string
+
+	// Show loading state
+	if m.loadingState == LoadingInProgress {
+		content = m.loadingStyle.Render("🔄 Loading sessions...")
+	} else if len(m.sessions) == 0 {
+		if m.loadingState == LoadingError {
+			content = m.errorStyle.Render("❌ " + m.errorMessage)
+		} else {
+			content = "No sessions found. Press 'c' to create a new session."
+		}
 	} else {
 		content = m.baseStyle.Render(m.sessionTable.View())
+	}
+
+	// Status bar with current state
+	switch m.loadingState {
+	case LoadingInProgress:
+		statusBar = m.loadingStyle.Render(m.statusMessage)
+	case LoadingSuccess:
+		statusBar = m.successStyle.Render(m.statusMessage)
+	case LoadingError:
+		statusBar = m.errorStyle.Render(m.statusMessage)
+	default:
+		statusBar = ""
 	}
 
 	help := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("240")).
 		Render("Press ? for help, q to quit")
 
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		title,
-		"",
-		content,
-		"",
-		help,
-	)
+	// Build layout responsively
+	var parts []string
+	parts = append(parts, title, "")
+
+	// Add content with proper width constraints
+	if m.width > 0 {
+		contentStyle := lipgloss.NewStyle().Width(m.width)
+		content = contentStyle.Render(content)
+	}
+	parts = append(parts, content)
+
+	// Add status bar if present
+	if statusBar != "" {
+		if m.width > 0 {
+			statusStyle := lipgloss.NewStyle().Width(m.width)
+			statusBar = statusStyle.Render(statusBar)
+		}
+		parts = append(parts, "", statusBar)
+	}
+
+	// Add help text
+	if m.width > 0 {
+		helpStyle := lipgloss.NewStyle().Width(m.width)
+		help = helpStyle.Render(help)
+	}
+	parts = append(parts, "", help)
+
+	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
 
 // helpView renders the help screen
@@ -300,6 +375,14 @@ Session Status:
 
 Press ? again to return to session list.
 `
+
+	// Apply width constraint if terminal size is available
+	if m.width > 0 {
+		contentStyle := lipgloss.NewStyle().
+			Width(m.width).
+			Padding(0, 1)
+		helpText = contentStyle.Render(helpText)
+	}
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -333,10 +416,48 @@ func (m *Model) updateTable() {
 	m.sessionTable.SetRows(rows)
 }
 
+// updateTableDimensions updates the dimensions of the table based on available space
+func (m *Model) updateTableDimensions() {
+	if m.width <= 0 || m.height <= 0 {
+		return
+	}
+
+	// Calculate dimensions based on actual component sizes
+	title := m.titleStyle.Render("Claude Pilot - Session Manager")
+	help := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Render("Press ? for help, q to quit")
+
+	// Calculate used height for fixed components
+	usedHeight := lipgloss.Height(title) + 2 // title + empty lines
+	usedHeight += lipgloss.Height(help) + 1  // help + empty line
+
+	// Add status bar height if present
+	if m.loadingState != LoadingIdle {
+		statusBar := m.loadingStyle.Render("Status")
+		usedHeight += lipgloss.Height(statusBar) + 1 // status + empty line
+	}
+
+	// Calculate available height for content
+	availableHeight := max(m.height-usedHeight,
+		// Minimum height
+		3)
+
+	// Set table dimensions with proper padding
+	tableWidth := m.width - 4 // Account for border padding
+	if tableWidth < 10 {
+		tableWidth = 10 // Minimum width
+	}
+
+	m.sessionTable.SetWidth(tableWidth)
+	m.sessionTable.SetHeight(availableHeight)
+}
+
 // Commands for handling async operations
 
 type sessionsLoadedMsg struct {
 	sessions []*interfaces.Session
+	err      error
 }
 
 type sessionDeletedMsg struct {
@@ -347,18 +468,19 @@ type sessionAttachedMsg struct {
 	sessionName string
 }
 
-func (m Model) loadSessions() tea.Msg {
-	sessions, err := m.sessionManager.ListSessions()
-	if err != nil {
-		// Handle error - for now, return empty list
-		return sessionsLoadedMsg{sessions: []*interfaces.Session{}}
+func (m Model) loadSessionsCmd() tea.Cmd {
+	return func() tea.Msg {
+		sessions, err := m.service.ListSessions()
+		if err != nil {
+			return sessionsLoadedMsg{sessions: []*interfaces.Session{}, err: err}
+		}
+		return sessionsLoadedMsg{sessions: sessions, err: nil}
 	}
-	return sessionsLoadedMsg{sessions: sessions}
 }
 
 func (m Model) deleteSession(sessionID string) tea.Cmd {
 	return func() tea.Msg {
-		err := m.sessionManager.DeleteSession(sessionID)
+		err := m.service.DeleteSession(sessionID)
 		if err != nil {
 			// Handle error
 			return nil
@@ -369,7 +491,7 @@ func (m Model) deleteSession(sessionID string) tea.Cmd {
 
 func (m Model) attachToSession(sessionName string) tea.Cmd {
 	return func() tea.Msg {
-		err := m.sessionManager.AttachToSession(sessionName)
+		err := m.service.AttachToSession(sessionName)
 		if err != nil {
 			// Handle error
 			return nil
@@ -379,8 +501,8 @@ func (m Model) attachToSession(sessionName string) tea.Cmd {
 }
 
 // RunTUI starts the TUI application
-func RunTUI(sessionManager *manager.SessionManager) error {
-	model := NewModel(sessionManager)
+func RunTUI(service interfaces.SessionService) error {
+	model := NewModel(service)
 
 	p := tea.NewProgram(
 		model,

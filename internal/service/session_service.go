@@ -73,6 +73,12 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 		return session, fmt.Errorf("session created but failed to update status: %w", err)
 	}
 
+	// Save index after session creation (important operations)
+	if err := s.repository.SaveIndex(); err != nil {
+		// Index save failure is not critical, just log it
+		fmt.Printf("Warning: failed to save name index: %v\n", err)
+	}
+
 	return session, nil
 }
 
@@ -98,10 +104,8 @@ func (s *SessionService) ListSessions() ([]*interfaces.Session, error) {
 		return nil, fmt.Errorf("failed to list sessions: %w", err)
 	}
 
-	// Update status for all sessions
-	for i, session := range sessions {
-		sessions[i] = s.updateSessionStatus(session)
-	}
+	// Batch update status for all sessions
+	s.batchUpdateSessionStatus(sessions)
 
 	return sessions, nil
 }
@@ -133,6 +137,12 @@ func (s *SessionService) DeleteSession(identifier string) error {
 	// Remove session metadata
 	if err := s.repository.Delete(session.ID); err != nil {
 		return fmt.Errorf("failed to delete session metadata: %w", err)
+	}
+
+	// Save index after deletion (important operations)
+	if err := s.repository.SaveIndex(); err != nil {
+		// Index save failure is not critical, just log it
+		fmt.Printf("Warning: failed to save name index: %v\n", err)
 	}
 
 	return nil
@@ -204,6 +214,62 @@ func (s *SessionService) updateSessionStatus(session *interfaces.Session) *inter
 	}
 
 	return session
+}
+
+// batchUpdateSessionStatus efficiently updates status for multiple sessions
+func (s *SessionService) batchUpdateSessionStatus(sessions []*interfaces.Session) {
+	// Get all multiplexer sessions once
+	muxSessions, err := s.multiplexer.ListSessions()
+	if err != nil {
+		// If we can't get multiplexer sessions, fall back to individual checks
+		for i, session := range sessions {
+			sessions[i] = s.updateSessionStatus(session)
+		}
+		return
+	}
+
+	// Create a map of session names to multiplexer sessions for O(1) lookup
+	// Pre-allocate map with expected capacity
+	muxSessionMap := make(map[string]interfaces.MultiplexerSession, len(muxSessions))
+	for _, muxSession := range muxSessions {
+		muxSessionMap[muxSession.GetName()] = muxSession
+	}
+
+	// Update all sessions using the batch data
+	for _, session := range sessions {
+		if muxSession, exists := muxSessionMap[session.Name]; exists {
+			// Session exists in multiplexer
+			if muxSession.IsAttached() {
+				session.Status = interfaces.StatusConnected
+			} else {
+				session.Status = interfaces.StatusActive
+			}
+		} else {
+			// Session not found in multiplexer
+			session.Status = interfaces.StatusInactive
+		}
+	}
+}
+
+// KillAllSessions terminates all sessions
+func (s *SessionService) KillAllSessions() error {
+	sessions, err := s.ListSessions()
+	if err != nil {
+		return fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	var errors []string
+	for _, session := range sessions {
+		if err := s.DeleteSession(session.ID); err != nil {
+			errors = append(errors, fmt.Sprintf("failed to delete session %s: %v", session.Name, err))
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors deleting sessions: %v", errors)
+	}
+
+	return nil
 }
 
 // GetMultiplexer returns the underlying multiplexer (for legacy compatibility)

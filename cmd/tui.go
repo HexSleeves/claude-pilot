@@ -33,7 +33,7 @@ Key bindings:
 		}
 
 		// Launch TUI
-		if err := tui.RunTUI(ctx.SessionManager); err != nil {
+		if err := tui.RunTUI(ctx.Service); err != nil {
 			HandleError(err, "run TUI")
 		}
 	},

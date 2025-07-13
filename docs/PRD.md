@@ -140,7 +140,7 @@ Claude Pilot provides a tmux-based session management system that allows develop
 
 ### System Architecture
 
-```
+```text
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   CLI Interface │    │  Session Manager │    │  Tmux Manager   │
 │   (Cobra)       │────│                  │────│                 │

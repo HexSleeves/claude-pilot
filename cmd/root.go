@@ -46,7 +46,7 @@ Use "claude-pilot [command] --help" for more information about a command.`,
 
 		// Auto-launch TUI if ui.mode is set to "tui"
 		if ctx.Config.UI.Mode == "tui" {
-			if err := tui.RunTUI(ctx.SessionManager); err != nil {
+			if err := tui.RunTUI(ctx.Service); err != nil {
 				HandleError(err, "run TUI")
 			}
 			return
