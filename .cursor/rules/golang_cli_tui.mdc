@@ -1,0 +1,98 @@
+---
+description: Best practices for developing Go CLI and TUI applications with Cobra and Bubbletea
+globs: *.go
+alwaysApply: false
+---
+- **Directory Structure**
+  - Place command definitions in `cmd/` following Cobra conventions.
+  - Keep business logic in `internal/` packages; avoid logic inside command files.
+  - Organize Bubbletea models in `internal/tui/` (or `packages/tui/`) for clarity.
+
+- **Cobra Guidelines**
+  - Provide both `Short` and `Long` descriptions for commands.
+  - Use `PersistentFlags` for global flags and `Flags` for command-specific ones.
+  - Prefer `RunE`/`PreRunE` to ensure proper error propagation.
+  - Keep command construction in factory functions (`newXCmd()`) and wire them in `root.go`.
+
+- **Bubbletea Guidelines**
+  - Follow the `Init`, `Update`, and `View` triad strictly.
+  - Keep side-effects (network, FS) in separate goroutines; use messages for results.
+  - Style output using Lipgloss; centralize theme definitions.
+  - Maintain immutable model updates; avoid mutating shared state.
+
+- **Testing**
+  - Unit test Cobra commands with `ExecuteC`, asserting Stdout/Stderr and exit codes.
+  - Test Bubbletea models using the `tea` test harness to simulate key messages.
+
+- **Error Handling & Logging**
+  - Wrap errors using `%w` with context (use `fmt.Errorf`).
+  - Use structured logging (e.g., `slog` or `zap`) with log levels controlled by flags/env.
+
+- **Code Example: Cobra Command Skeleton**
+
+  ```go
+  // cmd/hello.go
+  package cmd
+
+  import (
+    "fmt"
+    "github.com/spf13/cobra"
+  )
+
+  func newHelloCmd() *cobra.Command {
+    cmd := &cobra.Command{
+      Use:   "hello",
+      Short: "Prints Hello world",
+      RunE: func(cmd *cobra.Command, args []string) error {
+        fmt.Println("Hello world")
+        return nil
+      },
+    }
+    return cmd
+  }
+  ```
+
+- **Code Example: Bubbletea Model Skeleton**
+
+  ```go
+  // internal/tui/example/model.go
+  package example
+
+  import (
+    tea "github.com/charmbracelet/bubbletea"
+  )
+
+  type model struct {
+    cursor int
+    items  []string
+  }
+
+  func (m model) Init() tea.Cmd { return nil }
+
+  func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+    switch msg := msg.(type) {
+    case tea.KeyMsg:
+      switch msg.String() {
+      case "q", "ctrl+c":
+        return m, tea.Quit
+      }
+    }
+    return m, nil
+  }
+
+  func (m model) View() string { return "Example TUI" }
+  ```
+
+- **When to Apply**
+  - When creating or updating commands in `cmd/`.
+  - When implementing interactive terminal UIs with Bubbletea.
+  - When refactoring existing CLI/TUI logic to ensure consistency.
+
+  - When implementing interactive terminal UIs with Bubbletea.
+  - When refactoring existing CLI/TUI logic to ensure consistency.
+
+  - When implementing interactive terminal UIs with Bubbletea.
+  - When refactoring existing CLI/TUI logic to ensure consistency.
+
+  - When implementing interactive terminal UIs with Bubbletea.
+  - When refactoring existing CLI/TUI logic to ensure consistency.

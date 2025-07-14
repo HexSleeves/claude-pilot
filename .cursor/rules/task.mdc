@@ -1,6 +1,5 @@
 ---
 description: when user mentions /task, apply this rule
-globs:
 alwaysApply: false
 ---
 ## Rule to plan and execute tasks

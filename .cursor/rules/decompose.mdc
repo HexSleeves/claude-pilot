@@ -1,6 +1,5 @@
 ---
 description: when user mentions /decompose, apply this rule
-globs:
 alwaysApply: false
 ---
 ## Rule to decompose PRD into stories and tasks

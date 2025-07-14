@@ -1,6 +1,5 @@
 ---
 description: when user mentions /debug, apply this rule
-globs:
 alwaysApply: false
 ---
 ## Rule to help debug errors

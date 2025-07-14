@@ -1,6 +1,5 @@
 ---
 description: when user mentions /prd, apply this rule
-globs:
 alwaysApply: false
 ---
 ## Rule to formalize ideas into a PRD
