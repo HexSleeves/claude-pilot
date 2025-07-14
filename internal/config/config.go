@@ -341,13 +341,13 @@ logging:
   # Enable/disable logging (disabled by default)
   # Logging can also be enabled with the --verbose/-v flag
   enabled: false
-  
+
   # Log level: debug, info, warn, error
   level: info
-  
+
   # Path to log file (will be created automatically)
   file: ` + filepath.Join(homeDir, ".config", "claude-pilot", "claude-pilot.log") + `
-  
+
   # Maximum log file size in MB before rotation (0 = no rotation)
   max_size: 10
 

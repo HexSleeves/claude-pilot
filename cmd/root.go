@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"claude-pilot/internal/tui"
+	"fmt"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -46,9 +46,7 @@ Use "claude-pilot [command] --help" for more information about a command.`,
 
 		// Auto-launch TUI if ui.mode is set to "tui"
 		if ctx.Config.UI.Mode == "tui" {
-			if err := tui.RunTUI(ctx.Service); err != nil {
-				HandleError(err, "run TUI")
-			}
+			fmt.Println("TUI mode is not implemented yet")
 			return
 		}
 
