@@ -1,14 +1,13 @@
 package ui
 
 import (
+	"claude-pilot/core/api"
 	"fmt"
-
-	"claude-pilot/internal/interfaces"
 )
 
 // DisplaySessionDetails shows formatted session information consistently
 // This eliminates the duplicated session detail display logic in create.go and kill.go
-func DisplaySessionDetails(sess *interfaces.Session, backend string) {
+func DisplaySessionDetails(sess *api.Session, backend string) {
 	fmt.Printf("%-15s %s\n", Bold("ID:"), sess.ID)
 	fmt.Printf("%-15s %s\n", Bold("Name:"), Title(sess.Name))
 	fmt.Printf("%-15s %s\n", Bold("Status:"), FormatStatus(string(sess.Status)))
@@ -24,14 +23,14 @@ func DisplaySessionDetails(sess *interfaces.Session, backend string) {
 
 // DisplaySessionDetailsWithMessages shows session details including message count
 // This is used in kill.go where message count is displayed
-func DisplaySessionDetailsWithMessages(sess *interfaces.Session, backend string) {
+func DisplaySessionDetailsWithMessages(sess *api.Session, backend string) {
 	DisplaySessionDetails(sess, backend)
 	fmt.Printf("%-15s %d\n", Bold("Messages:"), len(sess.Messages))
 }
 
 // DisplayAvailableSessions shows available sessions in error scenarios
 // This eliminates the duplicated session listing logic in attach.go
-func DisplayAvailableSessions(sessions []*interfaces.Session) {
+func DisplayAvailableSessions(sessions []*api.Session) {
 	if len(sessions) == 0 {
 		fmt.Println(Dim("  No sessions available"))
 		fmt.Printf("  %s %s\n", Arrow(), Highlight("claude-pilot create [session-name]"))
@@ -85,7 +84,7 @@ func DisplaySessionSummary(totalSessions, activeSessions, inactiveSessions int, 
 
 // DisplayRemainingSessionsInfo shows information about remaining sessions after deletion
 // This eliminates the duplicated remaining sessions logic in kill.go
-func DisplayRemainingSessionsInfo(remainingSessions []*interfaces.Session) {
+func DisplayRemainingSessionsInfo(remainingSessions []*api.Session) {
 	if len(remainingSessions) > 0 {
 		fmt.Printf("%s %d sessions remaining\n", InfoMsg("Status:"), len(remainingSessions))
 		fmt.Printf("  %s %s\n", Arrow(), Highlight("claude-pilot list"))

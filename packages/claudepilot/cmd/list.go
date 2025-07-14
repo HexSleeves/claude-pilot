@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"claude-pilot/internal/interfaces"
+	"claude-pilot/core/api"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -33,7 +33,7 @@ Examples:
 		sortBy, _ := cmd.Flags().GetString("sort")
 
 		// Get all sessions
-		sessions, err := ctx.Service.ListSessions()
+		sessions, err := ctx.Client.ListSessions()
 		if err != nil {
 			HandleError(err, "list sessions")
 		}
@@ -41,9 +41,9 @@ Examples:
 		// Filter sessions if not showing all
 		if !showAll {
 			// Pre-allocate with estimated capacity (assume most sessions are active)
-			activeSessions := make([]*interfaces.Session, 0, len(sessions))
+			activeSessions := make([]*api.Session, 0, len(sessions))
 			for _, sess := range sessions {
-				if sess.Status == interfaces.StatusActive || sess.Status == interfaces.StatusConnected {
+				if sess.Status == api.StatusActive || sess.Status == api.StatusConnected {
 					activeSessions = append(activeSessions, sess)
 				}
 			}
@@ -72,7 +72,7 @@ Examples:
 
 		// Display header
 		fmt.Println(ui.Title("Claude Pilot Sessions"))
-		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), ctx.Config.Backend)
+		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), ctx.Client.GetBackend())
 		fmt.Println()
 
 		if len(sessions) == 0 {
@@ -89,14 +89,14 @@ Examples:
 		}
 
 		// Display sessions table
-		fmt.Println(ui.SessionTable(sessions, ctx.Multiplexer))
+		fmt.Println(ui.SessionTable(sessions, ctx.Client.GetBackend()))
 		fmt.Println()
 
 		// Show summary using common function
 		activeCount := 0
 		inactiveCount := 0
 		for _, sess := range sessions {
-			if sess.Status == interfaces.StatusActive || sess.Status == interfaces.StatusConnected {
+			if sess.Status == api.StatusActive || sess.Status == api.StatusConnected {
 				activeCount++
 			} else {
 				inactiveCount++

@@ -45,7 +45,7 @@ Use "claude-pilot [command] --help" for more information about a command.`,
 		}
 
 		// Auto-launch TUI if ui.mode is set to "tui"
-		if ctx.Config.UI.Mode == "tui" {
+		if ctx.Client.GetConfig().UI.Mode == "tui" {
 			fmt.Println("TUI mode is not implemented yet")
 			return
 		}
@@ -60,6 +60,17 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+func RootCmd() *cobra.Command {
+	return rootCmd
+}
+
+// initConfig sets up environment variable handling for Viper
+// The actual config loading is handled by ConfigManager in InitializeCommand()
+func initConfig() {
+	viper.SetEnvPrefix("CLAUDE_PILOT")
+	viper.AutomaticEnv()
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 
@@ -69,11 +80,4 @@ func init() {
 
 	// Bind flags to viper
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
-}
-
-// initConfig sets up environment variable handling for Viper
-// The actual config loading is handled by ConfigManager in InitializeCommand()
-func initConfig() {
-	viper.SetEnvPrefix("CLAUDE_PILOT")
-	viper.AutomaticEnv()
 }

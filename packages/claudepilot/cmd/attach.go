@@ -30,14 +30,14 @@ Examples:
 		identifier := args[0]
 
 		// Get the session
-		sess, err := ctx.Service.GetSession(identifier)
+		sess, err := ctx.Client.GetSession(identifier)
 		if err != nil {
 			fmt.Println(ui.ErrorMsg(fmt.Sprintf("Session not found: %v", err)))
 			fmt.Println()
 			fmt.Println(ui.InfoMsg("Available sessions:"))
 
 			// Show available sessions using common function
-			sessions, err := ctx.Service.ListSessions()
+			sessions, err := ctx.Client.ListSessions()
 			if err != nil {
 				HandleError(err, "list sessions")
 			}
@@ -47,19 +47,19 @@ Examples:
 		}
 
 		// Check if session is running
-		if !ctx.Service.IsSessionRunning(sess.Name) {
+		if !ctx.Client.IsSessionRunning(sess.Name) {
 			fmt.Println(ui.WarningMsg(fmt.Sprintf("Session '%s' is not running. It may have been terminated.", sess.Name)))
 			fmt.Println(ui.InfoMsg("You can recreate it with: claude-pilot create " + sess.Name))
 			os.Exit(1)
 		}
 
 		// Show session info
-		fmt.Println(ui.InfoMsg(fmt.Sprintf("Attaching to session '%s' (%s backend)...", sess.Name, ctx.Config.Backend)))
+		fmt.Println(ui.InfoMsg(fmt.Sprintf("Attaching to session '%s' (%s backend)...", sess.Name, ctx.Client.GetBackend())))
 		fmt.Println(ui.InfoMsg("Use your multiplexer's detach key to exit (tmux: Ctrl+B,D | zellij: Ctrl+P,D)"))
 		fmt.Println()
 
 		// Attach to the session
-		if err := ctx.Service.AttachToSession(identifier); err != nil {
+		if err := ctx.Client.AttachToSession(identifier); err != nil {
 			HandleError(err, "attach to session")
 		}
 

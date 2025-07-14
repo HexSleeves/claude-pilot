@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"claude-pilot/internal/interfaces"
+	"claude-pilot/core/api"
 	"fmt"
 	"strings"
 	"time"
@@ -11,15 +11,15 @@ import (
 )
 
 // sessionStatusToMultiplexerDisplay converts session status to multiplexer display format
-func sessionStatusToMultiplexerDisplay(status interfaces.SessionStatus) string {
+func sessionStatusToMultiplexerDisplay(status api.SessionStatus) string {
 	switch status {
-	case interfaces.StatusConnected:
+	case api.StatusConnected:
 		return FormatTmuxStatus("attached")
-	case interfaces.StatusActive:
+	case api.StatusActive:
 		return FormatTmuxStatus("running")
-	case interfaces.StatusInactive:
+	case api.StatusInactive:
 		return FormatTmuxStatus("stopped")
-	case interfaces.StatusError:
+	case api.StatusError:
 		return FormatTmuxStatus("error")
 	default:
 		return Dim("unknown")
@@ -27,7 +27,7 @@ func sessionStatusToMultiplexerDisplay(status interfaces.SessionStatus) string {
 }
 
 // SessionTable creates a formatted table for displaying sessions
-func SessionTable(sessions []*interfaces.Session, mux interfaces.TerminalMultiplexer) string {
+func SessionTable(sessions []*api.Session, backend string) string {
 	if len(sessions) == 0 {
 		return Dim("No active sessions found.")
 	}
@@ -84,7 +84,7 @@ func SessionTable(sessions []*interfaces.Session, mux interfaces.TerminalMultipl
 }
 
 // SessionDetail creates a detailed view of a single session
-func SessionDetail(sess *interfaces.Session, mux interfaces.TerminalMultiplexer) string {
+func SessionDetail(sess *api.Session, backend string) string {
 	var builder strings.Builder
 
 	// Header
@@ -141,7 +141,7 @@ func SessionDetail(sess *interfaces.Session, mux interfaces.TerminalMultiplexer)
 }
 
 // MessageHistory creates a formatted view of session messages
-func MessageHistory(messages []interfaces.Message, limit int) string {
+func MessageHistory(messages []api.Message, limit int) string {
 	if len(messages) == 0 {
 		return Dim("No messages in this session.")
 	}

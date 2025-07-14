@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"claude-pilot/core/api"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -41,7 +42,11 @@ Examples:
 		projectPath = GetProjectPath(projectPath)
 
 		// Create the session
-		sess, err := ctx.Service.CreateSession(sessionName, description, projectPath)
+		sess, err := ctx.Client.CreateSession(api.CreateSessionRequest{
+			Name:        sessionName,
+			Description: description,
+			ProjectPath: projectPath,
+		})
 		if err != nil {
 			HandleError(err, "create session")
 		}
@@ -51,7 +56,7 @@ Examples:
 		fmt.Println()
 
 		// Show session details using common function
-		ui.DisplaySessionDetails(sess, ctx.Config.Backend)
+		ui.DisplaySessionDetails(sess, ctx.Client.GetBackend())
 
 		// Show next steps using common function
 		ui.DisplayNextSteps(

@@ -1,42 +1,41 @@
 package ui
 
 import (
+	"claude-pilot/core/api"
 	"strings"
 	"testing"
 	"time"
-
-	"claude-pilot/internal/interfaces"
 )
 
 func TestSessionStatusToMultiplexerDisplay(t *testing.T) {
 	tests := []struct {
 		name           string
-		status         interfaces.SessionStatus
+		status         api.SessionStatus
 		expectedResult string
 	}{
 		{
 			name:           "Connected status shows attached",
-			status:         interfaces.StatusConnected,
+			status:         api.StatusConnected,
 			expectedResult: FormatTmuxStatus("attached"),
 		},
 		{
 			name:           "Active status shows running",
-			status:         interfaces.StatusActive,
+			status:         api.StatusActive,
 			expectedResult: FormatTmuxStatus("running"),
 		},
 		{
 			name:           "Inactive status shows stopped",
-			status:         interfaces.StatusInactive,
+			status:         api.StatusInactive,
 			expectedResult: FormatTmuxStatus("stopped"),
 		},
 		{
 			name:           "Error status shows error",
-			status:         interfaces.StatusError,
+			status:         api.StatusError,
 			expectedResult: FormatTmuxStatus("error"),
 		},
 		{
 			name:           "Unknown status shows unknown",
-			status:         interfaces.SessionStatus("unknown"),
+			status:         api.SessionStatus("unknown"),
 			expectedResult: Dim("unknown"),
 		},
 	}
@@ -53,35 +52,35 @@ func TestSessionStatusToMultiplexerDisplay(t *testing.T) {
 
 func TestSessionTable(t *testing.T) {
 	// Create test sessions
-	sessions := []*interfaces.Session{
+	sessions := []*api.Session{
 		{
 			ID:          "test-id-1",
 			Name:        "test-session-1",
-			Status:      interfaces.StatusActive,
+			Status:      api.StatusActive,
 			CreatedAt:   time.Now(),
 			LastActive:  time.Now(),
-			Messages:    []interfaces.Message{},
+			Messages:    []api.Message{},
 			ProjectPath: "/test/path",
 		},
 		{
 			ID:          "test-id-2",
 			Name:        "test-session-2",
-			Status:      interfaces.StatusInactive,
+			Status:      api.StatusInactive,
 			CreatedAt:   time.Now().Add(-time.Hour),
 			LastActive:  time.Now().Add(-time.Hour),
-			Messages:    []interfaces.Message{},
+			Messages:    []api.Message{},
 			ProjectPath: "/another/path",
 		},
 	}
 
-	// Test with nil multiplexer (should not panic)
-	result := SessionTable(sessions, nil)
+	// Test with backend string (should not panic)
+	result := SessionTable(sessions, "tmux")
 	if result == "" {
 		t.Error("SessionTable returned empty string with valid sessions")
 	}
 
 	// Test with empty sessions
-	emptyResult := SessionTable([]*interfaces.Session{}, nil)
+	emptyResult := SessionTable([]*api.Session{}, "tmux")
 	if emptyResult != Dim("No active sessions found.") {
 		t.Errorf("SessionTable with empty sessions should return 'No active sessions found.', got: %s", emptyResult)
 	}
@@ -89,14 +88,14 @@ func TestSessionTable(t *testing.T) {
 
 func TestSessionDetail(t *testing.T) {
 	// Create test session
-	session := &interfaces.Session{
+	session := &api.Session{
 		ID:          "test-detail-id",
 		Name:        "test-detail-session",
-		Status:      interfaces.StatusConnected,
+		Status:      api.StatusConnected,
 		CreatedAt:   time.Now(),
 		LastActive:  time.Now(),
 		Description: "Test session description",
-		Messages: []interfaces.Message{
+		Messages: []api.Message{
 			{
 				ID:        "msg-1",
 				Role:      "user",
@@ -107,8 +106,8 @@ func TestSessionDetail(t *testing.T) {
 		ProjectPath: "/test/detail/path",
 	}
 
-	// Test with nil multiplexer (should not panic)
-	result := SessionDetail(session, nil)
+	// Test with backend string (should not panic)
+	result := SessionDetail(session, "tmux")
 	if result == "" {
 		t.Error("SessionDetail returned empty string with valid session")
 	}
