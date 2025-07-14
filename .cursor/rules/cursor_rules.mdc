@@ -53,3 +53,41 @@ alwaysApply: true
   - Include both DO and DON'T examples
   - Reference actual code over theoretical examples
   - Use consistent formatting across rules
+
+- **Advanced Examples:**
+  - **Rule Composition**: Demonstrate combining multiple rule files via references.
+
+    ```mdc
+    ---
+    description: Enforce Go formatting and linting across all packages
+    globs: "**/*.go"
+    alwaysApply: true
+    ---
+
+    - **Formatting**: Use `go fmt ./...` on save.
+    - **Linting**: Run `golangci-lint run` in CI.
+    - **Imports**: Use `goimports` for automatic grouping.
+
+    Refer to @[self_improve.mdc](mdc:.cursor/rules/self_improve.mdc) for rule evolution tips.
+    ```
+
+  - **Cross-File References**: Show how to include additional context files.
+
+    ```mdc
+    @internal/logger/logger.go
+    @docs/architecture.md
+    ```
+
+- **DOs & DON'Ts Recap:**
+
+  | ✅ DO | ❌ DON'T |
+  |-------|----------|
+  | Provide concrete code examples | Leave guidance vague |
+  | Keep rules under 500 lines | Duplicate content across rules |
+  | Reference existing files with `@` | Hard-code project paths |
+  | Use bullet points for clarity | Mix unrelated guidance in one rule |
+
+  - Keep descriptions concise
+  - Include both DO and DON'T examples
+  - Reference actual code over theoretical examples
+  - Use consistent formatting across rules

@@ -71,3 +71,29 @@ alwaysApply: true
   - Maintain links between related rules
   - Document breaking changes
 Follow [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc) for proper rule formatting and structure.
+
+- **Cross-Reference Best Practices:**
+  - When adding a new rule, reference related rules with `See also: @other_rule.mdc` to reduce duplication.
+  - Link to concrete code examples using `@path/to/file.go`.
+
+```mdc
+See also: @[golang_cli_tui.mdc](mdc:.cursor/rules/golang_cli_tui.mdc)
+@internal/service/session_service.go
+```
+
+- **Sample Code Illustration**
+
+```go
+// internal/utils/errors.go
+package utils
+
+// Wrap adds context to an error.
+func Wrap(msg string, err error) error {
+    return fmt.Errorf("%s: %w", msg, err)
+}
+```
+
+- Update references to external docs
+- Maintain links between related rules
+- Document breaking changes
+Follow [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc) for proper rule formatting and structure.

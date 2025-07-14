@@ -99,3 +99,50 @@ Quality Assurance (QA-XXX): Tests, CI/CD, documentation
 - Integration points mapped to existing system
 
 Save to: `docs/tasks.json` with comprehensive metadata & notify the user
+
+## Simplified Example Output
+
+```json
+{
+  "metadata": {
+    "prd_file": "docs/prd.md",
+    "created_date": "2024-06-20T10:00:00Z",
+    "description": "Tasks to implement user analytics dashboard",
+    "total_tasks": 3,
+    "estimated_hours": 12,
+    "confidence_level": "95%"
+  },
+  "tasks": [
+    {
+      "id": "BE-001",
+      "title": "Add PageViews column to events table",
+      "description": "Store page view counts per user session",
+      "category": "database",
+      "status": "todo",
+      "priority": "high",
+      "estimated_hours": 2,
+      "dependencies": [],
+      "files_affected": {
+        "create": [],
+        "modify": ["migrations/202406201000_add_pageviews.sql"],
+        "read": ["internal/service/analytics.go"]
+      },
+      "acceptance_criteria": ["Column created", "Migration passes CI"],
+      "validation_steps": ["Run migration", "Check schema version"],
+      "potential_risks": ["Large table migration"]
+    }
+  ]
+}
+```
+
+## Step-by-Step Decomposition Cheatsheet
+
+1. Identify high-level feature slices (DB, BE, FE, QA).
+2. Break down each slice into atomic tasks deliverable in <1 day.
+3. Define precise filenames or migrations early.
+4. Attach acceptance criteria and validation for each task.
+5. Confirm dependency graph is linear—no cycles.
+
+- Integration points mapped to existing system
+
+Save to: `docs/tasks.json` with comprehensive metadata & notify the user

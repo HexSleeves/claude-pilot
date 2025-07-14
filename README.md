@@ -25,6 +25,7 @@
   - [Contributing](#contributing)
   - [License](#license)
   - [Contributors](#contributors)
+  - [Cursor Rules](#cursor-rules)
 
 ---
 
@@ -214,3 +215,20 @@ A huge thanks to all the people who have contributed to this project.
 <a href="https://github.com/HexSleeves/claude-pilot/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=HexSleeves/claude-pilot" />
 </a>
+
+## Cursor Rules
+
+Claude Pilot includes a set of project rules under `.cursor/rules` that guide AI agents:
+
+| Rule File | Purpose |
+|-----------|---------|
+| `ReviewGateV2.mdc` | Enforces Review Gate interactive feedback flow |
+| `cursor_rules.mdc` | General guidelines for writing effective rules |
+| `self_improve.mdc` | Continuous improvement heuristics |
+| `debug.mdc` | Systematic debugging workflow |
+| `decompose.mdc` | Breaks PRDs into granular tasks |
+| `prd.mdc` | Generates Product Requirement Documents from ideas |
+| `task.mdc` | Two-phase task planning & execution protocol |
+| `golang_cli_tui.mdc` | Best practices for Go CLI/TUI apps with Cobra & Bubbletea |
+
+Refer to these rules when interacting with Cursor’s AI agents to get consistent, high-quality assistance.

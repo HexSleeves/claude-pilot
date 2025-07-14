@@ -99,3 +99,21 @@ Current State Analysis:
 - 95%+ confidence maintained throughout implementation
 - Code follows existing project patterns exactly
 - Documentation reflects all changes made
+
+## Edge-Case Handling Checklist
+
+- [ ] Backwards compatibility verified (no breaking API changes).
+- [ ] Concurrency concerns addressed (mutexes, channels).
+- [ ] Error propagation up call stack with `%w` wrapping.
+- [ ] Input validation for user-supplied data.
+- [ ] Timeouts/cancellations respected with `context.Context`.
+
+## Micro-Planning Tips
+
+1. Prefer editing small file chunks using `edit_block` over full rewrites.
+2. Keep PRs < 300 lines changed for easier review.
+3. Co-locate tests with implementation to ensure coverage.
+
+- 95%+ confidence maintained throughout implementation
+- Code follows existing project patterns exactly
+- Documentation reflects all changes made

@@ -66,3 +66,36 @@ Implement the above on user confirmation and confirm;
 - Refine solution based on testing and feedback
 - Address any secondary issues discovered
 - Improve error handling and user experience
+
+## Code-Based Example Walkthrough
+
+> **Scenario**: Application panics with `runtime error: invalid memory address or nil pointer dereference`.
+>
+> **Step-by-Step Debug Process:**
+>
+> 1. **Gather Evidence** – Capture stack trace, offending file & line.
+> 2. **Reproduce** – Add a failing unit test.
+> 3. **Hypothesis** – Nil `db` connection injected into service.
+> 4. **Verify** – Insert guard clause and run test.
+> 5. **Fix** – Ensure `NewService()` validates injected dependencies and returns error if nil.
+>
+> ```go
+> // before
+> func (s *UserService) Find(id string) (*User, error) {
+>     return s.db.Find(id) // panic if s.db == nil
+> }
+>
+> // after
+> func (s *UserService) Find(id string) (*User, error) {
+>     if s.db == nil {
+>         return nil, fmt.Errorf("db is nil: %w", ErrInvalidState)
+>     }
+>     return s.db.Find(id)
+> }
+> ```
+>
+> **Prevention** – Add constructor validation & unit test to assert non-nil `db`.
+
+- Refine solution based on testing and feedback
+- Address any secondary issues discovered
+- Improve error handling and user experience

@@ -142,3 +142,28 @@ Provide a high-level directory and file structure for the codebase.
 - ✅ Technical approach aligns with codebase patterns
 
 **Save to**: `docs/prd.md` after user approval
+
+## Acceptance Criteria Template
+
+Use the format below for each Functional Requirement:
+
+```md
+**FR-XYZ Acceptance Criteria**
+- [ ] GIVEN <precondition>
+  WHEN <action>
+  THEN <expected outcome>
+- [ ] Error scenarios explicitly defined
+- [ ] Metrics/Telemetry logged
+```
+
+## Clarification Question Bank (Pick max 5)
+
+1. Which user roles require audit logging for this feature?
+2. What is the peak expected load (requests/second)?
+3. Are there regulatory constraints (GDPR, HIPAA) we must honor?
+4. What is the rollback plan if deployment fails?
+5. Which success metric has highest priority (latency vs usage vs revenue)?
+
+- ✅ Technical approach aligns with codebase patterns
+
+**Save to**: `docs/prd.md` after user approval
