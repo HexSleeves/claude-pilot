@@ -7,6 +7,7 @@ Claude Pilot is a CLI tool for managing multiple Claude Code sessions with termi
 ## Architecture
 
 ### Monorepo Structure
+
 - **`packages/claudepilot/`** - Main CLI application (Go 1.24.5)
 - **`packages/core/`** - Core business logic and shared components
 - **`packages/tui/`** - Terminal User Interface using Charm's Bubbletea
@@ -14,12 +15,14 @@ Claude Pilot is a CLI tool for managing multiple Claude Code sessions with termi
 ### Package Organization
 
 #### packages/claudepilot/ (Main CLI)
+
 - **`cmd/`** - Cobra command definitions (create, list, attach, kill)
 - **`internal/styles/`** - Lipgloss styling and compatibility layer
 - **`internal/ui/`** - CLI UI components (colors, formatting, tables)
 - **`main.go`** - Entry point with Charm Fang signal handling
 
 #### packages/core/ (Business Logic)
+
 - **`internal/config/`** - Viper-based configuration management
 - **`internal/service/`** - Session management business logic
 - **`internal/multiplexer/`** - tmux/zellij backend implementations
@@ -28,12 +31,14 @@ Claude Pilot is a CLI tool for managing multiple Claude Code sessions with termi
 - **`internal/interfaces/`** - Core interfaces and contracts
 
 #### packages/tui/ (Terminal UI)
+
 - **`internal/models/`** - Bubbletea model implementations
 - **`internal/ui/`** - Interactive TUI interface components
 
 ## Development Commands
 
 ### Core Build Commands
+
 ```bash
 make build          # Build main binary from claudepilot package
 make dev            # Build with debug info (-gcflags="all=-N -l")
@@ -42,38 +47,15 @@ make run-dev        # Run directly with 'go run .'
 make clean          # Clean artifacts and session data
 ```
 
-### Development Workflow
-```bash
-make deps           # Install dependencies for all packages
-make test           # Run tests for claudepilot package
-make test-race      # Run tests with race detection
-make fmt            # Format code for all packages
-make lint           # Lint code (requires golangci-lint)
-```
-
-### Package-Specific Commands
-```bash
-make deps-claudepilot    # Dependencies for main CLI package
-make deps-tui           # Dependencies for TUI package
-make test-claudepilot   # Test main CLI package only
-make fmt-claudepilot    # Format main CLI package only
-make lint-claudepilot   # Lint main CLI package only
-```
-
-### Cross-Platform & Distribution
-```bash
-make build-all      # Cross-compile (Linux, macOS Intel/ARM, Windows)
-make install        # Install to GOPATH/bin
-make demo          # Run complete feature demonstration
-```
-
 ## Key Dependencies
 
 ### CLI Framework
+
 - **Cobra** - Command structure and CLI framework
 - **Viper** - Configuration management with YAML support
 
 ### UI & Styling
+
 - **Charm Lipgloss** - Terminal styling and colors
 - **Charm Bubbletea** - Interactive TUI framework
 - **Charm Fang** - Signal handling
@@ -81,23 +63,27 @@ make demo          # Run complete feature demonstration
 - **fatih/color** - Additional color support
 
 ### Core Libraries
+
 - **google/uuid** - Session ID generation
 
 ## Architecture Patterns
 
 ### Design Principles
+
 - **Interface-based design** for multiplexer abstraction
 - **Repository pattern** for session storage
 - **CommandContext pattern** for unified CLI initialization and dependency injection
 - **Clean architecture** with separation between UI, business logic, and storage
 
 ### Command Structure (Cobra)
+
 - Place command definitions in `cmd/` following factory pattern (`newXCmd()`)
 - Keep business logic in `internal/` packages, avoid logic inside command files
 - Use `RunE`/`PreRunE` for proper error propagation
 - Provide both `Short` and `Long` descriptions for commands
 
 ### TUI Development (Bubbletea)
+
 - Follow `Init`, `Update`, `View` triad strictly
 - Keep side-effects (network, FS) in separate goroutines; use messages for results
 - Style output using Lipgloss with centralized theme definitions
@@ -106,15 +92,18 @@ make demo          # Run complete feature demonstration
 ## Configuration
 
 ### File Locations
+
 - Config: `~/.config/claude-pilot/claude-pilot.yaml`
 - Sessions: `~/.config/claude-pilot/sessions/`
 - Template: `templates/claude-pilot.yaml`
 
 ### Environment Variables
+
 - `CLAUDE_PILOT_*` - Configuration overrides
 - `LOG_LEVEL` - Logging level (debug, info, warn, error)
 
 ### Backend Support
+
 - **tmux** - Preferred backend with session prefix support
 - **zellij** - Alternative backend with layout file support
 - Auto-detection with tmux preference
@@ -122,12 +111,14 @@ make demo          # Run complete feature demonstration
 ## Session Management
 
 ### Session States
+
 - `active` - Running and available
-- `inactive` - Stopped but metadata exists  
+- `inactive` - Stopped but metadata exists
 - `connected` - User currently attached
 - `error` - Error state
 
 ### CLI Commands
+
 - `create` - Create session with optional description
 - `list` - List sessions (use `--all` for detailed view)
 - `attach` - Attach to existing session
@@ -137,12 +128,14 @@ make demo          # Run complete feature demonstration
 ## Testing & Quality
 
 ### Testing Commands
+
 ```bash
 make test           # Standard test suite
 make test-race     # Race condition detection
 ```
 
 ### Code Quality
+
 - Static analysis with Datadog rulesets (go-best-practices, go-security)
 - golangci-lint for comprehensive linting
 - Cross-platform build verification

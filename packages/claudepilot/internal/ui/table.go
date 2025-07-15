@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 )
 
 // sessionStatusToMultiplexerDisplay converts session status to multiplexer display format
@@ -27,23 +27,48 @@ func sessionStatusToMultiplexerDisplay(status api.SessionStatus) string {
 	}
 }
 
+// createTableStyleFunc creates a StyleFunc for the session table using existing color scheme
+func createTableStyleFunc() table.StyleFunc {
+	// Use existing lipgloss styles from the styles package
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(styles.TextPrimary).
+		Background(styles.BackgroundAccent)
+
+	evenRowStyle := lipgloss.NewStyle().
+		Foreground(styles.TextSecondary)
+
+	oddRowStyle := lipgloss.NewStyle().
+		Foreground(styles.TextMuted)
+
+	return func(row, col int) lipgloss.Style {
+		switch {
+		case row == table.HeaderRow:
+			return headerStyle
+		case row%2 == 0:
+			return evenRowStyle
+		default:
+			return oddRowStyle
+		}
+	}
+}
+
 // SessionTable creates a formatted table for displaying sessions
 func SessionTable(sessions []*api.Session, backend string) string {
 	if len(sessions) == 0 {
 		return Dim("No active sessions found.")
 	}
 
-	t := table.NewWriter()
-	t.SetStyle(table.StyleColoredBright)
+	// Create table
+	t := table.New()
 
-	// Enhanced colors to match our lipgloss theme
-	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bold, text.BgHiBlack}
-	t.Style().Color.Row = text.Colors{text.FgWhite}
-	t.Style().Color.RowAlternate = text.Colors{text.FgHiBlack}
-	t.Style().Color.Border = text.Colors{text.FgHiRed} // Claude orange-ish
+	// Set border and styling using existing color scheme
+	t.Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(styles.ClaudePrimary)).
+		StyleFunc(createTableStyleFunc())
 
 	// Set headers
-	t.AppendHeader(table.Row{
+	t.Headers(
 		Bold("ID"),
 		Bold("Name"),
 		Bold("Status"),
@@ -52,37 +77,42 @@ func SessionTable(sessions []*api.Session, backend string) string {
 		Bold("Last Active"),
 		Bold("Messages"),
 		Bold("Project"),
-	})
+	)
 
 	// Add rows
 	for _, sess := range sessions {
 		// Use the session status computed by SessionService
 		muxStatus := sessionStatusToMultiplexerDisplay(sess.Status)
 
-		t.AppendRow(table.Row{
-			Highlight(sess.ID[:8] + "..."), // Truncate ID for readability
-			Title(sess.Name),
+		// Truncate and format data to fit column widths
+		id := sess.ID
+		if len(id) > 11 {
+			id = id[:8] + "..."
+		}
+
+		name := sess.Name
+		if len(name) > 19 {
+			name = name[:16] + "..."
+		}
+
+		project := formatProjectPath(sess.ProjectPath)
+		if len(project) > 29 {
+			project = project[:26] + "..."
+		}
+
+		t.Row(
+			Highlight(id),
+			Title(name),
 			FormatStatus(string(sess.Status)),
 			muxStatus,
 			formatTime(sess.CreatedAt),
 			formatTimeAgo(sess.LastActive),
 			fmt.Sprintf("%d", len(sess.Messages)),
-			formatProjectPath(sess.ProjectPath),
-		})
+			project,
+		)
 	}
 
-	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 1, WidthMax: 12}, // ID
-		{Number: 2, WidthMax: 20}, // Name
-		{Number: 3, WidthMax: 12}, // Status
-		{Number: 4, WidthMax: 12}, // Backend
-		{Number: 5, WidthMax: 12}, // Created
-		{Number: 6, WidthMax: 12}, // Last Active
-		{Number: 7, WidthMax: 8},  // Messages
-		{Number: 8, WidthMax: 30}, // Project
-	})
-
-	return t.Render()
+	return t.String()
 }
 
 // SessionDetail creates a detailed view of a single session
