@@ -222,13 +222,14 @@ func formatTime(t time.Time) string {
 func formatTimeAgo(t time.Time) string {
 	duration := time.Since(t)
 
-	if duration < time.Minute {
+	switch {
+	case duration < time.Minute:
 		return Success.Sprint("just now")
-	} else if duration < time.Hour {
+	case duration < time.Hour:
 		return Info.Sprint(fmt.Sprintf("%dm ago", int(duration.Minutes())))
-	} else if duration < 24*time.Hour {
+	case duration < 24*time.Hour:
 		return Warning.Sprint(fmt.Sprintf("%dh ago", int(duration.Hours())))
-	} else {
+	default:
 		return Dim(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
 	}
 }

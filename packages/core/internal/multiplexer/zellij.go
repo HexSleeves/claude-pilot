@@ -279,11 +279,6 @@ func (zm *ZellijMultiplexer) AttachToSession(name string) error {
 	return cmd.Run()
 }
 
-// DetachFromSession detaches from an existing zellij session
-func (zm *ZellijMultiplexer) DetachFromSession(name string) error {
-	return fmt.Errorf("detaching from zellij sessions is not supported at the moment")
-}
-
 // KillSession terminates a zellij session
 func (zm *ZellijMultiplexer) KillSession(name string) error {
 	session, err := zm.GetSession(name)

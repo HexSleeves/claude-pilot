@@ -4,6 +4,7 @@ go 1.24.5
 
 require (
 	claude-pilot/core v0.0.0-00010101000000-000000000000
+	claude-pilot/shared v0.0.0-00010101000000-000000000000
 	github.com/charmbracelet/fang v0.3.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/fatih/color v1.18.0
@@ -44,10 +45,11 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace claude-pilot/core => ../core
+
+replace claude-pilot/shared => ../shared

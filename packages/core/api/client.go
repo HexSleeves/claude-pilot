@@ -134,14 +134,6 @@ func (c *Client) AttachToSession(identifier string) error {
 	return c.service.AttachToSession(identifier)
 }
 
-// DetachFromSession disconnects from a session
-// Note: Detaching is typically handled by the terminal multiplexer itself (Ctrl+B D for tmux)
-func (c *Client) DetachFromSession(identifier string) error {
-	// For now, we don't have a programmatic way to detach
-	// This would need to be implemented in the multiplexer interface if needed
-	return fmt.Errorf("detaching from sessions is not currently supported programmatically")
-}
-
 // KillSession terminates a specific session
 func (c *Client) KillSession(identifier string) error {
 	return c.service.DeleteSession(identifier)

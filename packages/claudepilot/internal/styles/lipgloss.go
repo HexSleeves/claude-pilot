@@ -1,291 +1,180 @@
 package styles
 
 import (
+	"claude-pilot/shared/styles"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Color palette inspired by Claude's branding
+// Re-export colors from shared styles for backward compatibility
 var (
 	// Primary colors
-	ClaudePrimary   = lipgloss.Color("#FF6B35") // Claude orange
-	ClaudeSecondary = lipgloss.Color("#4A90E2") // Claude blue
+	ClaudePrimary   = styles.ClaudePrimary
+	ClaudeSecondary = styles.ClaudeSecondary
 
 	// Status colors
-	SuccessColor = lipgloss.Color("#28A745") // Green
-	ErrorColor   = lipgloss.Color("#DC3545") // Red
-	WarningColor = lipgloss.Color("#FFC107") // Yellow
-	InfoColor    = lipgloss.Color("#17A2B8") // Cyan
+	SuccessColor = styles.SuccessColor
+	ErrorColor   = styles.ErrorColor
+	WarningColor = styles.WarningColor
+	InfoColor    = styles.InfoColor
 
 	// Neutral colors
-	TextPrimary   = lipgloss.Color("#FFFFFF") // White
-	TextSecondary = lipgloss.Color("#E5E5E5") // Light gray
-	TextMuted     = lipgloss.Color("#6C757D") // Gray
-	TextDim       = lipgloss.Color("#495057") // Dark gray
+	TextPrimary   = styles.TextPrimary
+	TextSecondary = styles.TextSecondary
+	TextMuted     = styles.TextMuted
+	TextDim       = styles.TextDim
 
 	// Background colors
-	BackgroundPrimary   = lipgloss.Color("#1A1A1A") // Dark
-	BackgroundSecondary = lipgloss.Color("#2D2D2D") // Lighter dark
-	BackgroundAccent    = lipgloss.Color("#3A3A3A") // Accent dark
+	BackgroundPrimary   = styles.BackgroundPrimary
+	BackgroundSecondary = styles.BackgroundSecondary
+	BackgroundAccent    = styles.BackgroundAccent
 )
 
-// Base styles
+// Re-export styles from shared package for backward compatibility
 var (
 	// Title styles
-	TitleStyle = lipgloss.NewStyle().
-			Foreground(ClaudePrimary).
-			Bold(true).
-			Padding(0, 1)
-
-	SubtitleStyle = lipgloss.NewStyle().
-			Foreground(ClaudeSecondary).
-			Bold(true)
-
-	// Header styles with borders
-	HeaderStyle = lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Background(BackgroundSecondary).
-			Bold(true).
-			Padding(0, 2).
-			Margin(1, 0).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ClaudePrimary)
+	TitleStyle    = styles.TitleStyle
+	SubtitleStyle = styles.SubtitleStyle
+	HeaderStyle   = styles.HeaderStyle
 
 	// Message styles
-	SuccessStyle = lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Bold(true)
-
-	ErrorStyle = lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Bold(true)
-
-	WarningStyle = lipgloss.NewStyle().
-			Foreground(WarningColor).
-			Bold(true)
-
-	InfoStyle = lipgloss.NewStyle().
-			Foreground(InfoColor).
-			Bold(true)
+	SuccessStyle = styles.SuccessStyle
+	ErrorStyle   = styles.ErrorStyle
+	WarningStyle = styles.WarningStyle
+	InfoStyle    = styles.InfoStyle
 
 	// Text styles
-	BoldStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(TextPrimary)
-
-	DimStyle = lipgloss.NewStyle().
-			Foreground(TextMuted)
-
-	HighlightStyle = lipgloss.NewStyle().
-			Foreground(ClaudePrimary).
-			Bold(true)
+	BoldStyle      = styles.BoldStyle
+	DimStyle       = styles.MutedTextStyle
+	HighlightStyle = styles.HighlightStyle
 
 	// Interactive elements
-	ArrowStyle = lipgloss.NewStyle().
-			Foreground(ClaudePrimary).
-			Bold(true)
-
-	PromptStyle = lipgloss.NewStyle().
-			Foreground(ClaudeSecondary).
-			Bold(true)
-
-	// Code and structured data
-	CodeBlockStyle = lipgloss.NewStyle().
-			Background(BackgroundSecondary).
-			Foreground(TextSecondary).
-			Padding(1, 2).
-			Margin(1, 0).
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(TextMuted)
+	ArrowStyle  = styles.ArrowStyle
+	PromptStyle = styles.PromptStyle
 
 	// Table styles
-	TableHeaderStyle = lipgloss.NewStyle().
-				Foreground(TextPrimary).
-				Background(BackgroundAccent).
-				Bold(true).
-				Padding(0, 1).
-				Align(lipgloss.Center)
-
-	TableCellStyle = lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Padding(0, 1)
+	TableHeaderStyle = styles.TableHeaderStyle
+	TableCellStyle   = styles.TableCellStyle
 
 	// Status indicators
-	StatusActiveStyle = lipgloss.NewStyle().
-				Foreground(SuccessColor).
-				Bold(true)
-
-	StatusInactiveStyle = lipgloss.NewStyle().
-				Foreground(WarningColor).
-				Bold(true)
-
-	StatusConnectedStyle = lipgloss.NewStyle().
-				Foreground(InfoColor).
-				Bold(true)
-
-	StatusErrorStyle = lipgloss.NewStyle().
-				Foreground(ErrorColor).
-				Bold(true)
+	StatusActiveStyle    = styles.SessionStatusActiveStyle
+	StatusInactiveStyle  = styles.SessionStatusInactiveStyle
+	StatusConnectedStyle = styles.SessionStatusConnectedStyle
+	StatusErrorStyle     = styles.SessionStatusErrorStyle
 
 	// Progress and loading
-	SpinnerStyle = lipgloss.NewStyle().
-			Foreground(ClaudeSecondary).
-			Bold(true)
-
-	ProgressStyle = lipgloss.NewStyle().
-			Foreground(ClaudePrimary).
-			Bold(true)
+	SpinnerStyle  = styles.SpinnerStyle
+	ProgressStyle = styles.ProgressStyle
 )
 
-// Box styles for containers
+// Re-export box styles from shared package
 var (
-	// Main container for CLI output
-	MainBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ClaudePrimary).
-			Padding(1, 2).
-			Margin(1, 0)
-
-	// Info box for help text and descriptions
-	InfoBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(InfoColor).
-			Background(BackgroundSecondary).
-			Padding(1, 2).
-			Margin(1, 0)
-
-	// Warning box for important notices
-	WarningBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.ThickBorder()).
-			BorderForeground(WarningColor).
-			Background(BackgroundSecondary).
-			Padding(1, 2).
-			Margin(1, 0)
-
-	// Error box for error messages
-	ErrorBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.DoubleBorder()).
-			BorderForeground(ErrorColor).
-			Background(BackgroundSecondary).
-			Padding(1, 2).
-			Margin(1, 0)
+	MainBoxStyle    = styles.MainBoxStyle
+	InfoBoxStyle    = styles.InfoBoxStyle
+	WarningBoxStyle = styles.WarningBoxStyle
+	ErrorBoxStyle   = styles.ErrorBoxStyle
 )
 
-// Utility function to apply a background color to a string
+// Re-export utility functions from shared package for backward compatibility
 func WithBackground(text string, background lipgloss.Color) string {
-	return lipgloss.NewStyle().Background(background).Render(text)
+	return styles.WithBackground(text, background)
 }
 
-// Utility functions for common styling patterns
 func Title(text string) string {
-	return TitleStyle.Render(text)
+	return styles.Title(text)
 }
 
 func Subtitle(text string) string {
-	return SubtitleStyle.Render(text)
+	return styles.Subtitle(text)
 }
 
 func Header(text string) string {
-	return HeaderStyle.Render(text)
+	return styles.Header(text)
 }
 
 func Success(text string) string {
-	return SuccessStyle.Render("✓ " + text)
+	return styles.Success(text)
 }
 
 func Error(text string) string {
-	return ErrorStyle.Render("✗ " + text)
+	return styles.Error(text)
 }
 
 func Warning(text string) string {
-	return WarningStyle.Render("⚠ " + text)
+	return styles.Warning(text)
 }
 
 func Info(text string) string {
-	return InfoStyle.Render("ℹ " + text)
+	return styles.Info(text)
 }
 
 func Bold(text string) string {
-	return BoldStyle.Render(text)
+	return styles.Bold(text)
 }
 
 func BoldWithBackground(text string, background lipgloss.Color) string {
-	return BoldStyle.Background(background).Render(text)
+	return styles.WithBackground(styles.Bold(text), background)
 }
 
 func Dim(text string) string {
-	return DimStyle.Render(text)
+	return styles.Dim(text)
 }
 
 func Highlight(text string) string {
-	return HighlightStyle.Render(text)
+	return styles.Highlight(text)
 }
 
 func Arrow() string {
-	return ArrowStyle.Render("→")
+	return styles.Arrow()
 }
 
 func Prompt(text string) string {
-	return PromptStyle.Render(text)
-}
-
-func CodeBlock(text string) string {
-	return CodeBlockStyle.Render(text)
+	return styles.Prompt(text)
 }
 
 // Status formatting functions
 func StatusActive(text string) string {
-	return StatusActiveStyle.Render("● " + text)
+	return styles.StatusActive(text)
 }
 
 func StatusInactive(text string) string {
-	return StatusInactiveStyle.Render("⏸ " + text)
+	return styles.StatusInactive(text)
 }
 
 func StatusConnected(text string) string {
-	return StatusConnectedStyle.Render("🔗 " + text)
+	return styles.StatusConnected(text)
 }
 
 func StatusError(text string) string {
-	return StatusErrorStyle.Render("✗ " + text)
+	return styles.StatusError(text)
 }
 
 func Spinner(text string) string {
-	return SpinnerStyle.Render("⠋ " + text)
+	return styles.Spinner(text)
 }
 
 // Box rendering functions
 func MainBox(content string) string {
-	return MainBoxStyle.Render(content)
+	return styles.MainBox(content)
 }
 
 func InfoBox(content string) string {
-	return InfoBoxStyle.Render(content)
+	return styles.InfoBox(content)
 }
 
 func WarningBox(content string) string {
-	return WarningBoxStyle.Render(content)
+	return styles.WarningBox(content)
 }
 
 func ErrorBox(content string) string {
-	return ErrorBoxStyle.Render(content)
+	return styles.ErrorBox(content)
 }
 
 // Horizontal line with styling
 func HorizontalLine(width int) string {
-	return lipgloss.NewStyle().
-		Foreground(TextMuted).
-		Render(lipgloss.PlaceHorizontal(width, lipgloss.Center, "─"))
+	return styles.HorizontalLine(width)
 }
 
 // Create a banner with title and subtitle
 func Banner(title, subtitle string) string {
-	titleRendered := TitleStyle.Render(title)
-	subtitleRendered := SubtitleStyle.Render(subtitle)
-
-	content := lipgloss.JoinVertical(lipgloss.Center, titleRendered, subtitleRendered)
-
-	return MainBoxStyle.
-		Width(60).
-		Align(lipgloss.Center).
-		Render(content)
+	return styles.Banner(title, subtitle)
 }

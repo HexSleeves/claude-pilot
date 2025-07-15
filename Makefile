@@ -19,6 +19,12 @@ $(BINARY_NAME): $(GO_FILES)
 	@echo "Building $(BINARY_NAME)..."
 	@cd $(CLAUDEPILOT_DIR) && go build -o ../../$(BINARY_NAME) .
 
+# Build the tui
+.PHONY: build-tui
+build-tui: $(TUI_DIR)
+	@echo "Building tui..."
+	@cd $(TUI_DIR) && go build -o ../../$(BINARY_NAME) .
+
 # Install dependencies
 .PHONY: deps
 deps:
@@ -85,10 +91,10 @@ build-all:
 run: build
 	@$(BINARY_PATH)
 
-.PHONY: run-dev
-run-dev:
-	@echo "Running development version..."
-	@cd $(CLAUDEPILOT_DIR) && go run .
+# Run the tui
+.PHONY: run-tui
+run-tui: build-tui
+	@cd $(TUI_DIR) && go run .
 
 # Package-specific targets
 .PHONY: build-claudepilot

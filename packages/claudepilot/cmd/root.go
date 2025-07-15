@@ -22,7 +22,6 @@ var rootCmd = &cobra.Command{
 		"create":   "Create a new Claude session",
 		"list":     "List all active sessions",
 		"attach":   "Attach to a specific session",
-		"detach":   "Detach from a specific session",
 		"kill":     "Terminate a session",
 		"kill-all": "Terminate all sessions",
 		"tui":      "Launch interactive terminal UI",

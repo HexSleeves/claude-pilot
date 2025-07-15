@@ -90,23 +90,32 @@ func RootBanner() string {
 		Bold(true).
 		Render("Claude Pilot 🚀")
 
-	// Create the subtitle
+	// Create the subtitle with proper width
+	subtitleText := "A powerful CLI tool for managing multiple Claude code sessions"
 	subtitle := lipgloss.NewStyle().
 		Foreground(TextSecondary).
-		Render("A powerful CLI tool for managing multiple Claude code sessions")
+		Render(subtitleText)
+
+	// Calculate the border width based on the longest content
+	titleWidth := lipgloss.Width(title)
+	subtitleWidth := lipgloss.Width(subtitle)
+	contentWidth := max(subtitleWidth, titleWidth)
+
+	// Add some padding to the content width
+	borderWidth := contentWidth + 4 // 2 spaces on each side
 
 	// Create decorative border
 	borderStyle := lipgloss.NewStyle().
 		Foreground(ClaudePrimary).
 		Bold(true)
 
-	topBorder := borderStyle.Render("╔" + strings.Repeat("═", 58) + "╗")
-	bottomBorder := borderStyle.Render("╚" + strings.Repeat("═", 58) + "╝")
+	topBorder := borderStyle.Render("╔" + strings.Repeat("═", borderWidth) + "╗")
+	bottomBorder := borderStyle.Render("╚" + strings.Repeat("═", borderWidth) + "╝")
 
 	// Center the content
-	titleCentered := lipgloss.PlaceHorizontal(58, lipgloss.Center, title)
-	subtitleCentered := lipgloss.PlaceHorizontal(58, lipgloss.Center, subtitle)
-	emptyCentered := lipgloss.PlaceHorizontal(58, lipgloss.Center, "")
+	titleCentered := lipgloss.PlaceHorizontal(borderWidth, lipgloss.Center, title)
+	subtitleCentered := lipgloss.PlaceHorizontal(borderWidth, lipgloss.Center, subtitle)
+	emptyCentered := lipgloss.PlaceHorizontal(borderWidth, lipgloss.Center, "")
 
 	// Add side borders
 	titleLine := borderStyle.Render("║") + titleCentered + borderStyle.Render("║")

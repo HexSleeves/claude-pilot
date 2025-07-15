@@ -316,24 +316,6 @@ func (tm *TmuxMultiplexer) AttachToSession(name string) error {
 	return cmd.Run()
 }
 
-// DetachFromSession detaches from an existing tmux session
-func (tm *TmuxMultiplexer) DetachFromSession(name string) error {
-	session, err := tm.GetSession(name)
-	if err != nil {
-		return err
-	}
-
-	tmuxSession := session.(*TmuxSession)
-
-	// Send Ctr+B, then D
-	cmd := exec.Command(tm.tmuxPath, "send-keys", "-t", tmuxSession.tmuxName, "C-b", "D")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to detach from tmux session: %w", err)
-	}
-
-	return nil
-}
-
 // KillSession terminates a tmux session
 func (tm *TmuxMultiplexer) KillSession(name string) error {
 	session, err := tm.GetSession(name)
