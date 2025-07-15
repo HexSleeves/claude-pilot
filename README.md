@@ -15,6 +15,7 @@
   - [Table of Contents](#table-of-contents)
   - [About The Project](#about-the-project)
   - [Key Features](#key-features)
+  - [Demo](#demo)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
@@ -55,6 +56,19 @@ It's built with Go and leverages terminal multiplexers like `tmux` and `zellij` 
 - **Named Sessions**: Give your sessions meaningful names to easily organize your work (e.g., `react-app`, `api-bug-fix`).
 - **Intuitive CLI**: A clean, `tmux`-inspired command structure that is easy to learn and use.
 - **Colored UI**: A beautiful, colored terminal output with tabular session lists for clarity.
+
+---
+
+## Demo
+
+Watch this short demo to see Claude Pilot in action:
+
+<p align="center">
+  <video controls poster="assets/claude-pilot-demo.gif">
+    <source src="assets/claude-pilot-demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</p>
 
 ---
 
@@ -137,25 +151,52 @@ claude-pilot kill-all
 
 ## Architecture
 
-Claude Pilot is built with a clean, modular architecture in Go. It uses the Cobra framework for the CLI and interfaces with terminal multiplexers for session management.
+Claude Pilot is designed with a modular, monorepo architecture to separate concerns and promote code reuse. The project is divided into three main packages: `claudepilot`, `core`, and `tui`.
 
-```**mermaid**
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   CLI Interface │    │  Session Manager │    │  Multiplexer    │
-│   (Cobra)       │────│                  │────│  (Tmux/Zellij)  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                │
-                       ┌──────────────────┐
-                       │  JSON Storage    │
-                       │  ~/.claude-pilot │
-                       └──────────────────┘
+```mermaid
+graph TD
+    subgraph User
+        A[CLI User]
+    end
+
+    subgraph "Application Layer (packages)"
+        B(claudepilot)
+        C(tui)
+    end
+
+    subgraph "Business Logic (packages)"
+        D(core)
+    end
+
+    subgraph "System Integration"
+        E(Terminal Multiplexers <br> tmux / zellij)
+        F(JSON Storage <br> ~/.claude-pilot)
+    end
+
+    A --> B & C
+
+    B --> D
+    C --> D
+
+    D --> E & F
 ```
 
-- **CLI Layer (`cmd/`)**: Defines the command structure and handles user input.
-- **Session Management (`internal/service/`, `internal/manager/`)**: Core logic for CRUD operations on sessions.
-- **Multiplexer (`internal/multiplexer/`)**: An interface that communicates with `tmux` or `zellij` to create, attach to, and kill sessions.
-- **Storage (`internal/storage/`)**: Handles saving and retrieving session metadata from JSON files.
+- **`packages/core`**: The heart of the application. This package contains all the core business logic, including:
+  - **Service (`service/`)**: Manages session lifecycle (create, read, update, delete).
+  - **Multiplexer (`multiplexer/`)**: An interface to communicate with terminal multiplexers like `tmux` and `zellij`.
+  - **Storage (`storage/`)**: Handles saving and retrieving session metadata from the filesystem as JSON.
+  - **Configuration (`config/`)**: Manages application configuration.
+
+- **`packages/claudepilot`**: The primary command-line interface.
+  - Built with **Cobra**, it provides the main entry point for users to interact with the application (e.g., `claude-pilot create`, `list`, `attach`, `kill`).
+  - It consumes the `core` package to perform its operations.
+  - Contains the UI logic for the standard CLI output (`internal/ui/`).
+
+- **`packages/tui`**: A rich, interactive Terminal User Interface (TUI).
+  - Built with **Bubble Tea**, it offers a more visual and interactive way to manage sessions.
+  - Like the `claudepilot` CLI, it is also a consumer of the `core` package.
+
+This decoupled architecture allows for flexible development and makes it easier to maintain and extend the application's capabilities. For example, the `core` logic can be shared across different frontends (CLI, TUI, and potentially a future web UI) without duplication.
 
 ---
 
@@ -172,13 +213,13 @@ We have an exciting roadmap ahead! Here are some of the features we're planning 
   - [x] Session metadata persistence
 
 - **Phase 2: Advanced Features**
-  - [ ] `kill-all` command implementation
+  - [x] `kill-all` command implementation
+  - [ ] `attach` enhancement (add panels / tabs to existing sessions)
   - [ ] Session templates and presets
   - [ ] Session search and filtering
   - [ ] Export/import session configurations
 
 - **Phase 3: Integrations & Release**
-  - [ ] Comprehensive testing suite
   - [ ] Cross-platform compatibility testing (Windows, Linux, macOS)
   - [ ] Official package distribution (Homebrew, etc.)
   - [ ] Detailed documentation and tutorials
