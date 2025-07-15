@@ -62,8 +62,8 @@ func (t *Table) SetSessionData(sessions []SessionData) {
 
 	for i, session := range sessions {
 		rows[i] = []string{
-			truncateText(session.ID, 11),
-			truncateText(session.Name, 19),
+			styles.TruncateText(session.ID, 11),
+			styles.TruncateText(session.Name, 19),
 			session.Status,
 			session.Backend,
 			formatTime(session.Created),
@@ -308,14 +308,4 @@ func formatProjectPath(path string, maxLen int) string {
 	}
 
 	return styles.Dim(path)
-}
-
-func truncateText(text string, maxLen int) string {
-	if len(text) <= maxLen {
-		return text
-	}
-	if maxLen <= 3 {
-		return text[:maxLen]
-	}
-	return text[:maxLen-3] + "..."
 }

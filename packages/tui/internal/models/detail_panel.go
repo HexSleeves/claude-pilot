@@ -247,7 +247,7 @@ func (m *DetailPanelModel) renderMessageSummary() string {
 		timestamp := styles.DimTextStyle.Render(msg.Timestamp.Format("15:04:05"))
 
 		// Content preview (truncated)
-		contentPreview := m.truncateText(msg.Content, 60)
+		contentPreview := styles.TruncateText(msg.Content, 60)
 
 		content.WriteString(fmt.Sprintf("%s %s %s\n",
 			roleIcon,
@@ -354,10 +354,25 @@ func (m *DetailPanelModel) scrollToTop() {
 	m.scrollOffset = 0
 }
 
+// calculateMaxScrollOffset calculates the maximum scroll position based on content lines
+func (m *DetailPanelModel) calculateMaxScrollOffset(content string) int {
+	lines := strings.Split(content, "\n")
+	totalLines := len(lines)
+
+	// Maximum scroll offset is the total lines minus viewport size
+	// This ensures we can scroll to show the last viewport-sized window of content
+	maxScroll := totalLines - m.viewportSize
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+
+	return maxScroll
+}
+
 func (m *DetailPanelModel) scrollToBottom() {
-	// Calculate max scroll based on content height
-	// This is approximate since we don't know exact content height
-	m.scrollOffset = 100 // Large number to scroll to bottom
+	// We need to calculate this dynamically in applyScrolling since we don't have content here
+	// Set to a large value that will be corrected in applyScrolling
+	m.scrollOffset = 999999
 }
 
 func (m *DetailPanelModel) toggleFullMessages() {
@@ -368,10 +383,19 @@ func (m *DetailPanelModel) toggleFullMessages() {
 // Apply scrolling to content
 func (m *DetailPanelModel) applyScrolling(content string) string {
 	lines := strings.Split(content, "\n")
+	totalLines := len(lines)
 
-	if len(lines) <= m.viewportSize || m.scrollOffset <= 0 {
+	// Calculate the maximum scroll position dynamically
+	maxScrollOffset := m.calculateMaxScrollOffset(content)
+
+	// Ensure scroll offset doesn't exceed the maximum
+	if m.scrollOffset > maxScrollOffset {
+		m.scrollOffset = maxScrollOffset
+	}
+
+	if totalLines <= m.viewportSize || m.scrollOffset <= 0 {
 		// No scrolling needed or at top
-		if len(lines) > m.viewportSize {
+		if totalLines > m.viewportSize {
 			return strings.Join(lines[:m.viewportSize], "\n")
 		}
 		return content
@@ -379,17 +403,9 @@ func (m *DetailPanelModel) applyScrolling(content string) string {
 
 	// Apply scroll offset
 	start := m.scrollOffset
-	if start >= len(lines) {
-		start = len(lines) - m.viewportSize
-		if start < 0 {
-			start = 0
-		}
-		m.scrollOffset = start
-	}
-
 	end := start + m.viewportSize
-	if end > len(lines) {
-		end = len(lines)
+	if end > totalLines {
+		end = totalLines
 	}
 
 	return strings.Join(lines[start:end], "\n")
@@ -452,13 +468,6 @@ func (m *DetailPanelModel) truncatePath(path string) string {
 	}
 
 	return path[:maxLen-3] + "..."
-}
-
-func (m *DetailPanelModel) truncateText(text string, maxLen int) string {
-	if len(text) <= maxLen {
-		return text
-	}
-	return text[:maxLen-3] + "..."
 }
 
 // Message types

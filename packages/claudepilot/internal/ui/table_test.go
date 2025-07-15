@@ -2,6 +2,7 @@ package ui
 
 import (
 	"claude-pilot/core/api"
+	"claude-pilot/internal/styles"
 	"strings"
 	"testing"
 	"time"
@@ -144,19 +145,34 @@ func TestFormatTimeAgo(t *testing.T) {
 			expected: Success.Sprint("just now"),
 		},
 		{
+			name:     "1 minute ago",
+			time:     now.Add(-1 * time.Minute),
+			expected: Info.Sprint("1min ago"),
+		},
+		{
 			name:     "Minutes ago",
 			time:     now.Add(-5 * time.Minute),
-			expected: Info.Sprint("5m ago"),
+			expected: Info.Sprint("5mins ago"),
+		},
+		{
+			name:     "1 hour ago",
+			time:     now.Add(-1 * time.Hour),
+			expected: Warning.Sprint("1 hour ago"),
 		},
 		{
 			name:     "Hours ago",
 			time:     now.Add(-2 * time.Hour),
-			expected: Warning.Sprint("2h ago"),
+			expected: Warning.Sprint("2 hours ago"),
 		},
 		{
 			name:     "Days ago",
 			time:     now.Add(-25 * time.Hour),
-			expected: Dim("1d ago"),
+			expected: Dim("1 day ago"),
+		},
+		{
+			name:     "Multiple days ago",
+			time:     now.Add(-72 * time.Hour),
+			expected: Dim("3 days ago"),
 		},
 	}
 
@@ -199,7 +215,7 @@ func TestTruncateText(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := truncateText(tt.text, tt.maxLen)
+			result := styles.TruncateText(tt.text, tt.maxLen)
 			if result != tt.expected {
 				t.Errorf("truncateText(%q, %d) = %q, want %q", tt.text, tt.maxLen, result, tt.expected)
 			}

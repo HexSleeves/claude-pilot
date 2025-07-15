@@ -45,7 +45,7 @@ var (
 
 	// Text styles
 	BoldStyle      = styles.BoldStyle
-	DimStyle       = styles.MutedTextStyle
+	DimStyle       = styles.DimTextStyle
 	HighlightStyle = styles.HighlightStyle
 
 	// Interactive elements

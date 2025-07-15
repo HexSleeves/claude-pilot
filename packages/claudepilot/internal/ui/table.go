@@ -164,7 +164,7 @@ func SessionDetail(sess *api.Session, backend string) string {
 			builder.WriteString(fmt.Sprintf("%s %s %s\n",
 				roleColor.Sprint(fmt.Sprintf("[%s]", msg.Role)),
 				Dim(msg.Timestamp.Format("15:04:05")),
-				truncateText(msg.Content, 60),
+				styles.TruncateText(msg.Content, 60),
 			))
 		}
 	}
@@ -226,11 +226,35 @@ func formatTimeAgo(t time.Time) string {
 	case duration < time.Minute:
 		return Success.Sprint("just now")
 	case duration < time.Hour:
-		return Info.Sprint(fmt.Sprintf("%dm ago", int(duration.Minutes())))
+		minutes := int(duration.Minutes())
+		if minutes == 0 {
+			return Success.Sprint("just now")
+		}
+		unit := "min"
+		if minutes != 1 {
+			unit = "mins"
+		}
+		return Info.Sprint(fmt.Sprintf("%d%s ago", minutes, unit))
 	case duration < 24*time.Hour:
-		return Warning.Sprint(fmt.Sprintf("%dh ago", int(duration.Hours())))
+		hours := int(duration.Hours())
+		if hours == 0 {
+			return Success.Sprint("just now")
+		}
+		unit := "hour"
+		if hours != 1 {
+			unit = "hours"
+		}
+		return Warning.Sprint(fmt.Sprintf("%d %s ago", hours, unit))
 	default:
-		return Dim(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
+		days := int(duration.Hours() / 24)
+		if days == 0 {
+			return Success.Sprint("just now")
+		}
+		unit := "day"
+		if days != 1 {
+			unit = "days"
+		}
+		return Dim(fmt.Sprintf("%d %s ago", days, unit))
 	}
 }
 
@@ -248,12 +272,4 @@ func formatProjectPath(path string) string {
 	}
 
 	return Dim(path)
-}
-
-func truncateText(text string, maxLen int) string {
-	if len(text) <= maxLen {
-		return text
-	}
-
-	return text[:maxLen-3] + "..."
 }

@@ -143,10 +143,26 @@ func (f *FlexContainer) renderRow(width, height int) string {
 		totalWeight = len(f.weights)
 	}
 
+	// Calculate widths for each child, distributing remainder pixels
+	childWidths := make([]int, len(f.children))
+	totalDistributed := 0
+
+	// First pass: calculate base widths using integer division
+	for i := range f.children {
+		childWidths[i] = (width * f.weights[i]) / totalWeight
+		totalDistributed += childWidths[i]
+	}
+
+	// Calculate remainder pixels and distribute them
+	remainderPixels := width - totalDistributed
+	for i := 0; i < remainderPixels && i < len(childWidths); i++ {
+		childWidths[i]++
+	}
+
 	// Render each child with calculated width
 	renderedChildren := make([]string, len(f.children))
 	for i, child := range f.children {
-		childWidth := (width * f.weights[i]) / totalWeight
+		childWidth := childWidths[i]
 		if childWidth < f.config.MinPanelWidth && f.config.MinPanelWidth > 0 {
 			childWidth = f.config.MinPanelWidth
 		}
@@ -201,10 +217,26 @@ func (f *FlexContainer) renderColumn(width, height int) string {
 		totalWeight = len(f.weights)
 	}
 
+	// Calculate heights for each child, distributing remainder pixels
+	childHeights := make([]int, len(f.children))
+	totalDistributed := 0
+
+	// First pass: calculate base heights using integer division
+	for i := range f.children {
+		childHeights[i] = (height * f.weights[i]) / totalWeight
+		totalDistributed += childHeights[i]
+	}
+
+	// Calculate remainder pixels and distribute them
+	remainderPixels := height - totalDistributed
+	for i := 0; i < remainderPixels && i < len(childHeights); i++ {
+		childHeights[i]++
+	}
+
 	// Render each child with calculated height
 	renderedChildren := make([]string, len(f.children))
 	for i, child := range f.children {
-		childHeight := (height * f.weights[i]) / totalWeight
+		childHeight := childHeights[i]
 
 		// Apply height constraint to child content
 		childStyle := lipgloss.NewStyle().

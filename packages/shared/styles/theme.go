@@ -13,24 +13,24 @@ const (
 var (
 	// Primary colors
 	ClaudePrimary   = lipgloss.Color("#FF6B35") // Claude orange
-	ClaudeSecondary = lipgloss.Color("#4A90E2") // Claude blue
+	ClaudeSecondary = lipgloss.Color("#6BB6FF") // More readable Claude blue
 
 	// Status colors
 	SuccessColor = lipgloss.Color("#2ECC71") // Success green
 	ErrorColor   = lipgloss.Color("#E74C3C") // Error red
 	WarningColor = lipgloss.Color("#F39C12") // Warning amber
-	InfoColor    = lipgloss.Color("#3498DB") // Info blue
+	InfoColor    = lipgloss.Color("#5DADE2") // Lighter, more readable blue
 
 	// Text colors
 	TextPrimary   = lipgloss.Color("#FFFFFF") // White
-	TextSecondary = lipgloss.Color("#BDC3C7") // Light gray
-	TextMuted     = lipgloss.Color("#7F8C8D") // Muted gray
+	TextSecondary = lipgloss.Color("#D5DBDB") // More readable light gray
+	TextMuted     = lipgloss.Color("#AEB6BF") // More readable muted gray
 	TextDim       = lipgloss.Color("#495057") // Dark gray
 
 	// Background colors
 	BackgroundPrimary   = lipgloss.Color("#2C3E50") // Dark blue-gray
 	BackgroundSecondary = lipgloss.Color("#34495E") // Lighter blue-gray
-	BackgroundAccent    = lipgloss.Color("#1ABC9C") // Teal accent
+	BackgroundAccent    = lipgloss.Color("#58D68D") // More readable green accent
 
 	// Session status colors
 	StatusActiveColor    = SuccessColor // Green
