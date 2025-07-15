@@ -450,8 +450,12 @@ func (m *DetailPanelModel) killSession() tea.Cmd {
 
 func (m *DetailPanelModel) refreshSession() tea.Cmd {
 	return func() tea.Msg {
-		// For now, return the same session - actual refresh would use proper API
-		return SessionRefreshedMsg{Session: m.session}
+		session, err := m.client.GetSession(m.session.ID)
+		if err != nil {
+			// Handle error, return existing for now
+			return SessionRefreshedMsg{Session: m.session}
+		}
+		return SessionRefreshedMsg{Session: session}
 	}
 }
 

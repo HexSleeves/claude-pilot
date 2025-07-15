@@ -198,23 +198,34 @@ func (t *Table) GetSelectedData() []string {
 	return nil
 }
 
-// createCLIStyleFunc creates styling for CLI table rendering
+// createCLIStyleFunc creates styling for CLI table rendering - Enhanced with standardized theme
 func (t *Table) createCLIStyleFunc() table.StyleFunc {
+	// Use enhanced table header style with Claude orange
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(styles.TextPrimary).
-		Background(styles.BackgroundAccent)
+		Background(styles.ClaudePrimary).
+		Align(lipgloss.Center)
 
+	// Enhanced row styles with better contrast
 	evenRowStyle := lipgloss.NewStyle().
 		Foreground(styles.TextSecondary)
 
 	oddRowStyle := lipgloss.NewStyle().
 		Foreground(styles.TextMuted)
 
+	// Selected row style for interactive tables
+	selectedRowStyle := lipgloss.NewStyle().
+		Foreground(styles.TextPrimary).
+		Background(styles.SelectedColor).
+		Bold(true)
+
 	return func(row, col int) lipgloss.Style {
 		switch {
 		case row == table.HeaderRow:
 			return headerStyle
+		case t.config.Interactive && row-1 == t.config.SelectedRow: // Adjust for header row
+			return selectedRowStyle
 		case row%2 == 0:
 			return evenRowStyle
 		default:
@@ -223,89 +234,117 @@ func (t *Table) createCLIStyleFunc() table.StyleFunc {
 	}
 }
 
-// styleCellForCLI applies CLI-specific styling to table cells
+// styleCellForCLI applies CLI-specific styling to table cells - Enhanced with theme-aware styling
 func (t *Table) styleCellForCLI(cell string, colIndex int) string {
 	switch colIndex {
-	case 0: // ID column
-		return styles.Highlight(cell)
-	case 1: // Name column
-		return styles.Title(cell)
-	case 2: // Status column
-		return formatStatus(cell)
+	case 0: // ID column - Use muted style for IDs
+		return styles.TableCellIDStyle.Render(cell)
+	case 1: // Name column - Use primary text with bold
+		return styles.TableCellNameStyle.Render(cell)
+	case 2: // Status column - Use semantic status colors
+		return formatStatusEnhanced(cell)
+	case 3: // Backend column - Use secondary text
+		return styles.TableCellStyle.Render(cell)
+	case 4, 5: // Created/Last Active columns - Use timestamp style
+		return styles.TableCellTimestampStyle.Render(cell)
+	case 6: // Messages column - Use info style for numbers
+		return styles.TableCellInfoStyle.Render(cell)
+	case 7: // Project column - Use muted style for paths
+		return cell // Already styled in formatProjectPath
 	default:
-		return cell
+		return styles.TableCellStyle.Render(cell)
 	}
 }
 
-// styleCellForTUI applies TUI-specific styling to table cells
+// styleCellForTUI applies TUI-specific styling to table cells - Enhanced with theme consistency
 func (t *Table) styleCellForTUI(cell string, colIndex int, isSelected bool) string {
 	if isSelected {
 		return cell // Selection styling handled at row level
 	}
 
 	switch colIndex {
-	case 0: // ID column
-		return styles.Highlight(cell)
-	case 1: // Name column
+	case 0: // ID column - Use muted style for IDs
+		return styles.TableCellIDStyle.Render(cell)
+	case 1: // Name column - Use session name style
 		return styles.SessionNameStyle.Render(cell)
-	case 2: // Status column
-		return formatStatus(cell)
+	case 2: // Status column - Use enhanced status formatting
+		return formatStatusEnhanced(cell)
+	case 3: // Backend column - Use secondary text
+		return styles.TableCellStyle.Render(cell)
+	case 4, 5: // Created/Last Active columns - Use timestamp style
+		return styles.TableCellTimestampStyle.Render(cell)
+	case 6: // Messages column - Use info style for numbers
+		return styles.TableCellInfoStyle.Render(cell)
+	case 7: // Project column - Use muted style for paths
+		return cell // Already styled in formatProjectPath
 	default:
 		return styles.TableCellStyle.Render(cell)
 	}
 }
 
-// Utility functions
+// Utility functions - Enhanced with comprehensive status formatting
 
-func formatStatus(status string) string {
+// formatStatusEnhanced provides enhanced status formatting with improved styling
+func formatStatusEnhanced(status string) string {
 	switch status {
 	case "active":
-		return styles.StatusActive("active")
+		return styles.TableCellSuccessStyle.Render("● " + status)
 	case "inactive":
-		return styles.StatusInactive("inactive")
+		return styles.TableCellWarningStyle.Render("⏸ " + status)
 	case "connected":
-		return styles.StatusConnected("connected")
-	case "error":
-		return styles.StatusError("error")
+		return styles.TableCellInfoStyle.Render("🔗 " + status)
+	case "error", "failed":
+		return styles.TableCellErrorStyle.Render("✗ " + status)
+	case "starting", "pending":
+		return styles.TableCellWarningStyle.Render("⏳ " + status)
+	case "stopped":
+		return styles.TableCellStyle.Render("⏹ " + status)
 	default:
-		return styles.Dim(status)
+		return styles.TableCellStyle.Render("? " + status)
 	}
 }
 
+// formatTime formats timestamps with consistent styling
 func formatTime(t time.Time) string {
-	return styles.Dim(t.Format("2006-01-02 15:04"))
+	return styles.TableCellTimestampStyle.Render(t.Format("2006-01-02 15:04"))
 }
 
+// formatTimeAgo formats relative time with semantic colors based on recency
 func formatTimeAgo(t time.Time) string {
 	duration := time.Since(t)
 
 	switch {
 	case duration < time.Minute:
-		return styles.Success("just now")
+		return styles.TableCellSuccessStyle.Render("just now")
 	case duration < time.Hour:
-		return styles.Info(fmt.Sprintf("%dm ago", int(duration.Minutes())))
+		return styles.TableCellInfoStyle.Render(fmt.Sprintf("%dm ago", int(duration.Minutes())))
 	case duration < 24*time.Hour:
-		return styles.Warning(fmt.Sprintf("%dh ago", int(duration.Hours())))
+		return styles.TableCellWarningStyle.Render(fmt.Sprintf("%dh ago", int(duration.Hours())))
+	case duration < 7*24*time.Hour:
+		return styles.TableCellTimestampStyle.Render(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
 	default:
-		return styles.Dim(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
+		return styles.TableCellStyle.Render(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
 	}
 }
 
+// formatProjectPath formats project paths with consistent styling and smart truncation
 func formatProjectPath(path string, maxLen int) string {
 	if path == "" {
-		return styles.Dim("—")
+		return styles.TableCellStyle.Render("—")
 	}
 
 	if len(path) > maxLen {
 		parts := strings.Split(path, "/")
 		if len(parts) > 1 {
+			// Try to show the most relevant part (last directory + filename)
 			truncated := ".../" + parts[len(parts)-1]
 			if len(truncated) <= maxLen {
-				return styles.Dim(truncated)
+				return styles.TableCellStyle.Render(truncated)
 			}
 		}
-		return styles.Dim(path[:maxLen-3] + "...")
+		// Fallback to simple truncation
+		return styles.TableCellStyle.Render(styles.TruncateText(path, maxLen))
 	}
 
-	return styles.Dim(path)
+	return styles.TableCellStyle.Render(path)
 }

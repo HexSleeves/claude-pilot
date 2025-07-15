@@ -7,6 +7,15 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Package-level constants for layout constraints
+const (
+	MinHeaderHeight      = 2
+	MaxHeaderHeight      = 5
+	MinFooterHeight      = 1
+	MaxFooterHeight      = 2
+	MinMainContentHeight = 6
+)
+
 // LayoutConfig holds configuration for responsive layouts
 type LayoutConfig struct {
 	Width         int
@@ -286,6 +295,26 @@ func (g *GridContainer) Render() string {
 	cellWidth := (availableWidth - (g.config.Gap * (g.columns - 1))) / g.columns
 	cellHeight := (availableHeight - (g.config.Gap * (g.rows - 1))) / g.rows
 
+	widthRemainder := (availableWidth - (g.config.Gap * (g.columns - 1))) % g.columns
+	heightRemainder := (availableHeight - (g.config.Gap * (g.rows - 1))) % g.rows
+
+	// Distribute remainders
+	colWidths := make([]int, g.columns)
+	for j := 0; j < g.columns; j++ {
+		colWidths[j] = cellWidth
+	}
+	for j := range widthRemainder {
+		colWidths[j]++
+	}
+
+	rowHeights := make([]int, g.rows)
+	for i := 0; i < g.rows; i++ {
+		rowHeights[i] = cellHeight
+	}
+	for i := range heightRemainder {
+		rowHeights[i]++
+	}
+
 	// Render each row
 	renderedRows := make([]string, g.rows)
 	for i := 0; i < g.rows; i++ {
@@ -293,8 +322,8 @@ func (g *GridContainer) Render() string {
 		renderedCells := make([]string, g.columns)
 		for j := 0; j < g.columns; j++ {
 			cellStyle := lipgloss.NewStyle().
-				Width(cellWidth).
-				Height(cellHeight)
+				Width(colWidths[j]).
+				Height(rowHeights[i])
 
 			renderedCells[j] = cellStyle.Render(g.cells[i][j])
 		}
@@ -455,24 +484,24 @@ func DashboardLayout(width, height int, header, main, footer string) string {
 	footerHeight := calculateContentHeight(footer)
 
 	// Ensure reasonable minimum and maximum heights (more compact)
-	if headerHeight < 2 {
-		headerHeight = 2
+	if headerHeight < MinHeaderHeight {
+		headerHeight = MinHeaderHeight
 	}
-	if headerHeight > 5 { // Reduced from 6 to 5
-		headerHeight = 5
+	if headerHeight > MaxHeaderHeight {
+		headerHeight = MaxHeaderHeight
 	}
-	if footerHeight < 1 {
-		footerHeight = 1
+	if footerHeight < MinFooterHeight {
+		footerHeight = MinFooterHeight
 	}
-	if footerHeight > 2 { // Reduced from 3 to 2
-		footerHeight = 2
+	if footerHeight > MaxFooterHeight {
+		footerHeight = MaxFooterHeight
 	}
 
 	// Calculate remaining height for main content
 	mainHeight := height - headerHeight - footerHeight
-	if mainHeight < 6 { // Reduced from 5 to 6 for better fit
+	if mainHeight < MinMainContentHeight {
 		// If not enough space, reduce header height
-		headerHeight = max(2, height-footerHeight-6)
+		headerHeight = max(MinHeaderHeight, height-footerHeight-MinMainContentHeight)
 		mainHeight = height - headerHeight - footerHeight
 	}
 

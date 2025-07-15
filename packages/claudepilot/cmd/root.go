@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"claude-pilot/internal/styles"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "claude-pilot",
 	Short: "A CLI tool for managing multiple Claude code sessions",
-	Long: ui.RootBanner() + "\n\n" + ui.CommandList(map[string]string{
+	Long: styles.RootBanner() + "\n\n" + ui.CommandList(map[string]string{
 		"create":   "Create a new Claude session",
 		"list":     "List all active sessions",
 		"attach":   "Attach to a specific session",
@@ -31,7 +32,7 @@ var rootCmd = &cobra.Command{
 		ctx, err := InitializeCommand()
 		if err != nil {
 			// If we can't initialize, just show help
-			cmd.Help()
+			_ = cmd.Help()
 			return
 		}
 
@@ -42,7 +43,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Default behavior: show help
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 

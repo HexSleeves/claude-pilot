@@ -1,8 +1,8 @@
 package components
 
 import (
+	"claude-pilot/shared/interfaces"
 	"claude-pilot/shared/styles"
-	"claude-pilot/shared/utils"
 	"fmt"
 	"strings"
 
@@ -69,59 +69,65 @@ func NewInfoCard(config CardConfig, content []string) *InfoCard {
 	}
 }
 
-// Render renders the summary card
+// Render renders the summary card - Enhanced with standardized theming
 func (c *SummaryCard) Render() string {
 	var content strings.Builder
 
-	// Add icon if provided
+	// Add icon if provided with consistent spacing
 	if c.config.Icon != "" {
 		content.WriteString(c.config.Icon + " ")
 	}
 
-	// Add title if provided
+	// Add title with enhanced styling
 	if c.config.Title != "" {
 		if c.config.Compact {
-			content.WriteString(styles.Bold(c.config.Title) + "\n")
+			content.WriteString(styles.CardHeaderStyle.Render(c.config.Title) + "\n")
 		} else {
 			content.WriteString(styles.PanelHeaderStyle.Render(c.config.Title) + "\n")
 		}
 	}
 
-	// Value styling based on color
+	// Enhanced value styling with theme-aware colors
 	valueStyle := lipgloss.NewStyle().
 		Foreground(c.color).
 		Bold(true)
 
 	if c.config.Compact {
-		// Compact layout: value and label on same line
+		// Compact layout: value and label on same line with better spacing
 		content.WriteString(fmt.Sprintf("%s %s",
 			valueStyle.Render(c.value),
-			styles.SecondaryTextStyle.Render(c.label),
+			styles.CardContentStyle.Render(c.label),
 		))
 	} else {
-		// Full layout: value and label on separate lines
+		// Full layout: value and label on separate lines with responsive width
+		width := c.config.Width - 4 // Account for padding and borders
+		if width < 1 {
+			width = 10 // Minimum width
+		}
+
 		content.WriteString(valueStyle.
 			Align(lipgloss.Center).
-			Width(c.config.Width-2).
+			Width(width).
 			Render(c.value) + "\n")
-		content.WriteString(styles.SecondaryTextStyle.
+		content.WriteString(styles.CardContentStyle.
 			Align(lipgloss.Center).
-			Width(c.config.Width - 2).
+			Width(width).
 			Render(c.label))
 	}
 
-	// Apply card styling with minimal padding
-	cardStyle := lipgloss.NewStyle().
-		Padding(0, 1) // Reduced padding from (1,2) to (0,1)
+	// Apply enhanced card styling using theme styles
+	cardStyle := styles.CardStyle
 
 	if c.config.Border {
+		// Use theme-aware border with contextual coloring
 		cardStyle = cardStyle.
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(c.color)
 	}
 
+	// Apply responsive sizing
 	if c.config.Width > 0 {
-		cardStyle = cardStyle.Width(c.config.Width)
+		cardStyle = styles.AdaptiveWidth(cardStyle, c.config.Width)
 	}
 
 	if c.config.MinHeight > 0 {
@@ -131,50 +137,67 @@ func (c *SummaryCard) Render() string {
 	return cardStyle.Render(content.String())
 }
 
-// Render renders the status card
+// Render renders the status card - Enhanced with standardized theming
 func (c *StatusCard) Render() string {
 	var content strings.Builder
 
-	// Add icon if provided
+	// Add icon with consistent spacing
 	if c.config.Icon != "" {
 		content.WriteString(c.config.Icon + " ")
 	}
 
-	// Add title if provided
+	// Add title with enhanced styling
 	if c.config.Title != "" {
 		if c.config.Compact {
-			content.WriteString(styles.Bold(c.config.Title) + "\n")
+			content.WriteString(styles.CardHeaderStyle.Render(c.config.Title) + "\n")
 		} else {
 			content.WriteString(styles.PanelHeaderStyle.Render(c.config.Title) + "\n")
 		}
 	}
 
-	// Status with indicator
+	// Enhanced status with indicator using contextual colors
+	statusColor := styles.GetContextualColor("status", strings.ToLower(c.status))
+	statusStyle := lipgloss.NewStyle().Foreground(statusColor).Bold(true)
 	statusLine := fmt.Sprintf("%s %s", c.indicator, c.status)
-	content.WriteString(styles.HighlightStyle.Render(statusLine))
+	content.WriteString(statusStyle.Render(statusLine))
 
-	// Add details if provided (more compact)
+	// Add details with improved formatting
 	if len(c.details) > 0 {
 		for _, detail := range c.details {
-			content.WriteString("\n" + styles.SecondaryTextStyle.Render("• "+detail))
+			content.WriteString("\n" + styles.CardContentStyle.Render("• "+detail))
 		}
 	}
 
-	// Apply card styling with minimal padding
-	cardStyle := lipgloss.NewStyle().
-		Padding(0, 1) // Reduced padding from (1,2) to (0,1)
+	// Apply enhanced card styling using theme styles
+	cardStyle := styles.CardStyle
 
 	if c.config.Border {
-		// Determine border color based on status using enum matching
-		borderColor := utils.GetSessionStatusColor(c.status)
+		// Use contextual border color based on status
+		borderColor := styles.GetContextualColor("status", strings.ToLower(c.status))
+
+		// Fallback to interface-based matching if contextual color doesn't work
+		statusLower := strings.ToLower(c.status)
+		switch statusLower {
+		case strings.ToLower(string(interfaces.StatusError)):
+			borderColor = styles.ErrorColor
+		case strings.ToLower(string(interfaces.StatusWarning)):
+			borderColor = styles.WarningColor
+		case strings.ToLower(string(interfaces.StatusActive)):
+			borderColor = styles.SuccessColor
+		case strings.ToLower(string(interfaces.StatusInactive)):
+			borderColor = styles.WarningColor
+		case strings.ToLower(string(interfaces.StatusConnected)):
+			borderColor = styles.InfoColor
+		}
 
 		cardStyle = cardStyle.
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor)
 	}
 
+	// Apply responsive sizing
 	if c.config.Width > 0 {
-		cardStyle = cardStyle.Width(c.config.Width)
+		cardStyle = styles.AdaptiveWidth(cardStyle, c.config.Width)
 	}
 
 	if c.config.MinHeight > 0 {
@@ -184,44 +207,45 @@ func (c *StatusCard) Render() string {
 	return cardStyle.Render(content.String())
 }
 
-// Render renders the info card
+// Render renders the info card - Enhanced with standardized theming
 func (c *InfoCard) Render() string {
 	var content strings.Builder
 
-	// Add icon if provided
+	// Add icon with consistent spacing
 	if c.config.Icon != "" {
 		content.WriteString(c.config.Icon + " ")
 	}
 
-	// Add title if provided
+	// Add title with enhanced styling
 	if c.config.Title != "" {
 		if c.config.Compact {
-			content.WriteString(styles.Bold(c.config.Title) + "\n")
+			content.WriteString(styles.CardHeaderStyle.Render(c.config.Title) + "\n")
 		} else {
 			content.WriteString(styles.PanelHeaderStyle.Render(c.config.Title) + "\n")
 		}
 	}
 
-	// Add content lines
+	// Add content lines with improved formatting
 	for i, line := range c.content {
 		if i > 0 {
 			content.WriteString("\n")
 		}
-		content.WriteString(styles.SecondaryTextStyle.Render(line))
+		content.WriteString(styles.CardContentStyle.Render(line))
 	}
 
-	// Apply card styling with minimal padding
-	cardStyle := lipgloss.NewStyle().
-		Padding(0, 1) // Reduced padding from (1,2) to (0,1)
+	// Apply enhanced card styling using theme styles
+	cardStyle := styles.CardStyle
 
 	if c.config.Border {
+		// Use neutral border color for info cards
 		cardStyle = cardStyle.
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(styles.TextMuted)
+			BorderForeground(styles.BackgroundSurface)
 	}
 
+	// Apply responsive sizing
 	if c.config.Width > 0 {
-		cardStyle = cardStyle.Width(c.config.Width)
+		cardStyle = styles.AdaptiveWidth(cardStyle, c.config.Width)
 	}
 
 	if c.config.MinHeight > 0 {
@@ -264,7 +288,7 @@ func CreateSessionSummaryCards(totalSessions, activeSessions, connectedSessions 
 	totalCard := NewSummaryCard(
 		CardConfig{
 			Width:     cardWidth,
-			MinHeight: 3, // Reduced height
+			MinHeight: 1,
 			Title:     "Total",
 			Icon:      "📊",
 			Border:    true,
@@ -279,7 +303,7 @@ func CreateSessionSummaryCards(totalSessions, activeSessions, connectedSessions 
 	activeCard := NewSummaryCard(
 		CardConfig{
 			Width:     cardWidth,
-			MinHeight: 3, // Reduced height
+			MinHeight: 1,
 			Title:     "Active",
 			Icon:      "✅",
 			Border:    true,
@@ -294,7 +318,7 @@ func CreateSessionSummaryCards(totalSessions, activeSessions, connectedSessions 
 	connectedCard := NewSummaryCard(
 		CardConfig{
 			Width:     cardWidth,
-			MinHeight: 3, // Reduced height
+			MinHeight: 1,
 			Title:     "Connected",
 			Icon:      "🔗",
 			Border:    true,
@@ -309,7 +333,7 @@ func CreateSessionSummaryCards(totalSessions, activeSessions, connectedSessions 
 	backendCard := NewStatusCard(
 		CardConfig{
 			Width:     cardWidth,
-			MinHeight: 3, // Reduced height
+			MinHeight: 1,
 			Title:     "Backend",
 			Icon:      "⚙️",
 			Border:    true,
@@ -338,13 +362,13 @@ func CreateSystemStatusCard(backend, version string, uptime string, width int) s
 	statusCard := NewStatusCard(
 		CardConfig{
 			Width:     width,
-			MinHeight: 3, // Reduced height
+			MinHeight: 3,
 			Title:     "System",
 			Icon:      "🖥️",
 			Border:    true,
 			Compact:   true, // Make it compact
 		},
-		fmt.Sprintf("%s", backend), // Shortened status
+		backend,
 		"●",
 		details,
 	)

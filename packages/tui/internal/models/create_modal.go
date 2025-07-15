@@ -37,10 +37,11 @@ type textInput struct {
 }
 
 // Form field indices
+// Form field indices
 const (
-	inputName = iota
-	inputDescription
-	inputProjectPath
+	inputName        = iota // Index for session name input field
+	inputDescription        // Index for session description input field
+	inputProjectPath        // Index for project path input field
 )
 
 // NewCreateModalModel creates a new create modal model

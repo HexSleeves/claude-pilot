@@ -1,6 +1,7 @@
 package styles
 
 import (
+	"claude-pilot/shared/styles"
 	"fmt"
 	"strings"
 	"time"
@@ -84,71 +85,20 @@ func TruncateText(text string, maxLen int) string {
 
 // Enhanced banner for the root command
 func RootBanner() string {
-	// Create the main title
-	title := lipgloss.NewStyle().
-		Foreground(ClaudePrimary).
-		Bold(true).
-		Render("Claude Pilot 🚀")
-
-	// Create the subtitle with proper width
-	subtitleText := "A powerful CLI tool for managing multiple Claude code sessions"
-	subtitle := lipgloss.NewStyle().
-		Foreground(TextSecondary).
-		Render(subtitleText)
-
-	// Calculate the border width based on the longest content
-	titleWidth := lipgloss.Width(title)
-	subtitleWidth := lipgloss.Width(subtitle)
-	contentWidth := max(subtitleWidth, titleWidth)
-
-	// Add some padding to the content width
-	borderWidth := contentWidth + 4 // 2 spaces on each side
-
-	// Create decorative border
-	borderStyle := lipgloss.NewStyle().
-		Foreground(ClaudePrimary).
-		Bold(true)
-
-	topBorder := borderStyle.Render("╔" + strings.Repeat("═", borderWidth) + "╗")
-	bottomBorder := borderStyle.Render("╚" + strings.Repeat("═", borderWidth) + "╝")
-
-	// Center the content
-	titleCentered := lipgloss.PlaceHorizontal(borderWidth, lipgloss.Center, title)
-	subtitleCentered := lipgloss.PlaceHorizontal(borderWidth, lipgloss.Center, subtitle)
-	emptyCentered := lipgloss.PlaceHorizontal(borderWidth, lipgloss.Center, "")
-
-	// Add side borders
-	titleLine := borderStyle.Render("║") + titleCentered + borderStyle.Render("║")
-	subtitleLine := borderStyle.Render("║") + subtitleCentered + borderStyle.Render("║")
-	emptyLine := borderStyle.Render("║") + emptyCentered + borderStyle.Render("║")
-
-	// Join all parts
-	banner := lipgloss.JoinVertical(lipgloss.Left,
-		topBorder,
-		emptyLine,
-		titleLine,
-		emptyLine,
-		subtitleLine,
-		emptyLine,
-		bottomBorder,
-	)
-
-	return banner
+	// Use shared theme banner function for consistency
+	return styles.Banner("Claude Pilot 🚀", "A powerful CLI tool for managing multiple Claude code sessions")
 }
 
 // Enhanced command list formatting
 func CommandList(commands map[string]string) string {
 	var lines []string
 
-	// Header
-	header := lipgloss.NewStyle().
-		Foreground(InfoColor).
-		Bold(true).
-		Render("Available Commands:")
+	// Header with enhanced styling
+	header := InfoStyle.Render("Available Commands:")
 	lines = append(lines, header)
 	lines = append(lines, "")
 
-	// Commands
+	// Commands with improved formatting
 	for cmd, desc := range commands {
 		cmdStyled := lipgloss.NewStyle().
 			Foreground(ClaudePrimary).
@@ -167,22 +117,38 @@ func CommandList(commands map[string]string) string {
 	return strings.Join(lines, "\n")
 }
 
-// Session summary formatting
+// Session summary formatting - Enhanced with standardized theme
 func SessionSummary(total, active, inactive int, showAll bool) string {
 	var parts []string
 
 	if total > 0 {
+		// Use enhanced card-style formatting
 		totalText := fmt.Sprintf("Total: %d", total)
-		parts = append(parts, BoldStyle.Background(BackgroundSecondary).Render(totalText))
+		parts = append(parts, lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(BackgroundSecondary).
+			Bold(true).
+			Padding(0, 1).
+			Render(totalText))
 
 		if active > 0 {
 			activeText := fmt.Sprintf("Active: %d", active)
-			parts = append(parts, StatusActiveStyle.Background(BackgroundSecondary).Render(activeText))
+			parts = append(parts, lipgloss.NewStyle().
+				Foreground(SuccessColor).
+				Background(BackgroundSecondary).
+				Bold(true).
+				Padding(0, 1).
+				Render(activeText))
 		}
 
 		if inactive > 0 {
 			inactiveText := fmt.Sprintf("Inactive: %d", inactive)
-			parts = append(parts, StatusInactiveStyle.Background(BackgroundSecondary).Render(inactiveText))
+			parts = append(parts, lipgloss.NewStyle().
+				Foreground(WarningColor).
+				Background(BackgroundSecondary).
+				Bold(true).
+				Padding(0, 1).
+				Render(inactiveText))
 		}
 	}
 
@@ -190,8 +156,11 @@ func SessionSummary(total, active, inactive int, showAll bool) string {
 		return Dim("No sessions found")
 	}
 
-	// Join the parts with a separator that also has the background
-	separator := WithBackground(" | ", BackgroundSecondary)
+	// Join with enhanced separator
+	separator := lipgloss.NewStyle().
+		Foreground(TextMuted).
+		Background(BackgroundSecondary).
+		Render(" | ")
 	summary := strings.Join(parts, separator)
 
 	if !showAll && inactive > 0 {

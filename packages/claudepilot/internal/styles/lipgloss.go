@@ -6,31 +6,66 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Re-export colors from shared styles for backward compatibility
+// Re-export colors from shared styles for backward compatibility - Enhanced with new theme elements
 var (
-	// Primary colors
-	ClaudePrimary   = styles.ClaudePrimary
-	ClaudeSecondary = styles.ClaudeSecondary
+	// Primary colors - Enhanced with light/dark variants
+	ClaudePrimary        = styles.ClaudePrimary
+	ClaudePrimaryLight   = styles.ClaudePrimaryLight
+	ClaudePrimaryDark    = styles.ClaudePrimaryDark
+	ClaudeSecondary      = styles.ClaudeSecondary
+	ClaudeSecondaryLight = styles.ClaudeSecondaryLight
+	ClaudeSecondaryDark  = styles.ClaudeSecondaryDark
 
-	// Status colors
-	SuccessColor = styles.SuccessColor
-	ErrorColor   = styles.ErrorColor
-	WarningColor = styles.WarningColor
-	InfoColor    = styles.InfoColor
+	// Status colors - Enhanced with light variants
+	SuccessColor      = styles.SuccessColor
+	SuccessColorLight = styles.SuccessColorLight
+	ErrorColor        = styles.ErrorColor
+	ErrorColorLight   = styles.ErrorColorLight
+	WarningColor      = styles.WarningColor
+	WarningColorLight = styles.WarningColorLight
+	InfoColor         = styles.InfoColor
+	InfoColorLight    = styles.InfoColorLight
 
-	// Neutral colors
+	// Neutral colors - Enhanced with additional variants
 	TextPrimary   = styles.TextPrimary
 	TextSecondary = styles.TextSecondary
 	TextMuted     = styles.TextMuted
 	TextDim       = styles.TextDim
+	TextDisabled  = styles.TextDisabled
 
-	// Background colors
-	BackgroundPrimary   = styles.BackgroundPrimary
-	BackgroundSecondary = styles.BackgroundSecondary
-	BackgroundAccent    = styles.BackgroundAccent
+	// Background colors - Enhanced with surface variants
+	BackgroundPrimary      = styles.BackgroundPrimary
+	BackgroundSecondary    = styles.BackgroundSecondary
+	BackgroundAccent       = styles.BackgroundAccent
+	BackgroundSurface      = styles.BackgroundSurface
+	BackgroundSurfaceLight = styles.BackgroundSurfaceLight
+
+	// Interactive state colors
+	HoverColor      = styles.HoverColor
+	FocusColor      = styles.FocusColor
+	ActiveColor     = styles.ActiveColor
+	SelectedColor   = styles.SelectedColor
+	SelectedBgColor = styles.SelectedBgColor
+	DisabledColor   = styles.DisabledColor
+
+	// Content colors
+	ContentPrimary   = styles.ContentPrimary
+	ContentSecondary = styles.ContentSecondary
+	ContentMuted     = styles.ContentMuted
+	ContentHighlight = styles.ContentHighlight
+	ContentCode      = styles.ContentCode
+	ContentLink      = styles.ContentLink
+
+	// Action colors
+	ActionPrimary   = styles.ActionPrimary
+	ActionSecondary = styles.ActionSecondary
+	ActionSuccess   = styles.ActionSuccess
+	ActionWarning   = styles.ActionWarning
+	ActionDanger    = styles.ActionDanger
+	ActionNeutral   = styles.ActionNeutral
 )
 
-// Re-export styles from shared package for backward compatibility
+// Re-export styles from shared package for backward compatibility - Enhanced with new styles
 var (
 	// Title styles
 	TitleStyle    = styles.TitleStyle
@@ -43,18 +78,62 @@ var (
 	WarningStyle = styles.WarningStyle
 	InfoStyle    = styles.InfoStyle
 
-	// Text styles
-	BoldStyle      = styles.BoldStyle
-	DimStyle       = styles.DimTextStyle
-	HighlightStyle = styles.HighlightStyle
+	// Text styles - Enhanced with additional variants
+	BoldStyle          = styles.BoldStyle
+	DimStyle           = styles.DimTextStyle
+	HighlightStyle     = styles.HighlightStyle
+	PrimaryTextStyle   = styles.PrimaryTextStyle
+	SecondaryTextStyle = styles.SecondaryTextStyle
+	MutedTextStyle     = styles.MutedTextStyle
 
-	// Interactive elements
-	ArrowStyle  = styles.ArrowStyle
-	PromptStyle = styles.PromptStyle
+	// Interactive elements - Enhanced with state styles
+	ArrowStyle    = styles.ArrowStyle
+	PromptStyle   = styles.PromptStyle
+	SelectedStyle = styles.SelectedStyle
+	FocusedStyle  = styles.FocusedStyle
+	HoveredStyle  = styles.HoveredStyle
+	ActiveStyle   = styles.ActiveStyle
+	DisabledStyle = styles.DisabledStyle
 
-	// Table styles
-	TableHeaderStyle = styles.TableHeaderStyle
-	TableCellStyle   = styles.TableCellStyle
+	// Button styles - Enhanced with comprehensive variants
+	ButtonPrimaryStyle   = styles.ButtonPrimaryStyle
+	ButtonSecondaryStyle = styles.ButtonSecondaryStyle
+	ButtonSuccessStyle   = styles.ButtonSuccessStyle
+	ButtonWarningStyle   = styles.ButtonWarningStyle
+	ButtonDangerStyle    = styles.ButtonDangerStyle
+	ButtonFocusedStyle   = styles.ButtonFocusedStyle
+	ButtonDisabledStyle  = styles.ButtonDisabledStyle
+	ButtonStyle          = styles.ButtonStyle // Legacy compatibility
+
+	// Form styles - Enhanced with state variants
+	InputStyle         = styles.InputStyle
+	InputFocusedStyle  = styles.InputFocusedStyle
+	InputErrorStyle    = styles.InputErrorStyle
+	InputDisabledStyle = styles.InputDisabledStyle
+	LabelStyle         = styles.LabelStyle
+	LabelRequiredStyle = styles.LabelRequiredStyle
+	LabelErrorStyle    = styles.LabelErrorStyle
+
+	// Link styles
+	LinkStyle        = styles.LinkStyle
+	LinkHoverStyle   = styles.LinkHoverStyle
+	LinkVisitedStyle = styles.LinkVisitedStyle
+
+	// Table styles - Enhanced with comprehensive cell types
+	TableHeaderStyle        = styles.TableHeaderStyle
+	TableCellStyle          = styles.TableCellStyle
+	TableSelectedRowStyle   = styles.TableSelectedRowStyle
+	TableRowStyle           = styles.TableRowStyle
+	TableRowAlternateStyle  = styles.TableRowAlternateStyle
+	TableRowHoverStyle      = styles.TableRowHoverStyle
+	TableBorderStyle        = styles.TableBorderStyle
+	TableCellSuccessStyle   = styles.TableCellSuccessStyle
+	TableCellWarningStyle   = styles.TableCellWarningStyle
+	TableCellErrorStyle     = styles.TableCellErrorStyle
+	TableCellInfoStyle      = styles.TableCellInfoStyle
+	TableCellIDStyle        = styles.TableCellIDStyle
+	TableCellNameStyle      = styles.TableCellNameStyle
+	TableCellTimestampStyle = styles.TableCellTimestampStyle
 
 	// Status indicators
 	StatusActiveStyle    = styles.SessionStatusActiveStyle
@@ -67,18 +146,44 @@ var (
 	ProgressStyle = styles.ProgressStyle
 )
 
-// Re-export box styles from shared package
+// Re-export box styles from shared package - Enhanced with comprehensive container styles
 var (
+	// Basic box styles
 	MainBoxStyle    = styles.MainBoxStyle
 	InfoBoxStyle    = styles.InfoBoxStyle
+	SuccessBoxStyle = styles.SuccessBoxStyle
 	WarningBoxStyle = styles.WarningBoxStyle
 	ErrorBoxStyle   = styles.ErrorBoxStyle
-)
 
-// Re-export utility functions from shared package for backward compatibility
-func WithBackground(text string, background lipgloss.Color) string {
-	return styles.WithBackground(text, background)
-}
+	// Card styles
+	CardStyle        = styles.CardStyle
+	CardHeaderStyle  = styles.CardHeaderStyle
+	CardContentStyle = styles.CardContentStyle
+	CardFooterStyle  = styles.CardFooterStyle
+
+	// Modal and dialog styles
+	ModalStyle        = styles.ModalStyle
+	ModalHeaderStyle  = styles.ModalHeaderStyle
+	ModalContentStyle = styles.ModalContentStyle
+	ModalFooterStyle  = styles.ModalFooterStyle
+
+	// Panel styles
+	PanelStyle        = styles.PanelStyle
+	PanelHeaderStyle  = styles.PanelHeaderStyle
+	PanelActiveStyle  = styles.PanelActiveStyle
+	PanelFocusedStyle = styles.PanelFocusedStyle
+
+	// Sidebar and navigation styles
+	SidebarStyle           = styles.SidebarStyle
+	SidebarHeaderStyle     = styles.SidebarHeaderStyle
+	SidebarItemStyle       = styles.SidebarItemStyle
+	SidebarItemActiveStyle = styles.SidebarItemActiveStyle
+	SidebarItemHoverStyle  = styles.SidebarItemHoverStyle
+
+	// Container styles
+	ContainerStyle = styles.ContainerStyle
+	BorderStyle    = styles.BorderStyle
+)
 
 func Title(text string) string {
 	return styles.Title(text)
@@ -173,9 +278,4 @@ func ErrorBox(content string) string {
 // Horizontal line with styling
 func HorizontalLine(width int) string {
 	return styles.HorizontalLine(width)
-}
-
-// Create a banner with title and subtitle
-func Banner(title, subtitle string) string {
-	return styles.Banner(title, subtitle)
 }
