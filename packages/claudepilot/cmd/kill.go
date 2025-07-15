@@ -9,15 +9,16 @@ import (
 )
 
 var killCmd = &cobra.Command{
-	Use:   "kill <session-name-or-id>",
-	Short: "Terminate a Claude session",
+	Aliases: []string{"delete", "rm"},
+	Use:     "kill <session-name-or-id>",
+	Short:   "Terminate a Claude session",
 	Long: `Terminate a specific Claude coding session by name or ID.
 This will permanently delete the session and all its data.
 
 Examples:
   claude-pilot kill my-session      # Kill session by name
-  claude-pilot kill abc123def       # Kill session by ID
-  claude-pilot kill --force my-session # Skip confirmation prompt`,
+  claude-pilot delete abc123def     # Kill session by ID
+  claude-pilot rm --force my-session # Skip confirmation prompt`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Initialize common command context

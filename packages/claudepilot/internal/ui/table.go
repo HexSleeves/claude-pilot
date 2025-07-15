@@ -33,7 +33,7 @@ func createTableStyleFunc() table.StyleFunc {
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(styles.TextPrimary).
-		Background(styles.BackgroundAccent)
+		Background(styles.BackgroundSecondary)
 
 	evenRowStyle := lipgloss.NewStyle().
 		Foreground(styles.TextSecondary)

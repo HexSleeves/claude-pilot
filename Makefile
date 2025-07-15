@@ -91,11 +91,6 @@ build-all:
 run: build
 	@$(BINARY_PATH)
 
-# Run the tui
-.PHONY: run-tui
-run-tui: build-tui
-	@cd $(TUI_DIR) && go run .
-
 # Package-specific targets
 .PHONY: build-claudepilot
 build-claudepilot:
@@ -127,19 +122,10 @@ deps-tui:
 	@echo "Installing dependencies for tui package..."
 	@cd $(TUI_DIR) && go mod tidy && go mod download
 
-# Demo commands
-.PHONY: demo
-demo: build
-	@echo "Running Claude Pilot demo..."
-	@echo "1. Creating test sessions..."
-	@$(BINARY_PATH) create demo-session -d "Demo session for testing"
-	@$(BINARY_PATH) create react-demo -d "React development demo"
-	@echo "\n2. Listing sessions..."
-	@$(BINARY_PATH) list
-	@echo "\n3. Showing session details..."
-	@$(BINARY_PATH) list --all
-	@echo "\n4. Cleaning up demo sessions..."
-	@echo "y" | $(BINARY_PATH) kill-all
+# Run the tui
+.PHONY: run-tui
+run-tui: build-tui
+	@cd $(TUI_DIR) && go run .
 
 # Help target
 .PHONY: help

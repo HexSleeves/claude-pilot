@@ -2,6 +2,7 @@ package styles
 
 import (
 	"claude-pilot/shared/styles"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
