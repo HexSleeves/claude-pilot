@@ -145,6 +145,22 @@ func (m *DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.selectedSession = msg.Session
 			m.detailPanel.SetSession(msg.Session)
 		}
+
+	case SessionAttachedMsg:
+		if msg.Error != nil {
+			m.err = msg.Error
+		} else {
+			// Successfully attached - exit TUI and let CLI handle the attachment
+			return m, tea.Quit
+		}
+
+	case SessionKilledMsg:
+		if msg.Error != nil {
+			m.err = msg.Error
+		} else {
+			// Successfully killed session - refresh the session list
+			cmds = append(cmds, m.loadSessions())
+		}
 	}
 
 	// Update child components based on focus
@@ -410,17 +426,22 @@ func (m *DashboardModel) loadSessions() tea.Cmd {
 // attachToSession attaches to a session
 func (m *DashboardModel) attachToSession(sessionID string) tea.Cmd {
 	return func() tea.Msg {
-		// For now, just quit - actual attach implementation would be in CLI
-		return tea.Quit()
+		err := m.client.AttachToSession(sessionID)
+		return SessionAttachedMsg{
+			SessionID: sessionID,
+			Error:     err,
+		}
 	}
 }
 
 // killSession kills a session
 func (m *DashboardModel) killSession(sessionID string) tea.Cmd {
 	return func() tea.Msg {
-		// For now, just refresh - actual kill implementation would use proper API
-		sessions, err := m.client.ListSessions()
-		return SessionsLoadedMsg{Sessions: sessions, Error: err}
+		err := m.client.KillSession(sessionID)
+		return SessionKilledMsg{
+			SessionID: sessionID,
+			Error:     err,
+		}
 	}
 }
 
@@ -439,4 +460,14 @@ type SessionsLoadedMsg struct {
 
 type ErrorMsg struct {
 	Error error
+}
+
+type SessionAttachedMsg struct {
+	SessionID string
+	Error     error
+}
+
+type SessionKilledMsg struct {
+	SessionID string
+	Error     error
 }

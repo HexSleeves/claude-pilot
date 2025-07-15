@@ -2,6 +2,7 @@ package components
 
 import (
 	"claude-pilot/shared/styles"
+	"claude-pilot/shared/utils"
 	"fmt"
 	"strings"
 
@@ -164,15 +165,8 @@ func (c *StatusCard) Render() string {
 		Padding(0, 1) // Reduced padding from (1,2) to (0,1)
 
 	if c.config.Border {
-		// Determine border color based on status
-		borderColor := styles.InfoColor
-		if strings.Contains(strings.ToLower(c.status), "error") {
-			borderColor = styles.ErrorColor
-		} else if strings.Contains(strings.ToLower(c.status), "warning") {
-			borderColor = styles.WarningColor
-		} else if strings.Contains(strings.ToLower(c.status), "active") || strings.Contains(strings.ToLower(c.status), "connected") {
-			borderColor = styles.SuccessColor
-		}
+		// Determine border color based on status using enum matching
+		borderColor := utils.GetSessionStatusColor(c.status)
 
 		cardStyle = cardStyle.
 			Border(lipgloss.RoundedBorder()).

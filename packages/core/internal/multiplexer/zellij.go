@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"claude-pilot/core/internal/interfaces"
+	"claude-pilot/shared/interfaces"
 )
 
 // ZellijMultiplexer implements the TerminalMultiplexer interface for zellij

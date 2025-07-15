@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"claude-pilot/core/internal/interfaces"
 	"claude-pilot/core/internal/logger"
+	"claude-pilot/shared/interfaces"
 )
 
 // TmuxMultiplexer implements the TerminalMultiplexer interface for tmux

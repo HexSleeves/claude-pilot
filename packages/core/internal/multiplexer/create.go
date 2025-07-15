@@ -5,7 +5,7 @@ import (
 	"slices"
 	"sync"
 
-	"claude-pilot/core/internal/interfaces"
+	"claude-pilot/shared/interfaces"
 )
 
 // MultiplexerCache caches multiplexer instances to avoid repeated creation

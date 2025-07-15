@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"claude-pilot/core/internal/config"
-	"claude-pilot/core/internal/interfaces"
+	"claude-pilot/shared/interfaces"
 	"claude-pilot/core/internal/logger"
 	"claude-pilot/core/internal/multiplexer"
 	"claude-pilot/core/internal/service"

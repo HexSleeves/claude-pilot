@@ -3,6 +3,7 @@ package models
 import (
 	"claude-pilot/core/api"
 	"claude-pilot/shared/styles"
+	"claude-pilot/shared/utils"
 	"fmt"
 	"strings"
 	"time"
@@ -415,16 +416,35 @@ func (m *DetailPanelModel) applyScrolling(content string) string {
 
 func (m *DetailPanelModel) attachToSession() tea.Cmd {
 	return func() tea.Msg {
-		// For now, just quit - actual attach implementation would be in CLI
-		return tea.Quit()
+		if m.session == nil {
+			return SessionAttachedMsg{
+				SessionID: "",
+				Error:     fmt.Errorf("no session selected"),
+			}
+		}
+
+		err := m.client.AttachToSession(m.session.ID)
+		return SessionAttachedMsg{
+			SessionID: m.session.ID,
+			Error:     err,
+		}
 	}
 }
 
 func (m *DetailPanelModel) killSession() tea.Cmd {
 	return func() tea.Msg {
-		// For now, just refresh - actual kill implementation would use proper API
-		sessions, err := m.client.ListSessions()
-		return SessionsLoadedMsg{Sessions: sessions, Error: err}
+		if m.session == nil {
+			return SessionKilledMsg{
+				SessionID: "",
+				Error:     fmt.Errorf("no session selected"),
+			}
+		}
+
+		err := m.client.KillSession(m.session.ID)
+		return SessionKilledMsg{
+			SessionID: m.session.ID,
+			Error:     err,
+		}
 	}
 }
 
@@ -438,7 +458,7 @@ func (m *DetailPanelModel) refreshSession() tea.Cmd {
 // Utility methods
 
 func (m *DetailPanelModel) formatStatus(status api.SessionStatus) string {
-	return styles.FormatSessionStatus(string(status)).Render(string(status))
+	return utils.FormatSessionStatus(string(status)).Render(string(status))
 }
 
 func (m *DetailPanelModel) formatTimeAgo(t time.Time) string {

@@ -8,7 +8,7 @@ import (
 	"slices"
 	"sync"
 
-	"claude-pilot/core/internal/interfaces"
+	"claude-pilot/shared/interfaces"
 	"claude-pilot/core/internal/utils"
 )
 

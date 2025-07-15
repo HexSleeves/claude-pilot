@@ -1,6 +1,8 @@
 package styles
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+)
 
 // Responsive breakpoints for adaptive layouts
 const (
@@ -286,22 +288,6 @@ var (
 			Foreground(ClaudePrimary).
 			Bold(true)
 )
-
-// Utility functions for status formatting
-func FormatSessionStatus(status string) lipgloss.Style {
-	switch status {
-	case "active":
-		return SessionStatusActiveStyle
-	case "inactive":
-		return SessionStatusInactiveStyle
-	case "connected":
-		return SessionStatusConnectedStyle
-	case "error":
-		return SessionStatusErrorStyle
-	default:
-		return MutedTextStyle
-	}
-}
 
 // Text utility functions
 func TruncateText(text string, maxLen int) string {
