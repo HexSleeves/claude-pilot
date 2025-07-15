@@ -1,7 +1,8 @@
 package ui
 
 import (
-	"claude-pilot/internal/styles"
+	compat "claude-pilot/internal/styles"
+	"claude-pilot/shared/styles"
 
 	"github.com/fatih/color" // Deprecated: Use lipgloss styles from shared theme
 )
@@ -54,22 +55,22 @@ func Subtitle(text string) string {
 
 func SuccessMsg(text string) string {
 	// Use shared theme success style with icon
-	return styles.Success("✓ " + text)
+	return styles.Success(text)
 }
 
 func ErrorMsg(text string) string {
 	// Use shared theme error style with icon
-	return styles.Error("✗ " + text)
+	return styles.Error(text)
 }
 
 func WarningMsg(text string) string {
 	// Use shared theme warning style with icon
-	return styles.Warning("⚠ " + text)
+	return styles.Warning(text)
 }
 
 func InfoMsg(text string) string {
 	// Use shared theme info style with icon
-	return styles.Info("ℹ " + text)
+	return styles.Info(text)
 }
 
 func Highlight(text string) string {
@@ -111,11 +112,11 @@ func FormatProcessStatus(status string) string {
 	case "starting":
 		return styles.WarningStyle.Render("⏳ " + status)
 	case "stopped":
-		return styles.DimStyle.Render("⏸ " + status)
+		return styles.Dim(status)
 	case "error":
 		return styles.ErrorStyle.Render("✗ " + status)
 	default:
-		return styles.DimStyle.Render("? " + status)
+		return styles.Dim("? " + status)
 	}
 }
 
@@ -127,11 +128,11 @@ func FormatTmuxStatus(status string) string {
 	case "attached":
 		return styles.StatusConnected(status)
 	case "stopped":
-		return styles.DimStyle.Render("⏸ " + status)
+		return styles.Dim("⏸ " + status)
 	case "error":
 		return styles.StatusError(status)
 	default:
-		return styles.DimStyle.Render("? " + status)
+		return styles.Dim("? " + status)
 	}
 }
 
@@ -158,7 +159,7 @@ func HorizontalLine(length int) string {
 }
 
 func VerticalSeparator() string {
-	return styles.DimStyle.Render("│")
+	return styles.Dim("│")
 }
 
 // Interactive prompts - Enhanced with shared theme
@@ -175,32 +176,32 @@ func Input(text string) string {
 
 // Enhanced session summary with better formatting
 func SessionSummary(total, active, inactive int, showAll bool) string {
-	return styles.SessionSummary(total, active, inactive, showAll)
+	return compat.SessionSummary(total, active, inactive, showAll)
 }
 
 // Enhanced next steps display
 func NextSteps(commands ...string) string {
-	return styles.NextSteps(commands...)
+	return compat.NextSteps(commands...)
 }
 
 // Enhanced available commands display
 func AvailableCommands(commands ...string) string {
-	return styles.AvailableCommands(commands...)
+	return compat.AvailableCommands(commands...)
 }
 
 // Enhanced session details formatting
 func SessionDetailsFormatted(sessionID, name, status, backend, created, project, description string) string {
-	return styles.SessionDetails(sessionID, name, status, backend, created, project, description)
+	return compat.SessionDetails(sessionID, name, status, backend, created, project, description)
 }
 
 // Enhanced available sessions list
-func AvailableSessionsList(sessions []styles.SessionInfo) string {
-	return styles.AvailableSessionsList(sessions)
+func AvailableSessionsList(sessions []compat.SessionInfo) string {
+	return compat.AvailableSessionsList(sessions)
 }
 
 // Enhanced command list formatting
 func CommandList(commands map[string]string) string {
-	return styles.CommandList(commands)
+	return compat.CommandList(commands)
 }
 
 // Enhanced header formatting

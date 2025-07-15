@@ -5,7 +5,10 @@ import (
 	"claude-pilot/shared/layout"
 	"claude-pilot/shared/styles"
 	"fmt"
+	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -22,9 +25,14 @@ type DashboardModel struct {
 	detailPanel  *DetailPanelModel
 	createModal  *CreateModalModel
 
+	// Bubbles help component
+	help help.Model
+	keys KeyMap
+
 	// State
 	focused         Component
 	showCreateModal bool
+	showHelp        bool
 	sessions        []*api.Session
 	selectedSession *api.Session
 	err             error
@@ -42,12 +50,18 @@ const (
 
 // NewDashboardModel creates a new dashboard model
 func NewDashboardModel(client *api.Client) *DashboardModel {
+	// Create and configure help component
+	h := help.New()
+	h = styles.ConfigureBubblesHelp(h)
+
 	return &DashboardModel{
 		client:       client,
 		summaryPanel: NewSummaryPanelModel(client),
 		sessionTable: NewSessionTableModel(client),
 		detailPanel:  NewDetailPanelModel(client),
 		createModal:  NewCreateModalModel(client),
+		help:         h,
+		keys:         DefaultKeyMap(),
 		focused:      ComponentTable,
 	}
 }
@@ -90,34 +104,37 @@ func (m *DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		} else {
 			// Handle main dashboard input
-			switch msg.String() {
-			case "ctrl+c", "q":
+			switch {
+			case key.Matches(msg, m.keys.Quit):
 				return m, tea.Quit
 
-			case "c":
+			case key.Matches(msg, m.keys.Create):
 				m.showCreateModal = true
 				m.focused = ComponentModal
 
-			case "tab":
+			case key.Matches(msg, m.keys.Tab):
 				m.cycleFocus()
 
-			case "enter":
+			case key.Matches(msg, m.keys.Help):
+				m.showHelp = !m.showHelp
+
+			case key.Matches(msg, m.keys.Enter):
 				if m.focused == ComponentTable && m.selectedSession != nil {
 					// Attach to selected session
 					return m, m.attachToSession(m.selectedSession.ID)
 				}
 
-			case "d":
+			case msg.String() == "d":
 				if m.focused == ComponentTable && m.selectedSession != nil {
 					m.focused = ComponentDetail
 				}
 
-			case "k":
+			case key.Matches(msg, m.keys.Kill):
 				if m.focused == ComponentTable && m.selectedSession != nil {
 					return m, m.killSession(m.selectedSession.ID)
 				}
 
-			case "r":
+			case key.Matches(msg, m.keys.Refresh):
 				// Refresh data
 				cmds = append(cmds, m.loadSessions())
 			}
@@ -207,6 +224,12 @@ func (m *DashboardModel) View() string {
 		return m.overlayModal(dashboardContent, modal)
 	}
 
+	// Overlay help if shown
+	if m.showHelp {
+		helpView := m.renderHelpView()
+		return m.overlayHelp(dashboardContent, helpView)
+	}
+
 	return dashboardContent
 }
 
@@ -216,13 +239,14 @@ func (m *DashboardModel) renderDashboard() string {
 	header := m.renderHeader()
 
 	// Create main content area
-	mainContent := m.renderMainContent()
+	// mainContent := m.renderMainContent()
 
 	// Create footer with help
-	footer := m.renderFooter()
+	// footer := m.renderFooter()
 
 	// Use dashboard layout
-	return layout.DashboardLayout(m.width, m.height, header, mainContent, footer)
+	return layout.DashboardLayout(m.width, m.height, header, "", "")
+	// return layout.DashboardLayout(m.width, m.height, header, mainContent, footer)
 }
 
 // renderHeader renders the header with title and summary cards
@@ -230,11 +254,12 @@ func (m *DashboardModel) renderHeader() string {
 	// Title
 	title := styles.TitleStyle.Render("Claude Pilot Dashboard")
 	backend := styles.SecondaryTextStyle.Render(fmt.Sprintf("Backend: %s", m.client.GetBackend()))
+	spacer := lipgloss.NewStyle().Width(m.width - lipgloss.Width(title) - lipgloss.Width(backend)).Render("")
 
 	titleRow := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		title,
-		lipgloss.NewStyle().Width(m.width-lipgloss.Width(title)-lipgloss.Width(backend)).Render(""),
+		spacer,
 		backend,
 	)
 
@@ -319,35 +344,26 @@ func (m *DashboardModel) renderMainContent() string {
 
 // renderFooter renders the footer with keyboard shortcuts
 func (m *DashboardModel) renderFooter() string {
-	var shortcuts []string
-
 	if m.showCreateModal {
-		shortcuts = []string{
+		// Show modal-specific shortcuts
+		shortcuts := []string{
 			"Enter: Create",
 			"Esc: Cancel",
 		}
+
+		helpText := ""
+		for i, shortcut := range shortcuts {
+			if i > 0 {
+				helpText += " • "
+			}
+			helpText += shortcut
+		}
+
+		return styles.FooterStyle.Width(m.width).Render(helpText)
 	} else {
-		shortcuts = []string{
-			"↑/↓: Navigate",
-			"Enter: Attach",
-			"c: Create",
-			"d: Details",
-			"k: Kill",
-			"r: Refresh",
-			"Tab: Focus",
-			"q: Quit",
-		}
+		// Use Bubbles help component for main dashboard
+		return m.help.View(m.keys)
 	}
-
-	helpText := ""
-	for i, shortcut := range shortcuts {
-		if i > 0 {
-			helpText += " • "
-		}
-		helpText += shortcut
-	}
-
-	return styles.FooterStyle.Width(m.width).Render(helpText)
 }
 
 // overlayModal overlays the create modal over the dashboard content
@@ -366,6 +382,10 @@ func (m *DashboardModel) overlayModal(background, modal string) string {
 		y = 1
 	}
 
+	// Note: x and y are calculated for future use but lipgloss.Place handles centering
+	_ = x
+	_ = y
+
 	// Create overlay style (simplified since Position is not available)
 	overlay := lipgloss.NewStyle().
 		Width(modalWidth).
@@ -378,6 +398,76 @@ func (m *DashboardModel) overlayModal(background, modal string) string {
 		m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
 		overlay.Render(modal),
+		lipgloss.WithWhitespaceChars(" "),
+		lipgloss.WithWhitespaceForeground(styles.BackgroundSecondary),
+	)
+}
+
+// renderHelpView renders the help overlay content
+func (m *DashboardModel) renderHelpView() string {
+	var content strings.Builder
+
+	// Title
+	content.WriteString(styles.TitleStyle.Render("Keyboard Shortcuts"))
+	content.WriteString("\n\n")
+
+	// Main shortcuts
+	content.WriteString(styles.HeaderStyle.Render("Main Controls"))
+	content.WriteString("\n")
+	content.WriteString(m.help.View(m.keys))
+	content.WriteString("\n\n")
+
+	// Context-specific shortcuts
+	switch m.focused {
+	case ComponentTable:
+		content.WriteString(styles.HeaderStyle.Render("Table Navigation"))
+		content.WriteString("\n")
+		content.WriteString(m.help.View(m.keys))
+	case ComponentDetail:
+		content.WriteString(styles.HeaderStyle.Render("Detail Panel"))
+		content.WriteString("\n")
+		content.WriteString(m.help.View(m.keys))
+	}
+
+	content.WriteString("\n\n")
+	content.WriteString(styles.DimTextStyle.Render("Press ? again to close help"))
+
+	return content.String()
+}
+
+// overlayHelp overlays the help content over the dashboard
+func (m *DashboardModel) overlayHelp(background, helpContent string) string {
+	// Calculate help overlay position (centered)
+	helpWidth := 60
+	helpHeight := 20
+
+	x := (m.width - helpWidth) / 2
+	y := (m.height - helpHeight) / 2
+
+	if x < 0 {
+		x = 1
+	}
+	if y < 0 {
+		y = 1
+	}
+
+	// Note: x and y are calculated for future use but lipgloss.Place handles centering
+	_ = x
+	_ = y
+
+	// Create help overlay style
+	overlay := lipgloss.NewStyle().
+		Width(helpWidth).
+		Height(helpHeight).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(styles.InfoColor).
+		Background(styles.BackgroundPrimary).
+		Padding(1)
+
+	return lipgloss.Place(
+		m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		overlay.Render(helpContent),
 		lipgloss.WithWhitespaceChars(" "),
 		lipgloss.WithWhitespaceForeground(styles.BackgroundSecondary),
 	)

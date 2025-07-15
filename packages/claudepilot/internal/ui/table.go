@@ -2,7 +2,7 @@ package ui
 
 import (
 	"claude-pilot/core/api"
-	"claude-pilot/internal/styles"
+	"claude-pilot/shared/styles"
 	"fmt"
 	"strings"
 	"time"

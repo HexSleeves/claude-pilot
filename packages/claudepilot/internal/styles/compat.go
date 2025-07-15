@@ -9,39 +9,28 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// SessionInfo represents basic session information for display
+type SessionInfo struct {
+	ID   string
+	Name string
+}
+
 // Compatibility functions that match the existing UI interface
 // These functions provide the same API as the current ui/colors.go but with lipgloss styling
-
-// Message formatting functions (matching ui/colors.go interface)
-func SuccessMsg(text string) string {
-	return Success(text)
-}
-
-func ErrorMsg(text string) string {
-	return Error(text)
-}
-
-func WarningMsg(text string) string {
-	return Warning(text)
-}
-
-func InfoMsg(text string) string {
-	return Info(text)
-}
 
 // Status formatting functions
 func FormatStatus(status string) string {
 	switch strings.ToLower(status) {
 	case "active", "running":
-		return StatusActive(status)
+		return styles.StatusActive(status)
 	case "inactive", "stopped":
-		return StatusInactive(status)
+		return styles.StatusInactive(status)
 	case "connected", "attached":
-		return StatusConnected(status)
+		return styles.StatusConnected(status)
 	case "error", "failed":
-		return StatusError(status)
+		return styles.StatusError(status)
 	default:
-		return Dim(status)
+		return styles.Dim(status)
 	}
 }
 
@@ -49,30 +38,30 @@ func FormatStatus(status string) string {
 func FormatTmuxStatus(status string) string {
 	switch status {
 	case "running":
-		return StatusActive(status)
+		return styles.StatusActive(status)
 	case "attached":
-		return StatusConnected(status)
+		return styles.StatusConnected(status)
 	case "stopped":
-		return StatusInactive(status)
+		return styles.StatusInactive(status)
 	case "error":
-		return StatusError(status)
+		return styles.StatusError(status)
 	default:
-		return Dim("? " + status)
+		return styles.Dim("? " + status)
 	}
 }
 
 // Progress indicators
 func CheckMark() string {
-	return SuccessStyle.Render("✓")
+	return styles.SuccessStyle.Render("✓")
 }
 
 func CrossMark() string {
-	return ErrorStyle.Render("✗")
+	return styles.ErrorStyle.Render("✗")
 }
 
 // Time formatting
 func FormatTime(t time.Time) string {
-	return Dim(t.Format("2006-01-02 15:04"))
+	return styles.Dim(t.Format("2006-01-02 15:04"))
 }
 
 // Text truncation with styling
@@ -80,13 +69,13 @@ func TruncateText(text string, maxLen int) string {
 	if len(text) <= maxLen {
 		return text
 	}
-	return text[:maxLen-3] + Dim("...")
+	return text[:maxLen-3] + styles.Dim("...")
 }
 
 // Enhanced banner for the root command
 func RootBanner() string {
 	// Use shared theme banner function for consistency
-	return styles.Banner("Claude Pilot 🚀", "A powerful CLI tool for managing multiple Claude code sessions")
+	return styles.Banner("Claude Pilot 🚀", "A powerful CLI tool for managing multiple Claude code sessions") // TODO: Add banner
 }
 
 // Enhanced command list formatting
@@ -153,7 +142,7 @@ func SessionSummary(total, active, inactive int, showAll bool) string {
 	}
 
 	if len(parts) == 0 {
-		return Dim("No sessions found")
+		return styles.Dim("No sessions found")
 	}
 
 	// Join with enhanced separator
@@ -164,22 +153,22 @@ func SessionSummary(total, active, inactive int, showAll bool) string {
 	summary := strings.Join(parts, separator)
 
 	if !showAll && inactive > 0 {
-		hint := Dim("(Use --all to show inactive sessions)")
+		hint := styles.Dim("(Use --all to show inactive sessions)")
 		summary = fmt.Sprintf("%s\n%s", summary, hint)
 	}
 
-	return InfoBox(summary)
+	return styles.InfoBox(summary)
 }
 
 // Next steps formatting
 func NextSteps(commands ...string) string {
 	var lines []string
 
-	header := Info("Next steps:")
+	header := styles.Info("Next steps:")
 	lines = append(lines, header)
 
 	for _, cmd := range commands {
-		line := fmt.Sprintf("  %s %s", Arrow(), Highlight(cmd))
+		line := fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight(cmd))
 		lines = append(lines, line)
 	}
 
@@ -190,11 +179,11 @@ func NextSteps(commands ...string) string {
 func AvailableCommands(commands ...string) string {
 	var lines []string
 
-	header := Info("Available commands:")
+	header := styles.Info("Available commands:")
 	lines = append(lines, header)
 
 	for _, cmd := range commands {
-		line := fmt.Sprintf("  %s %s", Arrow(), Highlight(cmd))
+		line := fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight(cmd))
 		lines = append(lines, line)
 	}
 
@@ -209,18 +198,18 @@ func SessionDetails(sessionID, name, status, backend, created, project, descript
 	labelWidth := 15
 
 	// Format each field
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("ID:"), sessionID))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Name:"), Title(name)))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Status:"), FormatStatus(status)))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Backend:"), backend))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Created:"), created))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("ID:"), sessionID))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Name:"), styles.Title(name)))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Status:"), FormatStatus(status)))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Backend:"), backend))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Created:"), created))
 
 	if project != "" {
-		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Project:"), project))
+		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Project:"), project))
 	}
 
 	if description != "" {
-		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Description:"), description))
+		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Description:"), description))
 	}
 
 	return strings.Join(lines, "\n")
@@ -229,8 +218,8 @@ func SessionDetails(sessionID, name, status, backend, created, project, descript
 // Available sessions list formatting
 func AvailableSessionsList(sessions []SessionInfo) string {
 	if len(sessions) == 0 {
-		return Dim("  No sessions available") + "\n" +
-			fmt.Sprintf("  %s %s", Arrow(), Highlight("claude-pilot create [session-name]"))
+		return styles.Dim("  No sessions available") + "\n" +
+			fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight("claude-pilot create [session-name]"))
 	}
 
 	var lines []string
@@ -240,15 +229,9 @@ func AvailableSessionsList(sessions []SessionInfo) string {
 			idDisplay = s.ID[:8]
 		}
 
-		line := fmt.Sprintf("  %s %s (%s)", Arrow(), Highlight(s.Name), Dim(idDisplay))
+		line := fmt.Sprintf("  %s %s (%s)", styles.Arrow(), styles.Highlight(s.Name), styles.Dim(idDisplay))
 		lines = append(lines, line)
 	}
 
 	return strings.Join(lines, "\n")
-}
-
-// SessionInfo represents basic session information for display
-type SessionInfo struct {
-	ID   string
-	Name string
 }

@@ -6,6 +6,8 @@ import (
 	"claude-pilot/shared/styles"
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -15,34 +17,35 @@ type SessionTableModel struct {
 	width  int
 	height int
 
-	// Table component
-	table *components.Table
+	// Bubbles table component
+	table table.Model
 
 	// Data
 	sessions    []*api.Session
 	sessionData []components.SessionData
 
-	// Selection state
-	selectedIndex int
-
-	// Scroll state
-	viewportStart int
-	viewportSize  int
+	// Key bindings
+	keys KeyMap
 }
 
 // NewSessionTableModel creates a new session table model
 func NewSessionTableModel(client *api.Client) *SessionTableModel {
-	table := components.NewTable(components.TableConfig{
-		ShowHeaders: true,
-		Interactive: true,
-		MaxRows:     0, // No limit
-	})
+	// Create Bubbles table with predefined columns
+	columns := components.GetBubblesTableColumns()
+	
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithFocused(true),
+		table.WithHeight(10),
+	)
+
+	// Apply Claude theme styling
+	t = styles.ConfigureBubblesTable(t)
 
 	return &SessionTableModel{
-		client:        client,
-		table:         table,
-		selectedIndex: 0,
-		viewportStart: 0,
+		client: client,
+		table:  t,
+		keys:   DefaultKeyMap(),
 	}
 }
 
@@ -53,32 +56,25 @@ func (m *SessionTableModel) Init() tea.Cmd {
 
 // Update implements tea.Model
 func (m *SessionTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.updateViewport()
+		m.updateTableSize()
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "up", "k":
-			m.moveUp()
-		case "down", "j":
-			m.moveDown()
-		case "pgup":
-			m.pageUp()
-		case "pgdown":
-			m.pageDown()
-		case "home":
-			m.goToTop()
-		case "end":
-			m.goToBottom()
-		case "enter", " ":
+		switch {
+		case key.Matches(msg, m.keys.Enter):
 			if selected := m.GetSelectedSession(); selected != nil {
 				return m, func() tea.Msg {
 					return SessionSelectedMsg{Session: selected}
 				}
 			}
+		default:
+			// Let the Bubbles table handle navigation
+			m.table, cmd = m.table.Update(msg)
 		}
 
 	case SessionsLoadedMsg:
@@ -87,7 +83,7 @@ func (m *SessionTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	return m, cmd
 }
 
 // View implements tea.Model
@@ -96,22 +92,14 @@ func (m *SessionTableModel) View() string {
 		return styles.DimTextStyle.Render("No sessions found. Press 'c' to create a new session.")
 	}
 
-	// Update table selection
-	m.table.SetSelectedRow(m.selectedIndex)
+	// Render the Bubbles table
+	tableView := m.table.View()
 
-	// Configure table for current viewport
-	m.table.SetWidth(m.width)
-	m.table.SetMaxRows(m.viewportSize)
-
-	// Create viewport data
-	viewportData := m.getViewportData()
-	m.table.SetSessionData(viewportData)
-
-	// Render table
-	tableView := m.table.RenderTUI()
-
-	// Add selection indicators
-	return m.addSelectionIndicators(tableView)
+	// Add session count info
+	selectedIdx := m.table.Cursor()
+	statusLine := fmt.Sprintf("Session %d of %d", selectedIdx+1, len(m.sessions))
+	
+	return tableView + "\n" + styles.DimTextStyle.Render(statusLine)
 }
 
 // SetSessions updates the sessions data
@@ -119,131 +107,46 @@ func (m *SessionTableModel) SetSessions(sessions []*api.Session) {
 	m.sessions = sessions
 	m.sessionData = m.convertToSessionData(sessions)
 
-	// Adjust selection if needed
-	if m.selectedIndex >= len(m.sessions) {
-		m.selectedIndex = len(m.sessions) - 1
-	}
-	if m.selectedIndex < 0 {
-		m.selectedIndex = 0
-	}
-
-	m.updateViewport()
+	// Convert session data to Bubbles table rows
+	rows := components.ToBubblesSessionRows(m.sessionData)
+	m.table.SetRows(rows)
 }
 
 // SetSize updates the table size
 func (m *SessionTableModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.updateViewport()
+	m.updateTableSize()
+}
+
+// updateTableSize updates the Bubbles table dimensions
+func (m *SessionTableModel) updateTableSize() {
+	// Calculate available height for the table (account for headers and status line)
+	availableHeight := m.height - 4 // Account for borders and status line
+	if availableHeight < 3 {
+		availableHeight = 3
+	}
+
+	// Update table dimensions
+	m.table.SetWidth(m.width)
+	m.table.SetHeight(availableHeight)
 }
 
 // GetSelectedSession returns the currently selected session
 func (m *SessionTableModel) GetSelectedSession() *api.Session {
-	if m.selectedIndex >= 0 && m.selectedIndex < len(m.sessions) {
-		return m.sessions[m.selectedIndex]
+	selectedIdx := m.table.Cursor()
+	if selectedIdx >= 0 && selectedIdx < len(m.sessions) {
+		return m.sessions[selectedIdx]
 	}
 	return nil
 }
 
 // GetSelectedIndex returns the currently selected index
 func (m *SessionTableModel) GetSelectedIndex() int {
-	return m.selectedIndex
+	return m.table.Cursor()
 }
 
-// Navigation methods
-
-func (m *SessionTableModel) moveUp() {
-	if m.selectedIndex > 0 {
-		m.selectedIndex--
-		m.adjustViewport()
-	}
-}
-
-func (m *SessionTableModel) moveDown() {
-	if m.selectedIndex < len(m.sessions)-1 {
-		m.selectedIndex++
-		m.adjustViewport()
-	}
-}
-
-func (m *SessionTableModel) pageUp() {
-	m.selectedIndex -= m.viewportSize
-	if m.selectedIndex < 0 {
-		m.selectedIndex = 0
-	}
-	m.adjustViewport()
-}
-
-func (m *SessionTableModel) pageDown() {
-	m.selectedIndex += m.viewportSize
-	if m.selectedIndex >= len(m.sessions) {
-		m.selectedIndex = len(m.sessions) - 1
-	}
-	m.adjustViewport()
-}
-
-func (m *SessionTableModel) goToTop() {
-	m.selectedIndex = 0
-	m.adjustViewport()
-}
-
-func (m *SessionTableModel) goToBottom() {
-	if len(m.sessions) > 0 {
-		m.selectedIndex = len(m.sessions) - 1
-	}
-	m.adjustViewport()
-}
-
-// Viewport management
-
-func (m *SessionTableModel) updateViewport() {
-	// Calculate viewport size (account for headers and padding)
-	availableHeight := m.height - 6 // Account for headers, borders, padding
-	if availableHeight < 1 {
-		availableHeight = 1
-	}
-	m.viewportSize = availableHeight
-	m.adjustViewport()
-}
-
-func (m *SessionTableModel) adjustViewport() {
-	if len(m.sessions) == 0 {
-		m.viewportStart = 0
-		return
-	}
-
-	// Ensure selected item is visible
-	if m.selectedIndex < m.viewportStart {
-		m.viewportStart = m.selectedIndex
-	} else if m.selectedIndex >= m.viewportStart+m.viewportSize {
-		m.viewportStart = m.selectedIndex - m.viewportSize + 1
-	}
-
-	// Ensure viewport doesn't go beyond data
-	maxStart := len(m.sessions) - m.viewportSize
-	if maxStart < 0 {
-		maxStart = 0
-	}
-	if m.viewportStart > maxStart {
-		m.viewportStart = maxStart
-	}
-	if m.viewportStart < 0 {
-		m.viewportStart = 0
-	}
-}
-
-func (m *SessionTableModel) getViewportData() []components.SessionData {
-	end := m.viewportStart + m.viewportSize
-	if end > len(m.sessionData) {
-		end = len(m.sessionData)
-	}
-
-	if m.viewportStart >= len(m.sessionData) {
-		return []components.SessionData{}
-	}
-
-	return m.sessionData[m.viewportStart:end]
-}
+// Navigation methods are now handled by the Bubbles table component
 
 // Data conversion
 
@@ -286,38 +189,7 @@ func (m *SessionTableModel) getBackendDisplay(session *api.Session) string {
 	}
 }
 
-// Styling
-
-func (m *SessionTableModel) addSelectionIndicators(tableView string) string {
-	if len(m.sessions) == 0 {
-		return tableView
-	}
-
-	// Add scroll indicators if needed
-	indicators := ""
-
-	if m.viewportStart > 0 {
-		indicators += styles.DimTextStyle.Render("↑ More sessions above") + "\n"
-	}
-
-	result := indicators + tableView
-
-	if m.viewportStart+m.viewportSize < len(m.sessions) {
-		result += "\n" + styles.DimTextStyle.Render("↓ More sessions below")
-	}
-
-	// Add status line
-	statusLine := fmt.Sprintf("Session %d of %d", m.selectedIndex+1, len(m.sessions))
-	if len(m.sessions) > m.viewportSize {
-		statusLine += fmt.Sprintf(" (showing %d-%d)",
-			m.viewportStart+1,
-			min(m.viewportStart+m.viewportSize, len(m.sessions)))
-	}
-
-	result += "\n" + styles.DimTextStyle.Render(statusLine)
-
-	return result
-}
+// Styling is now handled by the Bubbles table component
 
 // Utility functions
 

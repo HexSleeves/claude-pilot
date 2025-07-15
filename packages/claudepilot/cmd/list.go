@@ -6,6 +6,7 @@ import (
 
 	"claude-pilot/core/api"
 	"claude-pilot/internal/ui"
+	"claude-pilot/shared/components"
 
 	"github.com/spf13/cobra"
 )
@@ -88,8 +89,22 @@ Examples:
 			return
 		}
 
-		// Display sessions table
-		fmt.Println(ui.SessionTable(sessions, ctx.Client.GetBackend()))
+		// Convert API sessions to shared table format
+		sessionData := convertToSessionData(sessions)
+
+		// Create and configure table for CLI output
+		table := components.NewTable(components.TableConfig{
+			Width:       120, // Reasonable width for CLI
+			ShowHeaders: true,
+			Interactive: false,
+			MaxRows:     0, // Show all rows
+		})
+
+		// Set the session data
+		table.SetSessionData(sessionData)
+
+		// Display sessions table using shared component
+		fmt.Println(table.RenderCLI())
 		fmt.Println()
 
 		// Show enhanced summary
@@ -112,6 +127,26 @@ Examples:
 			"claude-pilot create [session-name]",
 		))
 	},
+}
+
+// convertToSessionData converts API sessions to the shared table SessionData format
+func convertToSessionData(sessions []*api.Session) []components.SessionData {
+	sessionData := make([]components.SessionData, len(sessions))
+
+	for i, sess := range sessions {
+		sessionData[i] = components.SessionData{
+			ID:          sess.ID,
+			Name:        sess.Name,
+			Status:      string(sess.Status),
+			Backend:     "claude", // Default backend for Claude sessions
+			Created:     sess.CreatedAt,
+			LastActive:  sess.LastActive,
+			Messages:    len(sess.Messages),
+			ProjectPath: sess.ProjectPath,
+		}
+	}
+
+	return sessionData
 }
 
 func init() {

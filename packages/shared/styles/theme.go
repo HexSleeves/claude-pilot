@@ -1,6 +1,10 @@
 package styles
 
 import (
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -381,8 +385,7 @@ var (
 	CardStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(BackgroundSurface).
-			Background(BackgroundSecondary).
-			Padding(1, 2).
+			Padding(0, 1).
 			Margin(1, 0)
 
 	CardHeaderStyle = lipgloss.NewStyle().
@@ -859,4 +862,92 @@ func Banner(title, subtitle string) string {
 // Helper for background color application
 func WithBackground(text string, background lipgloss.Color) string {
 	return lipgloss.NewStyle().Background(background).Render(text)
+}
+
+// Bubbles Component Styling Functions
+// These functions provide styled configurations for Bubbles components
+// using the existing Claude orange theme
+
+// GetBubblesTableStyles returns a table.Styles configuration with Claude theme
+func GetBubblesTableStyles() table.Styles {
+	return table.Styles{
+		Header: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(ClaudePrimary).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Cell: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Padding(0, 1).
+			Align(lipgloss.Left),
+		Selected: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(SelectedColor).
+			Bold(true),
+	}
+}
+
+// ConfigureBubblesTextInputStyles applies styling to a textinput model
+func ConfigureBubblesTextInputStyles(ti textinput.Model) textinput.Model {
+	// Configure cursor style
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(ClaudePrimary)
+
+	// Configure text styles
+	ti.TextStyle = lipgloss.NewStyle().Foreground(TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(TextMuted)
+
+	// Configure prompt style
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(ClaudePrimary)
+
+	return ti
+}
+
+// ConfigureBubblesViewportStyles applies styling to a viewport model
+func ConfigureBubblesViewportStyles(vp viewport.Model) viewport.Model {
+	// Note: Viewport styling is limited in bubbles v0.21.0
+	// Most styling is handled through the content
+	return vp
+}
+
+// ConfigureBubblesHelpStyles applies styling to a help model
+func ConfigureBubblesHelpStyles(h help.Model) help.Model {
+	// Configure help styles
+	h.Styles.ShortKey = lipgloss.NewStyle().
+		Foreground(ClaudePrimary).
+		Bold(true)
+	h.Styles.ShortDesc = lipgloss.NewStyle().
+		Foreground(TextSecondary)
+	h.Styles.ShortSeparator = lipgloss.NewStyle().
+		Foreground(TextMuted)
+	h.Styles.FullKey = lipgloss.NewStyle().
+		Foreground(ClaudePrimary).
+		Bold(true)
+	h.Styles.FullDesc = lipgloss.NewStyle().
+		Foreground(TextSecondary)
+	h.Styles.FullSeparator = lipgloss.NewStyle().
+		Foreground(TextMuted)
+
+	return h
+}
+
+// ConfigureBubblesTable applies Claude theme to a table model
+func ConfigureBubblesTable(t table.Model) table.Model {
+	t.SetStyles(GetBubblesTableStyles())
+	return t
+}
+
+// ConfigureBubblesTextInput applies Claude theme to a textinput model
+func ConfigureBubblesTextInput(ti textinput.Model) textinput.Model {
+	return ConfigureBubblesTextInputStyles(ti)
+}
+
+// ConfigureBubblesViewport applies Claude theme to a viewport model
+func ConfigureBubblesViewport(vp viewport.Model) viewport.Model {
+	return ConfigureBubblesViewportStyles(vp)
+}
+
+// ConfigureBubblesHelp applies Claude theme to a help model
+func ConfigureBubblesHelp(h help.Model) help.Model {
+	return ConfigureBubblesHelpStyles(h)
 }

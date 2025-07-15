@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	lipglosstable "github.com/charmbracelet/lipgloss/table"
 )
 
 // TableConfig holds configuration for table rendering
@@ -86,7 +87,7 @@ func (t *Table) RenderCLI() string {
 	}
 
 	// Create lipgloss table
-	tbl := table.New()
+	tbl := lipglosstable.New()
 
 	// Set border and styling
 	tbl.Border(lipgloss.NormalBorder()).
@@ -199,7 +200,7 @@ func (t *Table) GetSelectedData() []string {
 }
 
 // createCLIStyleFunc creates styling for CLI table rendering - Enhanced with standardized theme
-func (t *Table) createCLIStyleFunc() table.StyleFunc {
+func (t *Table) createCLIStyleFunc() lipglosstable.StyleFunc {
 	// Use enhanced table header style with Claude orange
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -222,7 +223,7 @@ func (t *Table) createCLIStyleFunc() table.StyleFunc {
 
 	return func(row, col int) lipgloss.Style {
 		switch {
-		case row == table.HeaderRow:
+		case row == lipglosstable.HeaderRow:
 			return headerStyle
 		case t.config.Interactive && row-1 == t.config.SelectedRow: // Adjust for header row
 			return selectedRowStyle
@@ -347,4 +348,149 @@ func formatProjectPath(path string, maxLen int) string {
 	}
 
 	return styles.TableCellStyle.Render(path)
+}
+
+// Bubbles Integration Methods
+// These methods provide compatibility with the Bubbles table component
+
+// ToBubblesColumns returns table.Column definitions for Bubbles table
+func (t *Table) ToBubblesColumns() []table.Column {
+	if len(t.data.Headers) == 0 {
+		return nil
+	}
+
+	// Calculate column widths based on content and terminal width
+	columnWidths := styles.GetTableColumnWidths(t.config.Width, len(t.data.Headers))
+
+	columns := make([]table.Column, len(t.data.Headers))
+	for i, header := range t.data.Headers {
+		width := 10 // Default width
+		if i < len(columnWidths) {
+			width = columnWidths[i]
+		}
+
+		columns[i] = table.Column{
+			Title: header,
+			Width: width,
+		}
+	}
+
+	return columns
+}
+
+// ToBubblesRows converts table data to table.Row format for Bubbles table
+func (t *Table) ToBubblesRows() []table.Row {
+	if len(t.data.Rows) == 0 {
+		return nil
+	}
+
+	rows := make([]table.Row, len(t.data.Rows))
+	for i, row := range t.data.Rows {
+		// Convert []string to table.Row
+		bubbleRow := make(table.Row, len(row))
+		copy(bubbleRow, row)
+		rows[i] = bubbleRow
+	}
+
+	return rows
+}
+
+// ToBubblesSessionRows converts session data directly to table.Row format
+func ToBubblesSessionRows(sessions []SessionData) []table.Row {
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	rows := make([]table.Row, len(sessions))
+	for i, session := range sessions {
+		rows[i] = table.Row{
+			styles.TruncateText(session.ID, 11),
+			styles.TruncateText(session.Name, 19),
+			session.Status,
+			session.Backend,
+			session.Created.Format("2006-01-02 15:04"),
+			formatTimeAgoPlain(session.LastActive),
+			fmt.Sprintf("%d", session.Messages),
+			formatProjectPathPlain(session.ProjectPath, 29),
+		}
+	}
+
+	return rows
+}
+
+// GetBubblesTableColumns returns predefined column definitions for session table
+func GetBubblesTableColumns() []table.Column {
+	return []table.Column{
+		{Title: "ID", Width: 12},
+		{Title: "Name", Width: 20},
+		{Title: "Status", Width: 10},
+		{Title: "Backend", Width: 8},
+		{Title: "Created", Width: 16},
+		{Title: "Last Active", Width: 12},
+		{Title: "Messages", Width: 8},
+		{Title: "Project", Width: 30},
+	}
+}
+
+// ConfigureBubblesTable applies Claude theme and configuration to a Bubbles table
+func (t *Table) ConfigureBubblesTable(bubblesTable table.Model) table.Model {
+	// Apply Claude theme styling
+	bubblesTable.SetStyles(styles.GetBubblesTableStyles())
+
+	// Set columns and rows
+	bubblesTable.SetColumns(t.ToBubblesColumns())
+	bubblesTable.SetRows(t.ToBubblesRows())
+
+	// Configure dimensions
+	if t.config.Width > 0 {
+		bubblesTable.SetWidth(t.config.Width)
+	}
+	if t.config.MaxRows > 0 {
+		bubblesTable.SetHeight(t.config.MaxRows)
+	}
+
+	return bubblesTable
+}
+
+// Utility functions for plain text formatting (without lipgloss styling)
+// These are used for Bubbles table content where styling is handled by the table component
+
+// formatTimeAgoPlain formats relative time without styling
+func formatTimeAgoPlain(t time.Time) string {
+	duration := time.Since(t)
+
+	switch {
+	case duration < time.Minute:
+		return "just now"
+	case duration < time.Hour:
+		return fmt.Sprintf("%dm ago", int(duration.Minutes()))
+	case duration < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(duration.Hours()))
+	case duration < 7*24*time.Hour:
+		return fmt.Sprintf("%dd ago", int(duration.Hours()/24))
+	default:
+		return fmt.Sprintf("%dd ago", int(duration.Hours()/24))
+	}
+}
+
+// formatProjectPathPlain formats project paths without styling
+func formatProjectPathPlain(path string, maxLen int) string {
+	if path == "" {
+		return "—"
+	}
+
+	if len(path) > maxLen {
+		parts := strings.Split(path, "/")
+		if len(parts) > 1 {
+			// Try to show the most relevant part (last directory + filename)
+			truncated := ".../" + parts[len(parts)-1]
+			if len(truncated) <= maxLen {
+				return truncated
+			}
+		}
+		// Fallback to simple truncation
+		return styles.TruncateText(path, maxLen)
+	}
+
+	return path
 }

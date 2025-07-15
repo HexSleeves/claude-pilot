@@ -38,7 +38,6 @@ func (m *MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Forward all messages to the dashboard
-	// Forward all messages to the dashboard
 	newDashboard, cmd := m.dashboard.Update(msg)
 	if dashboard, ok := newDashboard.(*models.DashboardModel); ok {
 		m.dashboard = dashboard

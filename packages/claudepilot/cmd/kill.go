@@ -3,23 +3,24 @@ package cmd
 import (
 	"fmt"
 
+	"claude-pilot/core/api"
 	"claude-pilot/internal/ui"
+	"claude-pilot/shared/components"
 
 	"github.com/spf13/cobra"
 )
 
 var killCmd = &cobra.Command{
-	Aliases: []string{"delete", "rm"},
-	Use:     "kill <session-name-or-id>",
-	Short:   "Terminate a Claude session",
-	Long: `Terminate a specific Claude coding session by name or ID.
-This will permanently delete the session and all its data.
+	Use:   "kill [session-name]",
+	Short: "Kill a Claude session",
+	Long: `Kill (terminate) a Claude coding session.
+If no session name is provided, kills all sessions.
 
 Examples:
-  claude-pilot kill my-session      # Kill session by name
-  claude-pilot delete abc123def     # Kill session by ID
-  claude-pilot rm --force my-session # Skip confirmation prompt`,
-	Args: cobra.ExactArgs(1),
+  claude-pilot kill my-session    # Kill specific session
+  claude-pilot kill --all         # Kill all sessions
+  claude-pilot kill --force       # Kill without confirmation`,
+	Aliases: []string{"terminate", "stop"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Initialize common command context
 		ctx, err := InitializeCommand()
@@ -27,110 +28,139 @@ Examples:
 			HandleError(err, "initialize command")
 		}
 
-		identifier := args[0]
-		force, _ := cmd.Flags().GetBool("force")
-
-		// Get the session to verify it exists
-		sess, err := ctx.Client.GetSession(identifier)
-		if err != nil {
-			HandleError(err, "find session")
-		}
-
-		// Show session details
-		fmt.Println(ui.WarningMsg(fmt.Sprintf("About to terminate session '%s'", sess.Name)))
-		fmt.Println()
-
-		// Show session details using common function (with messages)
-		ui.DisplaySessionDetailsWithMessages(sess, ctx.Client.GetBackend())
-		fmt.Println()
-
-		// Confirmation prompt (unless forced) using common function
-		if !force {
-			if !ConfirmAction("Are you sure you want to terminate this session? [y/N]: ") {
-				fmt.Println(ui.InfoMsg("Session termination cancelled."))
-				return
-			}
-		}
-
-		// Delete the session
-		if err := ctx.Client.KillSession(identifier); err != nil {
-			HandleError(err, "terminate session")
-		}
-
-		// Success message
-		fmt.Println(ui.SuccessMsg(fmt.Sprintf("Session '%s' has been terminated", sess.Name)))
-
-		// Show remaining sessions count using common function
-		remainingSessions, err := ctx.Client.ListSessions()
-		if err != nil {
-			fmt.Println(ui.WarningMsg("Failed to check remaining sessions"))
-			return
-		}
-
-		ui.DisplayRemainingSessionsInfo(remainingSessions)
-	},
-}
-
-var killAllCmd = &cobra.Command{
-	Use:   "kill-all",
-	Short: "Terminate all Claude sessions",
-	Long: `Terminate all Claude coding sessions.
-This will permanently delete all sessions and their data.
-
-Examples:
-  claude-pilot kill-all              # Kill all sessions with confirmation
-  claude-pilot kill-all --force      # Skip confirmation prompt`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Initialize common command context
-		ctx, err := InitializeCommand()
-		if err != nil {
-			HandleError(err, "initialize command")
-		}
-
+		// Get flags
+		killAll, _ := cmd.Flags().GetBool("all")
 		force, _ := cmd.Flags().GetBool("force")
 
 		// Get all sessions
-		sessions, err := ctx.Client.ListSessions()
+		allSessions, err := ctx.Client.ListSessions()
 		if err != nil {
 			HandleError(err, "list sessions")
 		}
 
+		var sessions []*api.Session
+
+		if killAll {
+			// Kill all sessions
+			sessions = allSessions
+		} else if len(args) == 0 {
+			// No session name provided and --all not specified
+			fmt.Println(ui.ErrorMsg("No session name provided"))
+			fmt.Println()
+			fmt.Println(ui.InfoMsg("Available sessions:"))
+			ui.DisplayAvailableSessions(allSessions)
+			fmt.Println()
+			fmt.Println(ui.InfoMsg("Usage:"))
+			fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot kill <session-name>"))
+			fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot kill --all"))
+			return
+		} else {
+			// Kill specific session
+			sessionName := args[0]
+			var targetSession *api.Session
+
+			for _, sess := range allSessions {
+				if sess.Name == sessionName || sess.ID == sessionName {
+					targetSession = sess
+					break
+				}
+			}
+
+			if targetSession == nil {
+				fmt.Println(ui.ErrorMsg(fmt.Sprintf("Session '%s' not found", sessionName)))
+				fmt.Println()
+				fmt.Println(ui.InfoMsg("Available sessions:"))
+				ui.DisplayAvailableSessions(allSessions)
+				return
+			}
+
+			sessions = []*api.Session{targetSession}
+		}
+
+		// Check if any sessions to kill
 		if len(sessions) == 0 {
-			fmt.Println(ui.InfoMsg("No sessions to terminate."))
+			fmt.Println(ui.InfoMsg("No sessions to kill"))
 			return
 		}
 
 		// Show sessions to be terminated
 		fmt.Println(ui.WarningMsg(fmt.Sprintf("About to terminate %d sessions:", len(sessions))))
 		fmt.Println()
-		fmt.Println(ui.SessionTable(sessions, ctx.Client.GetBackend()))
+
+		// Convert API sessions to shared table format and display
+		sessionData := convertToSessionDataForKill(sessions)
+		table := components.NewTable(components.TableConfig{
+			Width:       120,
+			ShowHeaders: true,
+			Interactive: false,
+			MaxRows:     0,
+		})
+		table.SetSessionData(sessionData)
+		fmt.Println(table.RenderCLI())
 		fmt.Println()
 
 		// Confirmation prompt (unless forced) using common function
 		if !force {
-			if !ConfirmAction(fmt.Sprintf("Are you sure you want to terminate all %d sessions? [y/N]: ", len(sessions))) {
-				fmt.Println(ui.InfoMsg("Session termination cancelled."))
+			if !ConfirmAction(fmt.Sprintf("Are you sure you want to kill %d session(s)? [y/N]: ", len(sessions))) {
+				fmt.Println(ui.InfoMsg("Operation cancelled"))
 				return
 			}
 		}
 
-		// Delete all sessions
-		if err := ctx.Client.KillAllSessions(); err != nil {
-			HandleError(err, "terminate all sessions")
+		// Kill sessions
+		var errors []string
+		for _, sess := range sessions {
+			if err := ctx.Client.KillSession(sess.ID); err != nil {
+				errors = append(errors, fmt.Sprintf("Failed to kill session %s: %v", sess.Name, err))
+			} else {
+				fmt.Printf("%s Session %s killed successfully\n", ui.SuccessMsg("✓"), ui.Highlight(sess.Name))
+			}
 		}
 
-		// Success message
-		fmt.Println(ui.SuccessMsg(fmt.Sprintf("Successfully terminated all %d sessions", len(sessions))))
-		fmt.Println(ui.InfoMsg("All sessions have been terminated"))
-		fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
+		// Report any errors
+		if len(errors) > 0 {
+			fmt.Println()
+			fmt.Println(ui.ErrorMsg("Some sessions could not be killed:"))
+			for _, errMsg := range errors {
+				fmt.Printf("  %s %s\n", ui.ErrorMsg("✗"), errMsg)
+			}
+		}
+
+		// Show remaining sessions
+		remainingSessions, err := ctx.Client.ListSessions()
+		if err != nil {
+			fmt.Printf("%s Warning: Could not list remaining sessions: %v\n", ui.WarningMsg("⚠"), err)
+		} else {
+			fmt.Println()
+			ui.DisplayRemainingSessionsInfo(remainingSessions)
+		}
 	},
+}
+
+// convertToSessionDataForKill converts API sessions to the shared table SessionData format for kill command
+func convertToSessionDataForKill(sessions []*api.Session) []components.SessionData {
+	sessionData := make([]components.SessionData, len(sessions))
+
+	for i, sess := range sessions {
+		sessionData[i] = components.SessionData{
+			ID:          sess.ID,
+			Name:        sess.Name,
+			Status:      string(sess.Status),
+			Backend:     "claude", // Default backend for Claude sessions
+			Created:     sess.CreatedAt,
+			LastActive:  sess.LastActive,
+			Messages:    len(sess.Messages),
+			ProjectPath: sess.ProjectPath,
+		}
+	}
+
+	return sessionData
 }
 
 func init() {
 	rootCmd.AddCommand(killCmd)
-	rootCmd.AddCommand(killAllCmd)
 
 	// Add flags
-	killCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
-	killAllCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	killCmd.Flags().BoolP("all", "a", false, "Kill all sessions")
+	killCmd.Flags().BoolP("force", "f", false, "Force kill without confirmation")
 }

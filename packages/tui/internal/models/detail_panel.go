@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -19,19 +21,27 @@ type DetailPanelModel struct {
 	height  int
 	session *api.Session
 
-	// Scroll state for message history
-	scrollOffset int
-	viewportSize int
+	// Bubbles viewport for scrolling
+	viewport viewport.Model
 
 	// View mode
 	showFullMessages bool
+
+	// Key bindings
+	keys KeyMap
 }
 
 // NewDetailPanelModel creates a new detail panel model
 func NewDetailPanelModel(client *api.Client) *DetailPanelModel {
+	// Create and configure viewport
+	vp := viewport.New(80, 20)
+	vp = styles.ConfigureBubblesViewport(vp)
+
 	return &DetailPanelModel{
 		client:           client,
+		viewport:         vp,
 		showFullMessages: false,
+		keys:             DefaultKeyMap(),
 	}
 }
 
@@ -42,39 +52,47 @@ func (m *DetailPanelModel) Init() tea.Cmd {
 
 // Update implements tea.Model
 func (m *DetailPanelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.updateViewport()
+		m.updateViewportSize()
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "up", "k":
-			m.scrollUp()
-		case "down", "j":
-			m.scrollDown()
-		case "pgup":
-			m.pageUp()
-		case "pgdown":
-			m.pageDown()
-		case "home":
-			m.scrollToTop()
-		case "end":
-			m.scrollToBottom()
-		case "f":
+		switch {
+		case key.Matches(msg, m.keys.ScrollUp):
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		case key.Matches(msg, m.keys.ScrollDown):
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		case key.Matches(msg, m.keys.PageUp):
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		case key.Matches(msg, m.keys.PageDown):
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		case key.Matches(msg, m.keys.Home):
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		case key.Matches(msg, m.keys.End):
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		case msg.String() == "f":
 			m.toggleFullMessages()
-		case "a":
+		case msg.String() == "a":
 			// Attach to session
 			if m.session != nil {
 				return m, m.attachToSession()
 			}
-		case "x":
+		case msg.String() == "x":
 			// Kill session
 			if m.session != nil {
 				return m, m.killSession()
 			}
-		case "r":
+		case msg.String() == "r":
 			// Refresh session details
 			if m.session != nil {
 				return m, m.refreshSession()
@@ -82,7 +100,9 @@ func (m *DetailPanelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	// Update viewport for other messages
+	m.viewport, cmd = m.viewport.Update(msg)
+	return m, cmd
 }
 
 // View implements tea.Model
@@ -128,8 +148,9 @@ func (m *DetailPanelModel) renderDetail() string {
 	// Messages section
 	content.WriteString(m.renderMessages())
 
-	// Apply scrolling if content exceeds viewport
-	return m.applyScrolling(content.String())
+	// Set viewport content and return the viewport view
+	m.viewport.SetContent(content.String())
+	return m.viewport.View()
 }
 
 // renderSessionInfo renders the basic session information
@@ -299,117 +320,47 @@ func (m *DetailPanelModel) renderFullMessages() string {
 		}
 	}
 
-	// Scroll indicators
-	if m.scrollOffset > 0 {
-		content.WriteString("\n" + styles.DimTextStyle.Render("↑ Scroll up for more"))
-	}
-
 	return content.String()
 }
 
 // SetSession sets the session to display
 func (m *DetailPanelModel) SetSession(session *api.Session) {
 	m.session = session
-	m.scrollOffset = 0
 	m.showFullMessages = false
+	// Reset viewport to top
+	m.viewport.GotoTop()
 }
 
 // SetSize updates the panel size
 func (m *DetailPanelModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.updateViewport()
+	m.updateViewportSize()
 }
 
-// Scrolling methods
-
-func (m *DetailPanelModel) updateViewport() {
-	m.viewportSize = m.height - 4 // Account for borders and padding
-	if m.viewportSize < 1 {
-		m.viewportSize = 1
-	}
-}
-
-func (m *DetailPanelModel) scrollUp() {
-	if m.scrollOffset > 0 {
-		m.scrollOffset--
-	}
-}
-
-func (m *DetailPanelModel) scrollDown() {
-	m.scrollOffset++
-}
-
-func (m *DetailPanelModel) pageUp() {
-	m.scrollOffset -= m.viewportSize
-	if m.scrollOffset < 0 {
-		m.scrollOffset = 0
-	}
-}
-
-func (m *DetailPanelModel) pageDown() {
-	m.scrollOffset += m.viewportSize
-}
-
-func (m *DetailPanelModel) scrollToTop() {
-	m.scrollOffset = 0
-}
-
-// calculateMaxScrollOffset calculates the maximum scroll position based on content lines
-func (m *DetailPanelModel) calculateMaxScrollOffset(content string) int {
-	lines := strings.Split(content, "\n")
-	totalLines := len(lines)
-
-	// Maximum scroll offset is the total lines minus viewport size
-	// This ensures we can scroll to show the last viewport-sized window of content
-	maxScroll := totalLines - m.viewportSize
-	if maxScroll < 0 {
-		maxScroll = 0
+// updateViewportSize updates the viewport dimensions
+func (m *DetailPanelModel) updateViewportSize() {
+	// Calculate available space for viewport
+	availableHeight := m.height - 2 // Account for borders
+	if availableHeight < 1 {
+		availableHeight = 1
 	}
 
-	return maxScroll
+	availableWidth := m.width - 2 // Account for borders
+	if availableWidth < 1 {
+		availableWidth = 1
+	}
+
+	m.viewport.Width = availableWidth
+	m.viewport.Height = availableHeight
 }
 
-func (m *DetailPanelModel) scrollToBottom() {
-	// We need to calculate this dynamically in applyScrolling since we don't have content here
-	// Set to a large value that will be corrected in applyScrolling
-	m.scrollOffset = 999999
-}
+// Scrolling is now handled by the Bubbles viewport component
 
 func (m *DetailPanelModel) toggleFullMessages() {
 	m.showFullMessages = !m.showFullMessages
-	m.scrollOffset = 0
-}
-
-// Apply scrolling to content
-func (m *DetailPanelModel) applyScrolling(content string) string {
-	lines := strings.Split(content, "\n")
-	totalLines := len(lines)
-
-	// Calculate the maximum scroll position dynamically
-	maxScrollOffset := m.calculateMaxScrollOffset(content)
-
-	// Ensure scroll offset doesn't exceed the maximum
-	if m.scrollOffset > maxScrollOffset {
-		m.scrollOffset = maxScrollOffset
-	}
-
-	if totalLines <= m.viewportSize || m.scrollOffset <= 0 {
-		// No scrolling needed or at top
-		if totalLines > m.viewportSize {
-			return strings.Join(lines[:m.viewportSize], "\n")
-		}
-		return content
-	}
-
-	// Apply scroll offset
-	start := m.scrollOffset
-	end := start + m.viewportSize
-	if end > totalLines {
-		end = totalLines
-	}
-
-	return strings.Join(lines[start:end], "\n")
+	// Reset viewport to top when toggling
+	m.viewport.GotoTop()
 }
 
 // Action methods
