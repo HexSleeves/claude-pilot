@@ -323,7 +323,7 @@ func (cm *ConfigManager) createDefaultConfigFileAt(configFilePath string) error 
 	defaultConfigContent := `# Claude Pilot Configuration
 # Configuration file for Claude Pilot - AI session manager
 #
-# For more information, visit: https://github.com/your-username/claude-pilot
+# For more information, visit: https://github.com/HexSleeves/claude-pilot
 
 # Backend selection: auto, tmux, or zellij
 # 'auto' will automatically detect and prefer tmux if available

@@ -4,8 +4,8 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.24.5+-blue.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/claude-pilot)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/your-username/claude-pilot/pulls)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/HexSleeves/claude-pilot)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/HexSleeves/claude-pilot/pulls)
 
 ---
 
@@ -89,14 +89,14 @@ You can install Claude Pilot using `go install`:
 
 ```bash
 # Replace with the actual repository path when available
-go install github.com/your-username/claude-pilot@latest
+go install github.com/HexSleeves/claude-pilot@latest
 ```
 
 Alternatively, you can build it from the source:
 
 ```bash
 # Replace with the actual repository URL
-git clone https://github.com/your-username/claude-pilot.git
+git clone https://github.com/HexSleeves/claude-pilot.git
 cd claude-pilot
 go build -o claude-pilot
 sudo mv claude-pilot /usr/local/bin/
@@ -224,7 +224,7 @@ We have an exciting roadmap ahead! Here are some of the features we're planning 
   - [ ] Official package distribution (Homebrew, etc.)
   - [ ] Detailed documentation and tutorials
 
-See the [open issues](https://github.com/your-username/claude-pilot/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/HexSleeves/claude-pilot/issues) for a full list of proposed features (and known issues).
 
 ---
 
