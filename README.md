@@ -139,7 +139,7 @@ claude-pilot kill-all
 
 Claude Pilot is built with a clean, modular architecture in Go. It uses the Cobra framework for the CLI and interfaces with terminal multiplexers for session management.
 
-```
+```**mermaid**
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   CLI Interface │    │  Session Manager │    │  Multiplexer    │
 │   (Cobra)       │────│                  │────│  (Tmux/Zellij)  │

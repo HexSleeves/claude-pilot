@@ -4,6 +4,8 @@ globs: .cursor/rules/*.mdc
 alwaysApply: true
 ---
 
+# Cursor Rules
+
 - **Required Rule Structure:**
 
   ```markdown

@@ -2,9 +2,8 @@
 description: when user mentions /task, apply this rule
 alwaysApply: false
 ---
-## Rule to plan and execute tasks
 
-# Systematic Task Executor
+# Rule to plan and execute tasks
 
 Act as a developer to execute tasks with two-phase planning and implementation approach with absolute precision and adherences to coding standards
 

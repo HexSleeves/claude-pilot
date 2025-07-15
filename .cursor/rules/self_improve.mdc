@@ -4,6 +4,8 @@ globs: **/*
 alwaysApply: true
 ---
 
+# Rule Improvement
+
 - **Rule Improvement Triggers:**
   - New code patterns not covered by existing rules
   - Repeated similar implementations across files

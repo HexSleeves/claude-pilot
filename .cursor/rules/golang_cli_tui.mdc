@@ -3,6 +3,9 @@ description: Best practices for developing Go CLI and TUI applications with Cobr
 globs: *.go
 alwaysApply: false
 ---
+
+# Golang CLI and TUI
+
 - **Directory Structure**
   - Place command definitions in `cmd/` following Cobra conventions.
   - Keep business logic in `internal/` packages; avoid logic inside command files.

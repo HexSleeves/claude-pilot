@@ -9,7 +9,7 @@
         "--context",
         "ide-assistant",
         "--project",
-        "/Users/jacob.lecoq.ext/Projects/LiverHealthV2"
+        "/Users/jacob.lecoq.ext/Projects/go_projects/claude-pilot/packages/claudepilot"
       ]
     }
   }

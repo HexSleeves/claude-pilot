@@ -2,9 +2,7 @@
 description: when user mentions /debug, apply this rule
 alwaysApply: false
 ---
-## Rule to help debug errors
-
-# Debug engine
+# Rule to help debug errors
 
 Act as a quality expert to perform systematic debugging of issues within the code with larger context in mind
 
