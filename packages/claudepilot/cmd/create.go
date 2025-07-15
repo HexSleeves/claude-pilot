@@ -51,18 +51,28 @@ Examples:
 			HandleError(err, "create session")
 		}
 
-		// Success message
+		// Enhanced success message
 		fmt.Println(ui.SuccessMsg(fmt.Sprintf("Created session '%s'", sess.Name)))
 		fmt.Println()
 
-		// Show session details using common function
-		ui.DisplaySessionDetails(sess, ctx.Client.GetBackend())
+		// Show enhanced session details
+		details := ui.SessionDetailsFormatted(
+			sess.ID,
+			sess.Name,
+			string(sess.Status),
+			ctx.Client.GetBackend(),
+			sess.CreatedAt.Format("2006-01-02 15:04:05"),
+			sess.ProjectPath,
+			sess.Description,
+		)
+		fmt.Println(details)
+		fmt.Println()
 
-		// Show next steps using common function
-		ui.DisplayNextSteps(
+		// Show enhanced next steps
+		fmt.Println(ui.NextSteps(
 			fmt.Sprintf("claude-pilot attach %s", sess.Name),
 			"claude-pilot list",
-		)
+		))
 	},
 }
 

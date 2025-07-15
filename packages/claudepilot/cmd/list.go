@@ -70,9 +70,9 @@ Examples:
 			})
 		}
 
-		// Display header
-		fmt.Println(ui.Title("Claude Pilot Sessions"))
-		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), ctx.Client.GetBackend())
+		// Display header with enhanced styling
+		fmt.Println(ui.Header("Claude Pilot Sessions"))
+		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), ui.Highlight(ctx.Client.GetBackend()))
 		fmt.Println()
 
 		if len(sessions) == 0 {
@@ -92,7 +92,7 @@ Examples:
 		fmt.Println(ui.SessionTable(sessions, ctx.Client.GetBackend()))
 		fmt.Println()
 
-		// Show summary using common function
+		// Show enhanced summary
 		activeCount := 0
 		inactiveCount := 0
 		for _, sess := range sessions {
@@ -103,14 +103,14 @@ Examples:
 			}
 		}
 
-		ui.DisplaySessionSummary(len(sessions), activeCount, inactiveCount, showAll)
+		fmt.Println(ui.SessionSummary(len(sessions), activeCount, inactiveCount, showAll))
 
-		// Show helpful commands using common function
-		ui.DisplayAvailableCommands(
+		// Show helpful commands with enhanced styling
+		fmt.Println(ui.AvailableCommands(
 			"claude-pilot attach <session-name>",
 			"claude-pilot kill <session-name>",
 			"claude-pilot create [session-name]",
-		)
+		))
 	},
 }
 

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"claude-pilot/core/api"
+	"claude-pilot/internal/styles"
 	"fmt"
 )
 
@@ -50,20 +51,14 @@ func DisplayAvailableSessions(sessions []*api.Session) {
 // This eliminates the duplicated "next steps" logic across multiple commands
 func DisplayNextSteps(commands ...string) {
 	fmt.Println()
-	fmt.Println(InfoMsg("Next steps:"))
-	for _, cmd := range commands {
-		fmt.Printf("  %s %s\n", Arrow(), Highlight(cmd))
-	}
+	fmt.Println(styles.NextSteps(commands...))
 }
 
 // DisplayAvailableCommands shows helpful commands consistently
 // This eliminates the duplicated "available commands" logic in list.go
 func DisplayAvailableCommands(commands ...string) {
 	fmt.Println()
-	fmt.Println(InfoMsg("Available commands:"))
-	for _, cmd := range commands {
-		fmt.Printf("  %s %s\n", Arrow(), Highlight(cmd))
-	}
+	fmt.Println(styles.AvailableCommands(commands...))
 }
 
 // DisplaySessionSummary shows session count summary

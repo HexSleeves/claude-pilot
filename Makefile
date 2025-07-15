@@ -85,6 +85,11 @@ build-all:
 run: build
 	@$(BINARY_PATH)
 
+.PHONY: run-dev
+run-dev:
+	@echo "Running development version..."
+	@cd $(CLAUDEPILOT_DIR) && go run .
+
 # Package-specific targets
 .PHONY: build-claudepilot
 build-claudepilot:

@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/fatih/color"
+	"claude-pilot/internal/ui"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,24 +18,15 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "claude-pilot",
 	Short: "A CLI tool for managing multiple Claude code sessions",
-	Long: color.New(color.FgHiWhite).Sprint(`
-╔═══════════════════════════════════════════════════════════════╗
-║                        Claude Pilot 🚀                        ║
-║                                                               ║
-║    A powerful CLI tool for managing multiple Claude code      ║
-║    sessions with tmux-inspired commands and beautiful UI.     ║
-╚═══════════════════════════════════════════════════════════════╝
-
-`) + color.New(color.FgCyan).Sprint("Available Commands:") + `
-  create    Create a new Claude session
-  list      List all active sessions
-  attach    Attach to a specific session
-  detach    Detach from a specific session
-  kill      Terminate a session
-  kill-all  Terminate all sessions
-  tui       Launch interactive terminal UI
-
-Use "claude-pilot [command] --help" for more information about a command.`,
+	Long: ui.RootBanner() + "\n\n" + ui.CommandList(map[string]string{
+		"create":   "Create a new Claude session",
+		"list":     "List all active sessions",
+		"attach":   "Attach to a specific session",
+		"detach":   "Detach from a specific session",
+		"kill":     "Terminate a session",
+		"kill-all": "Terminate all sessions",
+		"tui":      "Launch interactive terminal UI",
+	}) + "\n\nUse \"claude-pilot [command] --help\" for more information about a command.",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Check if UI mode is set to TUI in config
 		ctx, err := InitializeCommand()

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"claude-pilot/core/api"
+	"claude-pilot/internal/styles"
 	"fmt"
 	"strings"
 	"time"
@@ -35,10 +36,11 @@ func SessionTable(sessions []*api.Session, backend string) string {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleColoredBright)
 
-	// Customize colors to match our theme
-	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bold}
+	// Enhanced colors to match our lipgloss theme
+	t.Style().Color.Header = text.Colors{text.FgHiWhite, text.Bold, text.BgHiBlack}
 	t.Style().Color.Row = text.Colors{text.FgWhite}
 	t.Style().Color.RowAlternate = text.Colors{text.FgHiBlack}
+	t.Style().Color.Border = text.Colors{text.FgHiRed} // Claude orange-ish
 
 	// Set headers
 	t.AppendHeader(table.Row{
@@ -111,10 +113,10 @@ func SessionDetail(sess *api.Session, backend string) string {
 		builder.WriteString(fmt.Sprintf("%-15s %s\n", Bold("Description:"), sess.Description))
 	}
 
-	// Recent messages
+	// Recent messages with enhanced styling
 	if len(sess.Messages) > 0 {
-		builder.WriteString("\n" + Subtitle("Recent Messages:") + "\n")
-		builder.WriteString(HorizontalLine(50) + "\n")
+		builder.WriteString("\n" + styles.Subtitle("Recent Messages:") + "\n")
+		builder.WriteString(styles.HorizontalLine(50) + "\n")
 
 		// Show last 5 messages
 		start := len(sess.Messages) - 5

@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"claude-pilot/internal/styles"
+
 	"github.com/fatih/color"
 )
 
@@ -151,4 +153,47 @@ func Prompt(text string) string {
 
 func Input(text string) string {
 	return ClaudePrimary.Sprint("> ") + TextPrimary.Sprint(text)
+}
+
+// Enhanced lipgloss-based functions for better visual presentation
+// These provide improved styling while maintaining backward compatibility
+
+// Enhanced banner for root command
+func RootBanner() string {
+	return styles.RootBanner()
+}
+
+// Enhanced session summary with better formatting
+func SessionSummary(total, active, inactive int, showAll bool) string {
+	return styles.SessionSummary(total, active, inactive, showAll)
+}
+
+// Enhanced next steps display
+func NextSteps(commands ...string) string {
+	return styles.NextSteps(commands...)
+}
+
+// Enhanced available commands display
+func AvailableCommands(commands ...string) string {
+	return styles.AvailableCommands(commands...)
+}
+
+// Enhanced session details formatting
+func SessionDetailsFormatted(sessionID, name, status, backend, created, project, description string) string {
+	return styles.SessionDetails(sessionID, name, status, backend, created, project, description)
+}
+
+// Enhanced available sessions list
+func AvailableSessionsList(sessions []styles.SessionInfo) string {
+	return styles.AvailableSessionsList(sessions)
+}
+
+// Enhanced command list formatting
+func CommandList(commands map[string]string) string {
+	return styles.CommandList(commands)
+}
+
+// Enhanced header formatting
+func Header(text string) string {
+	return styles.Header(text)
 }
