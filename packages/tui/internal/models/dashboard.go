@@ -233,117 +233,185 @@ func (m *DashboardModel) View() string {
 	return dashboardContent
 }
 
-// renderDashboard renders the main dashboard layout
+// renderDashboard renders the main dashboard layout using enhanced flexbox
 func (m *DashboardModel) renderDashboard() string {
 	// Create header with summary cards
 	header := m.renderHeader()
 
-	// Create main content area
-	// mainContent := m.renderMainContent()
+	// Create main content area with enhanced flexbox layout
+	mainContent := m.renderMainContent()
 
 	// Create footer with help
-	// footer := m.renderFooter()
+	footer := m.renderFooter()
 
-	// Use dashboard layout
-	return layout.DashboardLayout(m.width, m.height, header, "", "")
-	// return layout.DashboardLayout(m.width, m.height, header, mainContent, footer)
+	// Use dashboard layout with all sections
+	return layout.DashboardLayout(m.width, m.height, header, mainContent, footer)
 }
 
-// renderHeader renders the header with title and summary cards
+// renderHeader renders the header with title and summary cards using flexbox
 func (m *DashboardModel) renderHeader() string {
-	// Title
+	// Create title row using flexbox for better alignment
 	title := styles.TitleStyle.Render("Claude Pilot Dashboard")
 	backend := styles.SecondaryTextStyle.Render(fmt.Sprintf("Backend: %s", m.client.GetBackend()))
-	spacer := lipgloss.NewStyle().Width(m.width - lipgloss.Width(title) - lipgloss.Width(backend)).Render("")
 
-	titleRow := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		title,
-		spacer,
-		backend,
-	)
+	// Use flexbox container for title row with space-between justification
+	titleContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: m.width, Height: 1, Padding: 0, Gap: 0},
+		layout.FlexRow,
+	).SetJustifyContent(layout.SpaceBetween).SetAlignItems(layout.AlignCenter)
 
+	// Add title and backend info as flex items
+	titleContainer.AddItem(layout.FlexItem{
+		Content:    title,
+		FlexGrow:   1, // Don't grow
+		FlexShrink: 1, // Don't shrink
+		Order:      1,
+	})
+
+	titleContainer.AddItem(layout.FlexItem{
+		Content:    backend,
+		FlexGrow:   1, // Don't grow
+		FlexShrink: 1, // Don't shrink
+		Order:      2,
+	})
+
+	titleRow := titleContainer.Render()
+
+	// Create summary section using flexbox for responsive cards
 	summaryContent := m.summaryPanel.View()
-	return lipgloss.JoinVertical(lipgloss.Left, titleRow, summaryContent)
+
+	// Combine title and summary vertically
+	headerContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: m.width, Height: 3, Padding: 0, Gap: 0},
+		layout.FlexColumn,
+	).SetJustifyContent(layout.FlexStart).SetAlignItems(layout.AlignStretch)
+
+	headerContainer.AddItem(layout.FlexItem{
+		Content:    titleRow,
+		FlexGrow:   0, // Fixed height for title
+		FlexShrink: 0,
+		Order:      1,
+	})
+
+	headerContainer.AddItem(layout.FlexItem{
+		Content:    summaryContent,
+		FlexGrow:   1, // Take remaining space
+		FlexShrink: 0,
+		Order:      2,
+	})
+
+	return headerContainer.Render()
 }
 
-// renderMainContent renders the main content area with table and detail panel
+// renderMainContent renders the main content area with enhanced flexbox layout
 func (m *DashboardModel) renderMainContent() string {
 	// Get responsive width
 	layoutWidth, size := styles.GetResponsiveWidth(m.width)
 
-	// Calculate available height for main content (more compact layout)
-	availableHeight := m.height - 10 // Increased from 6 to 10 to make main content shorter
-	if availableHeight < 8 {
-		availableHeight = 8 // Reduced minimum from 10 to 8
-	}
+	// Calculate available height for main content
+	availableHeight := max(8, m.height-10)
+
+	// Create main content container with flexbox
+	mainContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: layoutWidth, Height: availableHeight, Padding: 1, Gap: 2},
+		layout.FlexRow,
+	).SetJustifyContent(layout.FlexStart).SetAlignItems(layout.AlignStretch)
 
 	// Determine layout based on screen size
 	switch size {
 	case "small":
-		// Stack vertically on small screens
+		// Stack vertically on small screens - use column layout
+		mainContainer = layout.NewFlexContainer(
+			layout.LayoutConfig{Width: layoutWidth, Height: availableHeight, Padding: 1, Gap: 1},
+			layout.FlexColumn,
+		).SetJustifyContent(layout.FlexStart).SetAlignItems(layout.AlignStretch)
+
 		if m.focused == ComponentDetail && m.selectedSession != nil {
-			return m.detailPanel.View()
+			// Show only detail panel when focused
+			mainContainer.AddItem(layout.FlexItem{
+				Content:    m.renderDetailPanel(layoutWidth, availableHeight),
+				FlexGrow:   1,
+				FlexShrink: 0,
+				Order:      1,
+			})
+		} else {
+			// Show only table when not in detail mode
+			mainContainer.AddItem(layout.FlexItem{
+				Content:    m.renderSessionTable(layoutWidth, availableHeight),
+				FlexGrow:   1,
+				FlexShrink: 0,
+				Order:      1,
+			})
 		}
-		return m.sessionTable.View()
 
 	case "medium":
-		// Two-column layout
-		tablePanel := layout.NewPanel(
-			layout.LayoutConfig{Width: layoutWidth * 2 / 3, Height: availableHeight, Padding: 1},
-			"Sessions",
-			m.sessionTable.View(),
-			true,
-		)
-		tablePanel.SetFocused(m.focused == ComponentTable)
+		// Two-column layout with 2:1 ratio
+		mainContainer.AddItem(layout.FlexItem{
+			Content:    m.renderSessionTable(layoutWidth*2/3, availableHeight),
+			FlexGrow:   2, // Takes 2/3 of space
+			FlexShrink: 1,
+			Order:      1,
+		})
 
 		if m.selectedSession != nil {
-			detailPanelComp := layout.NewPanel(
-				layout.LayoutConfig{Width: layoutWidth / 3, Height: availableHeight, Padding: 1},
-				"Session Details",
-				m.detailPanel.View(),
-				true,
-			)
-			detailPanelComp.SetFocused(m.focused == ComponentDetail)
-
-			return layout.SidebarLayout(layoutWidth, availableHeight, tablePanel.Render(), detailPanelComp.Render(), layoutWidth/3)
+			mainContainer.AddItem(layout.FlexItem{
+				Content:    m.renderDetailPanel(layoutWidth/3, availableHeight),
+				FlexGrow:   1, // Takes 1/3 of space
+				FlexShrink: 1,
+				Order:      2,
+			})
 		}
-
-		return tablePanel.Render()
 
 	default: // large
-		// Simple side-by-side layout for large screens
-		tablePanel := layout.NewPanel(
-			layout.LayoutConfig{Width: layoutWidth / 2, Height: availableHeight, Padding: 1},
-			"Sessions",
-			m.sessionTable.View(),
-			true,
-		)
-		tablePanel.SetFocused(m.focused == ComponentTable)
+		// Equal split layout for large screens
+		mainContainer.AddItem(layout.FlexItem{
+			Content:    m.renderSessionTable(layoutWidth/2, availableHeight),
+			FlexGrow:   1, // Equal flex-grow
+			FlexShrink: 1,
+			Order:      1,
+		})
 
 		if m.selectedSession != nil {
-			detailPanelComp := layout.NewPanel(
-				layout.LayoutConfig{Width: layoutWidth / 2, Height: availableHeight, Padding: 1},
-				"Session Details",
-				m.detailPanel.View(),
-				true,
-			)
-			detailPanelComp.SetFocused(m.focused == ComponentDetail)
-
-			// Use horizontal layout for large screens
-			return lipgloss.JoinHorizontal(
-				lipgloss.Top,
-				tablePanel.Render(),
-				detailPanelComp.Render(),
-			)
+			mainContainer.AddItem(layout.FlexItem{
+				Content:    m.renderDetailPanel(layoutWidth/2, availableHeight),
+				FlexGrow:   1, // Equal flex-grow
+				FlexShrink: 1,
+				Order:      2,
+			})
 		}
-
-		return tablePanel.Render()
 	}
+
+	return mainContainer.Render()
 }
 
-// renderFooter renders the footer with keyboard shortcuts
+// renderSessionTable renders the session table panel with proper styling
+func (m *DashboardModel) renderSessionTable(width, height int) string {
+	tablePanel := layout.NewPanel(
+		layout.LayoutConfig{Width: width, Height: height, Padding: 1},
+		"Sessions",
+		m.sessionTable.View(),
+		true,
+	)
+	tablePanel.SetFocused(m.focused == ComponentTable)
+	return tablePanel.Render()
+}
+
+// renderDetailPanel renders the detail panel with proper styling
+func (m *DashboardModel) renderDetailPanel(width, height int) string {
+	detailPanelComp := layout.NewPanel(
+		layout.LayoutConfig{Width: width, Height: height, Padding: 1},
+		"Session Details",
+		m.detailPanel.View(),
+		true,
+	)
+	detailPanelComp.SetFocused(m.focused == ComponentDetail)
+	return detailPanelComp.Render()
+}
+
+// renderFooter renders the footer with keyboard shortcuts using flexbox
 func (m *DashboardModel) renderFooter() string {
+	var footerContent string
+
 	if m.showCreateModal {
 		// Show modal-specific shortcuts
 		shortcuts := []string{
@@ -358,35 +426,35 @@ func (m *DashboardModel) renderFooter() string {
 			}
 			helpText += shortcut
 		}
-
-		return styles.FooterStyle.Width(m.width).Render(helpText)
+		footerContent = helpText
 	} else {
 		// Use Bubbles help component for main dashboard
-		return m.help.View(m.keys)
+		footerContent = m.help.View(m.keys)
 	}
+
+	// Create footer container with flexbox for better alignment
+	footerContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: m.width, Height: 2, Padding: 0, Gap: 0},
+		layout.FlexRow,
+	).SetJustifyContent(layout.Center).SetAlignItems(layout.AlignCenter)
+
+	footerContainer.AddItem(layout.FlexItem{
+		Content:    styles.FooterStyle.Render(footerContent),
+		FlexGrow:   0, // Don't grow
+		FlexShrink: 0, // Don't shrink
+		Order:      1,
+	})
+
+	return footerContainer.Render()
 }
 
-// overlayModal overlays the create modal over the dashboard content
+// overlayModal overlays the create modal over the dashboard content using flexbox
 func (m *DashboardModel) overlayModal(background, modal string) string {
-	// Calculate modal position (centered)
+	// Modal dimensions
 	modalWidth := 60
 	modalHeight := 15
 
-	x := (m.width - modalWidth) / 2
-	y := (m.height - modalHeight) / 2
-
-	if x < 0 {
-		x = 1
-	}
-	if y < 0 {
-		y = 1
-	}
-
-	// Note: x and y are calculated for future use but lipgloss.Place handles centering
-	_ = x
-	_ = y
-
-	// Create overlay style (simplified since Position is not available)
+	// Create modal content with styling
 	overlay := lipgloss.NewStyle().
 		Width(modalWidth).
 		Height(modalHeight).
@@ -394,10 +462,29 @@ func (m *DashboardModel) overlayModal(background, modal string) string {
 		BorderForeground(styles.ClaudePrimary).
 		Background(styles.BackgroundPrimary)
 
+	styledModal := overlay.Render(modal)
+
+	// Use flexbox container for perfect centering
+	modalContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: m.width, Height: m.height, Padding: 0, Gap: 0},
+		layout.FlexRow,
+	).SetJustifyContent(layout.Center).SetAlignItems(layout.AlignCenter)
+
+	modalContainer.AddItem(layout.FlexItem{
+		Content:    styledModal,
+		FlexGrow:   0, // Don't grow
+		FlexShrink: 0, // Don't shrink
+		Order:      1,
+	})
+
+	// Render with background styling
+	result := modalContainer.Render()
+
+	// Apply background styling using lipgloss.Place for whitespace handling
 	return lipgloss.Place(
 		m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
-		overlay.Render(modal),
+		result,
 		lipgloss.WithWhitespaceChars(" "),
 		lipgloss.WithWhitespaceForeground(styles.BackgroundSecondary),
 	)
@@ -435,25 +522,11 @@ func (m *DashboardModel) renderHelpView() string {
 	return content.String()
 }
 
-// overlayHelp overlays the help content over the dashboard
+// overlayHelp overlays the help content over the dashboard using flexbox
 func (m *DashboardModel) overlayHelp(background, helpContent string) string {
-	// Calculate help overlay position (centered)
+	// Help overlay dimensions
 	helpWidth := 60
 	helpHeight := 20
-
-	x := (m.width - helpWidth) / 2
-	y := (m.height - helpHeight) / 2
-
-	if x < 0 {
-		x = 1
-	}
-	if y < 0 {
-		y = 1
-	}
-
-	// Note: x and y are calculated for future use but lipgloss.Place handles centering
-	_ = x
-	_ = y
 
 	// Create help overlay style
 	overlay := lipgloss.NewStyle().
@@ -464,10 +537,29 @@ func (m *DashboardModel) overlayHelp(background, helpContent string) string {
 		Background(styles.BackgroundPrimary).
 		Padding(1)
 
+	styledHelp := overlay.Render(helpContent)
+
+	// Use flexbox container for perfect centering
+	helpContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: m.width, Height: m.height, Padding: 0, Gap: 0},
+		layout.FlexRow,
+	).SetJustifyContent(layout.Center).SetAlignItems(layout.AlignCenter)
+
+	helpContainer.AddItem(layout.FlexItem{
+		Content:    styledHelp,
+		FlexGrow:   0, // Don't grow
+		FlexShrink: 0, // Don't shrink
+		Order:      1,
+	})
+
+	// Render with background styling
+	result := helpContainer.Render()
+
+	// Apply background styling using lipgloss.Place for whitespace handling
 	return lipgloss.Place(
 		m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
-		overlay.Render(helpContent),
+		result,
 		lipgloss.WithWhitespaceChars(" "),
 		lipgloss.WithWhitespaceForeground(styles.BackgroundSecondary),
 	)
@@ -475,11 +567,8 @@ func (m *DashboardModel) overlayHelp(background, helpContent string) string {
 
 // updateChildSizes updates the sizes of child components
 func (m *DashboardModel) updateChildSizes() {
-	// Calculate available height for main content (more compact)
-	availableHeight := m.height - 10 // Increased from 6 to 10 to make main content shorter
-	if availableHeight < 8 {
-		availableHeight = 8 // Reduced minimum from 10 to 8
-	}
+	// Calculate available height for main content using max function
+	availableHeight := max(8, m.height-10)
 
 	m.summaryPanel.SetSize(m.width, 3) // Keep summary compact
 	m.sessionTable.SetSize(m.width*2/3, availableHeight)

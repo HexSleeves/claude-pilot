@@ -19,7 +19,8 @@ Examples:
   claude-pilot create                    # Create session with auto-generated name
   claude-pilot create my-project         # Create session named "my-project"
   claude-pilot create --desc "React app" # Create session with description
-  claude-pilot create --project ./src    # Create session with project path`,
+  claude-pilot create --project ./src    # Create session with project path
+  `,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Initialize common command context
@@ -56,15 +57,7 @@ Examples:
 		fmt.Println()
 
 		// Show enhanced session details
-		details := ui.SessionDetailsFormatted(
-			sess.ID,
-			sess.Name,
-			string(sess.Status),
-			ctx.Client.GetBackend(),
-			sess.CreatedAt.Format("2006-01-02 15:04:05"),
-			sess.ProjectPath,
-			sess.Description,
-		)
+		details := ui.SessionDetailsFormatted(sess, ctx.Client.GetBackend())
 		fmt.Println(details)
 		fmt.Println()
 

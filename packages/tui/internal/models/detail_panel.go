@@ -202,21 +202,21 @@ func (m *DetailPanelModel) renderActionButtons() string {
 
 	switch m.session.Status {
 	case api.StatusActive, api.StatusInactive:
-		buttons = append(buttons, styles.ButtonStyle.Render("a) Attach"))
+		buttons = append(buttons, styles.ButtonPrimaryStyle.Render("a) Attach"))
 	case api.StatusConnected:
 		buttons = append(buttons, styles.DimTextStyle.Render("Already connected"))
 	case api.StatusError:
 		buttons = append(buttons, styles.ErrorStyle.Render("Session has errors"))
 	}
 
-	buttons = append(buttons, styles.ButtonStyle.Render("k) Kill"))
-	buttons = append(buttons, styles.ButtonStyle.Render("r) Refresh"))
+	buttons = append(buttons, styles.ButtonDangerStyle.Render("k) Kill"))
+	buttons = append(buttons, styles.ButtonPrimaryStyle.Render("r) Refresh"))
 
 	if len(m.session.Messages) > 0 {
 		if m.showFullMessages {
-			buttons = append(buttons, styles.ButtonStyle.Render("f) Summary"))
+			buttons = append(buttons, styles.ButtonPrimaryStyle.Render("f) Summary"))
 		} else {
-			buttons = append(buttons, styles.ButtonStyle.Render("f) Full Messages"))
+			buttons = append(buttons, styles.ButtonPrimaryStyle.Render("f) Full Messages"))
 		}
 	}
 

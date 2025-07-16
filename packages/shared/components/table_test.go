@@ -82,7 +82,7 @@ func TestSetSessionData(t *testing.T) {
 			ID:          "test-id-2",
 			Name:        "test-session-2",
 			Status:      "inactive",
-			Backend:     "zellij",
+			Backend:     "tmux",
 			Created:     time.Date(2023, 1, 2, 12, 0, 0, 0, time.UTC),
 			LastActive:  time.Date(2023, 1, 2, 12, 30, 0, 0, time.UTC),
 			Messages:    3,

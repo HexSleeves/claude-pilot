@@ -2,6 +2,7 @@ package ui
 
 import (
 	compat "claude-pilot/internal/styles"
+	"claude-pilot/shared/interfaces"
 	"claude-pilot/shared/styles"
 
 	"github.com/fatih/color" // Deprecated: Use lipgloss styles from shared theme
@@ -175,8 +176,8 @@ func Input(text string) string {
 // These provide improved styling while maintaining backward compatibility
 
 // Enhanced session summary with better formatting
-func SessionSummary(total, active, inactive int, showAll bool) string {
-	return compat.SessionSummary(total, active, inactive, showAll)
+func SessionSummary(total, active, inactive int) string {
+	return compat.SessionSummary(total, active, inactive)
 }
 
 // Enhanced next steps display
@@ -190,8 +191,8 @@ func AvailableCommands(commands ...string) string {
 }
 
 // Enhanced session details formatting
-func SessionDetailsFormatted(sessionID, name, status, backend, created, project, description string) string {
-	return compat.SessionDetails(sessionID, name, status, backend, created, project, description)
+func SessionDetailsFormatted(session *interfaces.Session, backend string) string {
+	return compat.SessionDetails(session, backend)
 }
 
 // Enhanced available sessions list

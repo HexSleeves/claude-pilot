@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"claude-pilot/core/internal/config"
-	"claude-pilot/shared/interfaces"
 	"claude-pilot/core/internal/logger"
 	"claude-pilot/core/internal/multiplexer"
 	"claude-pilot/core/internal/service"
 	"claude-pilot/core/internal/storage"
+	"claude-pilot/shared/interfaces"
 )
 
 // Client provides a high-level API for both CLI and TUI to consume
@@ -122,6 +122,11 @@ func (c *Client) CreateSession(req CreateSessionRequest) (*interfaces.Session, e
 // ListSessions returns all sessions
 func (c *Client) ListSessions() ([]*interfaces.Session, error) {
 	return c.service.ListSessions()
+}
+
+// ListFilteredSessions returns all sessions with the given filter
+func (c *Client) ListFilteredSessions(filter string) ([]*interfaces.Session, error) {
+	return c.service.ListFilteredSessions(filter)
 }
 
 // GetSession retrieves a session by ID or name

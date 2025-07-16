@@ -4,6 +4,7 @@ import (
 	"claude-pilot/shared/interfaces"
 	"claude-pilot/shared/styles"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -73,4 +74,8 @@ func FormatSessionStatus(status string) lipgloss.Style {
 	default:
 		return styles.MutedTextStyle
 	}
+}
+
+func TimeFormat(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
 }

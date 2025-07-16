@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -101,14 +102,8 @@ func TestBackendConfig(t *testing.T) {
 	}
 
 	// Test valid backends
-	validBackends := []string{"auto", "tmux", "zellij"}
-	found := false
-	for _, backend := range validBackends {
-		if config.Backend == backend {
-			found = true
-			break
-		}
-	}
+	validBackends := []string{"tmux"}
+	found := slices.Contains(validBackends, config.Backend)
 	if !found {
 		t.Errorf("Default backend '%s' should be one of: %v", config.Backend, validBackends)
 	}

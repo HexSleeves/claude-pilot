@@ -55,7 +55,7 @@ Examples:
 
 		// Show session info
 		fmt.Println(ui.InfoMsg(fmt.Sprintf("Attaching to session '%s' (%s backend)...", sess.Name, ctx.Client.GetBackend())))
-		fmt.Println(ui.InfoMsg("Use your multiplexer's detach key to exit (tmux: Ctrl+B,D | zellij: Ctrl+P,D)"))
+		fmt.Println(ui.InfoMsg("Use your multiplexer's detach key to exit (tmux: Ctrl+B,D)"))
 		fmt.Println()
 
 		// Attach to the session

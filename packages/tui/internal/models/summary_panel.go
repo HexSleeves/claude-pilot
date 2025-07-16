@@ -3,6 +3,7 @@ package models
 import (
 	"claude-pilot/core/api"
 	"claude-pilot/shared/components"
+	"claude-pilot/shared/layout"
 	"claude-pilot/shared/styles"
 	"fmt"
 	"time"
@@ -11,33 +12,39 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// SessionStats represents session statistics
+type SessionStats struct {
+	Total    int
+	Active   int
+	Inactive int
+	Error    int
+	Backend  string
+}
+
 // SummaryPanelModel represents the summary panel showing metrics
 type SummaryPanelModel struct {
 	client   *api.Client
 	width    int
-	height   int
 	sessions []*api.Session
-
-	// Metrics
-	totalSessions     int
-	activeSessions    int
-	connectedSessions int
-	backend           string
-	lastUpdated       time.Time
+	stats    SessionStats
 }
 
 // NewSummaryPanelModel creates a new summary panel model
 func NewSummaryPanelModel(client *api.Client) *SummaryPanelModel {
 	return &SummaryPanelModel{
-		client:      client,
-		backend:     client.GetBackend(),
-		lastUpdated: time.Now(),
+		client: client,
+		stats: SessionStats{
+			Backend: client.GetBackend(),
+		},
 	}
 }
 
 // Init implements tea.Model
 func (m *SummaryPanelModel) Init() tea.Cmd {
-	return m.refreshMetrics()
+	return tea.Batch(
+		m.refreshMetrics(),
+		m.startPeriodicRefresh(),
+	)
 }
 
 // Update implements tea.Model
@@ -45,7 +52,6 @@ func (m *SummaryPanelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-		m.height = msg.Height
 
 	case SessionsLoadedMsg:
 		if msg.Error == nil {
@@ -53,8 +59,11 @@ func (m *SummaryPanelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case time.Time:
-		// Auto-refresh timer
-		return m, m.refreshMetrics()
+		// Auto-refresh timer - refresh data and restart timer
+		return m, tea.Batch(
+			m.refreshMetrics(),
+			m.startPeriodicRefresh(),
+		)
 	}
 
 	return m, nil
@@ -66,7 +75,12 @@ func (m *SummaryPanelModel) View() string {
 		return ""
 	}
 
-	// Calculate card width for responsive layout
+	return m.renderSummaryCards()
+}
+
+// renderSummaryCards renders summary cards with responsive layout using shared layout components
+func (m *SummaryPanelModel) renderSummaryCards() string {
+	// Calculate responsive width and size
 	_, size := styles.GetResponsiveWidth(m.width)
 
 	switch size {
@@ -79,7 +93,7 @@ func (m *SummaryPanelModel) View() string {
 	}
 }
 
-// RenderCompactView renders a compact view for small screens
+// renderCompactView renders a compact view for small screens
 func (m *SummaryPanelModel) renderCompactView() string {
 	// Single row with key metrics
 	totalCard := components.NewSummaryCard(
@@ -90,7 +104,7 @@ func (m *SummaryPanelModel) renderCompactView() string {
 			Border:  false,
 			Compact: true,
 		},
-		fmt.Sprintf("%d", m.totalSessions),
+		fmt.Sprintf("%d", m.stats.Total),
 		"total",
 		styles.ClaudePrimary,
 	)
@@ -103,21 +117,21 @@ func (m *SummaryPanelModel) renderCompactView() string {
 			Border:  false,
 			Compact: true,
 		},
-		fmt.Sprintf("%d", m.activeSessions),
+		fmt.Sprintf("%d", m.stats.Active),
 		"active",
 		styles.SuccessColor,
 	)
 
-	connectedCard := components.NewSummaryCard(
+	inactiveCard := components.NewSummaryCard(
 		components.CardConfig{
 			Width:   15,
 			Title:   "",
-			Icon:    "🔗",
+			Icon:    "⏸️",
 			Border:  false,
 			Compact: true,
 		},
-		fmt.Sprintf("%d", m.connectedSessions),
-		"connected",
+		fmt.Sprintf("%d", m.stats.Inactive),
+		"inactive",
 		styles.InfoColor,
 	)
 
@@ -127,19 +141,20 @@ func (m *SummaryPanelModel) renderCompactView() string {
 		" • ",
 		activeCard.Render(),
 		" • ",
-		connectedCard.Render(),
+		inactiveCard.Render(),
 		" • ",
-		styles.DimTextStyle.Render(fmt.Sprintf("%s backend", m.backend)),
+		styles.DimTextStyle.Render(fmt.Sprintf("%s backend", m.stats.Backend)),
 	)
 }
 
-// renderMediumView renders a medium view for medium screens
+// renderMediumView renders a medium view for medium screens using flexbox
 func (m *SummaryPanelModel) renderMediumView() string {
-	cardWidth := (m.width - 10) / 3 // 3 cards with spacing
+	cardWidth := (m.width - 10) / 4 // 4 cards with spacing
 	if cardWidth < 12 {
 		return m.renderCompactView()
 	}
 
+	// Create cards
 	totalCard := components.NewSummaryCard(
 		components.CardConfig{
 			Width:   cardWidth,
@@ -148,7 +163,7 @@ func (m *SummaryPanelModel) renderMediumView() string {
 			Border:  true,
 			Compact: false,
 		},
-		fmt.Sprintf("%d", m.totalSessions),
+		fmt.Sprintf("%d", m.stats.Total),
 		"total",
 		styles.ClaudePrimary,
 	)
@@ -161,77 +176,176 @@ func (m *SummaryPanelModel) renderMediumView() string {
 			Border:  true,
 			Compact: false,
 		},
-		fmt.Sprintf("%d", m.activeSessions),
+		fmt.Sprintf("%d", m.stats.Active),
 		"running",
 		styles.SuccessColor,
 	)
 
-	systemCard := components.NewStatusCard(
+	inactiveCard := components.NewSummaryCard(
 		components.CardConfig{
 			Width:   cardWidth,
-			Title:   "System",
-			Icon:    "⚙️",
+			Title:   "Inactive",
+			Icon:    "⏸️",
 			Border:  true,
 			Compact: false,
 		},
-		fmt.Sprintf("%s Ready", m.backend),
-		"●",
-		[]string{
-			fmt.Sprintf("Connected: %d", m.connectedSessions),
-			fmt.Sprintf("Updated: %s", m.lastUpdated.Format("15:04:05")),
+		fmt.Sprintf("%d", m.stats.Inactive),
+		"inactive",
+		styles.InfoColor,
+	)
+
+	errorCard := components.NewSummaryCard(
+		components.CardConfig{
+			Width:   cardWidth,
+			Title:   "Errors",
+			Icon:    "❌",
+			Border:  true,
+			Compact: false,
 		},
+		fmt.Sprintf("%d", m.stats.Error),
+		"error",
+		styles.ErrorColor,
+	)
+
+	// Use flexbox container for better card distribution
+	cardContainer := layout.NewFlexContainer(
+		layout.LayoutConfig{Width: m.width, Height: 0, Padding: 0, Gap: 2},
+		layout.FlexRow,
+	).SetJustifyContent(layout.SpaceEvenly).SetAlignItems(layout.AlignStretch)
+
+	// Add cards as flex items with equal distribution
+	cardContainer.AddItem(layout.FlexItem{
+		Content:    totalCard.Render(),
+		FlexGrow:   1,
+		FlexShrink: 1,
+		Order:      1,
+	})
+
+	cardContainer.AddItem(layout.FlexItem{
+		Content:    activeCard.Render(),
+		FlexGrow:   1,
+		FlexShrink: 1,
+		Order:      2,
+	})
+
+	cardContainer.AddItem(layout.FlexItem{
+		Content:    inactiveCard.Render(),
+		FlexGrow:   1,
+		FlexShrink: 1,
+		Order:      3,
+	})
+
+	cardContainer.AddItem(layout.FlexItem{
+		Content:    errorCard.Render(),
+		FlexGrow:   1,
+		FlexShrink: 1,
+		Order:      4,
+	})
+
+	return cardContainer.Render()
+}
+
+// renderFullView renders the full view for large screens
+func (m *SummaryPanelModel) renderFullView() string {
+	cardWidth := (m.width - 12) / 4 // 4 cards with spacing
+	if cardWidth < 12 {
+		return m.renderMediumView()
+	}
+
+	// Create comprehensive summary cards
+	totalCard := components.NewSummaryCard(
+		components.CardConfig{
+			Width:   cardWidth,
+			Title:   "Total",
+			Icon:    "📊",
+			Border:  true,
+			Compact: false,
+		},
+		fmt.Sprintf("%d", m.stats.Total),
+		"sessions",
+		styles.ClaudePrimary,
+	)
+
+	activeCard := components.NewSummaryCard(
+		components.CardConfig{
+			Width:   cardWidth,
+			Title:   "Active",
+			Icon:    "✅",
+			Border:  true,
+			Compact: false,
+		},
+		fmt.Sprintf("%d", m.stats.Active),
+		"running",
+		styles.SuccessColor,
+	)
+
+	inactiveCard := components.NewSummaryCard(
+		components.CardConfig{
+			Width:   cardWidth,
+			Title:   "Inactive",
+			Icon:    "⏸️",
+			Border:  true,
+			Compact: false,
+		},
+		fmt.Sprintf("%d", m.stats.Inactive),
+		"stopped",
+		styles.WarningColor,
+	)
+
+	errorCard := components.NewSummaryCard(
+		components.CardConfig{
+			Width:   cardWidth,
+			Title:   "Errors",
+			Icon:    "❌",
+			Border:  true,
+			Compact: false,
+		},
+		fmt.Sprintf("%d", m.stats.Error),
+		"failed",
+		styles.ErrorColor,
 	)
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		totalCard.Render(),
-		"  ",
+		" ",
 		activeCard.Render(),
-		"  ",
-		systemCard.Render(),
+		" ",
+		inactiveCard.Render(),
+		" ",
+		errorCard.Render(),
 	)
-}
-
-// renderFullView renders the full view for large screens
-func (m *SummaryPanelModel) renderFullView() string {
-	// Create comprehensive summary cards
-	cards := components.CreateSessionSummaryCards(
-		m.totalSessions,
-		m.activeSessions,
-		m.connectedSessions,
-		m.backend,
-		m.width,
-	)
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, cards...)
 }
 
 // SetSessions updates the sessions and recalculates metrics
 func (m *SummaryPanelModel) SetSessions(sessions []*api.Session) {
 	m.sessions = sessions
-	m.calculateMetrics()
-	m.lastUpdated = time.Now()
+	m.calculateStats()
 }
 
 // SetSize updates the panel size
 func (m *SummaryPanelModel) SetSize(width, height int) {
 	m.width = width
-	m.height = height
 }
 
-// calculateMetrics calculates summary metrics from sessions
-func (m *SummaryPanelModel) calculateMetrics() {
-	m.totalSessions = len(m.sessions)
-	m.activeSessions = 0
-	m.connectedSessions = 0
+// calculateStats calculates summary statistics from sessions
+func (m *SummaryPanelModel) calculateStats() {
+	m.stats.Total = len(m.sessions)
+	m.stats.Active = 0
+	m.stats.Inactive = 0
+	m.stats.Error = 0
 
 	for _, session := range m.sessions {
 		switch session.Status {
 		case api.StatusActive:
-			m.activeSessions++
-		case api.StatusConnected:
-			m.connectedSessions++
-			m.activeSessions++ // Connected sessions are also active
+			m.stats.Active++
+		case api.StatusInactive:
+			m.stats.Inactive++
+		case api.StatusError:
+			m.stats.Error++
+		default:
+			// Handle any other status as inactive
+			m.stats.Inactive++
 		}
 	}
 }
@@ -244,12 +358,14 @@ func (m *SummaryPanelModel) refreshMetrics() tea.Cmd {
 	}
 }
 
-// GetMetrics returns current metrics
-func (m *SummaryPanelModel) GetMetrics() (total, active, connected int) {
-	return m.totalSessions, m.activeSessions, m.connectedSessions
+// startPeriodicRefresh starts a periodic refresh timer for real-time updates
+func (m *SummaryPanelModel) startPeriodicRefresh() tea.Cmd {
+	return tea.Tick(time.Second*5, func(t time.Time) tea.Msg {
+		return t
+	})
 }
 
-// GetLastUpdated returns the last update time
-func (m *SummaryPanelModel) GetLastUpdated() time.Time {
-	return m.lastUpdated
+// GetStats returns current statistics
+func (m *SummaryPanelModel) GetStats() SessionStats {
+	return m.stats
 }

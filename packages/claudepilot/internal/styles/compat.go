@@ -1,7 +1,9 @@
 package styles
 
 import (
+	"claude-pilot/shared/interfaces"
 	"claude-pilot/shared/styles"
+	"claude-pilot/shared/utils"
 	"fmt"
 	"strings"
 	"time"
@@ -107,7 +109,7 @@ func CommandList(commands map[string]string) string {
 }
 
 // Session summary formatting - Enhanced with standardized theme
-func SessionSummary(total, active, inactive int, showAll bool) string {
+func SessionSummary(total, active, inactive int) string {
 	var parts []string
 
 	if total > 0 {
@@ -152,11 +154,6 @@ func SessionSummary(total, active, inactive int, showAll bool) string {
 		Render(" | ")
 	summary := strings.Join(parts, separator)
 
-	if !showAll && inactive > 0 {
-		hint := styles.Dim("(Use --all to show inactive sessions)")
-		summary = fmt.Sprintf("%s\n%s", summary, hint)
-	}
-
 	return styles.InfoBox(summary)
 }
 
@@ -191,11 +188,18 @@ func AvailableCommands(commands ...string) string {
 }
 
 // Session details formatting
-func SessionDetails(sessionID, name, status, backend, created, project, description string) string {
+func SessionDetails(session *interfaces.Session, backend string) string {
 	var lines []string
 
 	// Create a consistent width for labels
 	labelWidth := 15
+
+	sessionID := session.ID
+	name := session.Name
+	created := utils.TimeFormat(session.CreatedAt)
+	project := session.ProjectPath
+	description := session.Description
+	status := string(session.Status)
 
 	// Format each field
 	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("ID:"), sessionID))

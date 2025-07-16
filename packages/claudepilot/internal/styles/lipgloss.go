@@ -101,7 +101,7 @@ var (
 	ButtonDangerStyle    = styles.ButtonDangerStyle
 	ButtonFocusedStyle   = styles.ButtonFocusedStyle
 	ButtonDisabledStyle  = styles.ButtonDisabledStyle
-	ButtonStyle          = styles.ButtonStyle // Legacy compatibility
+	ButtonStyle          = styles.ButtonPrimaryStyle // Legacy compatibility
 
 	// Form styles - Enhanced with state variants
 	InputStyle         = styles.InputStyle

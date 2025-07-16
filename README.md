@@ -42,7 +42,7 @@ Developers often work on multiple projects or tasks simultaneously, but Claude C
 - Maintain session history and metadata.
 - Organize work by project or task.
 
-It's built with Go and leverages terminal multiplexers like `tmux` and `zellij` to provide a robust and familiar experience for power users.
+It's built with Go and leverages terminal multiplexers like `tmux` to provide a robust and familiar experience for power users. Support for `zellij` is planned for future releases.
 
 ---
 
@@ -50,7 +50,7 @@ It's built with Go and leverages terminal multiplexers like `tmux` and `zellij` 
 
 - **Multi-Session Management**: Create, list, and terminate multiple `claude code` CLI instances.
 - **Session Persistence**: Session metadata is stored on your local machine and persists across application restarts.
-- **Terminal Multiplexer Support**: Choose between `tmux` and `zellij` for session management.
+- **Terminal Multiplexer Support**: Uses `tmux` for session management (zellij support planned).
 - **Interactive Mode**: Attach to any session to interact directly with the Claude CLI.
 - **Detailed Session Information**: The `list` command shows session ID, name, status, creation time, and more.
 - **Named Sessions**: Give your sessions meaningful names to easily organize your work (e.g., `react-app`, `api-bug-fix`).
@@ -80,8 +80,7 @@ You must have the following tools installed and available in your system's PATH:
 
 1. **Claude CLI**: The `claude` command-line tool.
 2. **Terminal Multiplexer**:
-    - `tmux` (recommended)
-    - or `zellij`
+    - `tmux` (required)
 
 ### Installation
 
@@ -169,7 +168,7 @@ graph TD
     end
 
     subgraph "System Integration"
-        E(Terminal Multiplexers <br> tmux / zellij)
+        E(Terminal Multiplexers <br> tmux)
         F(JSON Storage <br> ~/.claude-pilot)
     end
 
@@ -183,7 +182,7 @@ graph TD
 
 - **`packages/core`**: The heart of the application. This package contains all the core business logic, including:
   - **Service (`service/`)**: Manages session lifecycle (create, read, update, delete).
-  - **Multiplexer (`multiplexer/`)**: An interface to communicate with terminal multiplexers like `tmux` and `zellij`.
+  - **Multiplexer (`multiplexer/`)**: An interface to communicate with terminal multiplexers like `tmux` (zellij support planned).
   - **Storage (`storage/`)**: Handles saving and retrieving session metadata from the filesystem as JSON.
   - **Configuration (`config/`)**: Manages application configuration.
 
@@ -214,6 +213,7 @@ We have an exciting roadmap ahead! Here are some of the features we're planning 
 
 - **Phase 2: Advanced Features**
   - [x] `kill-all` command implementation
+  - [ ] Zellij backend support
   - [ ] `attach` enhancement (add panels / tabs to existing sessions)
   - [ ] Session templates and presets
   - [ ] Session search and filtering

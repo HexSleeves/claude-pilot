@@ -55,7 +55,7 @@ type MultiplexerSession interface {
 
 // TerminalMultiplexer defines the interface for terminal multiplexer backends
 type TerminalMultiplexer interface {
-	// GetName returns the name of the multiplexer backend (e.g., "tmux", "zellij")
+	// GetName returns the name of the multiplexer backend (e.g., "tmux")
 	GetName() string
 
 	// IsAvailable checks if the multiplexer binary is available on the system
@@ -117,6 +117,9 @@ type SessionService interface {
 
 	// ListSessions returns all sessions with their current status
 	ListSessions() ([]*Session, error)
+
+	// ListActiveSessions returns all active sessions
+	ListFilteredSessions(filter string) ([]*Session, error)
 
 	// UpdateSession updates session metadata
 	UpdateSession(session *Session) error

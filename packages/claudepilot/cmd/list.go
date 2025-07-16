@@ -19,8 +19,9 @@ Shows session ID, name, status, creation time, last activity, and message count.
 
 Examples:
   claude-pilot list           # List all sessions
-  claude-pilot list --all     # Include inactive sessions
-  claude-pilot list --sort=name # Sort by name instead of last activity`,
+  claude-pilot list --sort=name # Sort by name instead of last activity
+	claude-pilot list --filter=active # Filter to only show active sessions
+	claude-pilot list --filter=inactive # Filter to only show inactive sessions`,
 	Aliases: []string{"ls"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Initialize common command context
@@ -30,17 +31,39 @@ Examples:
 		}
 
 		// Get flags
-		showAll, _ := cmd.Flags().GetBool("all")
 		sortBy, _ := cmd.Flags().GetString("sort")
+		filter, _ := cmd.Flags().GetString("filter")
 
-		// Get all sessions
-		sessions, err := ctx.Client.ListSessions()
-		if err != nil {
-			HandleError(err, "list sessions")
+		var sessions []*api.Session
+
+		// Apply filters
+		if filter != "" {
+			sessions, err = ctx.Client.ListFilteredSessions(filter)
+			if err != nil {
+				HandleError(err, "list filtered sessions")
+			}
+
+			if len(sessions) == 0 {
+				fmt.Println(ui.Dim("No sessions found. Try another filter or create a new session."))
+				fmt.Println()
+				fmt.Println(ui.InfoMsg("Try another filter:"))
+				fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot list --filter=active"))
+				fmt.Println()
+				fmt.Println(ui.InfoMsg("Create a new session:"))
+				fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
+				fmt.Println()
+				return
+			}
+		} else {
+			// Get all sessions
+			sessions, err = ctx.Client.ListSessions()
+			if err != nil {
+				HandleError(err, "list sessions")
+			}
 		}
 
 		// Filter sessions if not showing all
-		if !showAll {
+		if filter == "active" {
 			// Pre-allocate with estimated capacity (assume most sessions are active)
 			activeSessions := make([]*api.Session, 0, len(sessions))
 			for _, sess := range sessions {
@@ -77,12 +100,7 @@ Examples:
 		fmt.Println()
 
 		if len(sessions) == 0 {
-			if showAll {
-				fmt.Println(ui.Dim("No sessions found."))
-			} else {
-				fmt.Println(ui.Dim("No active sessions found."))
-				fmt.Println(ui.InfoMsg("Use --all to show inactive sessions"))
-			}
+			fmt.Println(ui.Dim("No sessions found."))
 			fmt.Println()
 			fmt.Println(ui.InfoMsg("Create a new session:"))
 			fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
@@ -118,7 +136,7 @@ Examples:
 			}
 		}
 
-		fmt.Println(ui.SessionSummary(len(sessions), activeCount, inactiveCount, showAll))
+		fmt.Println(ui.SessionSummary(len(sessions), activeCount, inactiveCount))
 
 		// Show helpful commands with enhanced styling
 		fmt.Println(ui.AvailableCommands(
@@ -153,6 +171,6 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 
 	// Add flags
-	listCmd.Flags().BoolP("all", "a", false, "Show all sessions including inactive ones")
 	listCmd.Flags().StringP("sort", "s", "activity", "Sort by: name, created, status, activity")
+	listCmd.Flags().StringP("filter", "f", "", "Filter by: active, inactive")
 }

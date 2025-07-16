@@ -96,13 +96,20 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 
 	_, err := s.multiplexer.CreateSession(req)
 	if err != nil {
-		// If multiplexer session creation fails, mark session as inactive but keep metadata
-		session.Status = interfaces.StatusInactive
-		s.repository.Save(session)
 		s.logger.Error("Failed to create multiplexer session",
 			"session_id", session.ID,
 			"name", name,
 			"error", err)
+
+		// If multiplexer session creation fails, mark session as inactive but keep metadata
+		session.Status = interfaces.StatusInactive
+		if err := s.repository.Save(session); err != nil {
+			s.logger.Error("Failed to update session status",
+				"session_id", session.ID,
+				"name", name,
+				"error", err)
+		}
+
 		return session, fmt.Errorf("session created but failed to create multiplexer session: %w", err)
 	}
 
@@ -175,6 +182,47 @@ func (s *SessionService) ListSessions() ([]*interfaces.Session, error) {
 	s.logger.Debug("Sessions listed successfully", "count", len(sessions))
 
 	return sessions, nil
+}
+
+// ListFilteredSessions returns all sessions with the given filter
+func (s *SessionService) ListFilteredSessions(filter string) ([]*interfaces.Session, error) {
+	start := time.Now()
+
+	s.logger.Debug("Listing sessions with filter", "filter", filter)
+
+	sessions, err := s.ListSessions()
+	if err != nil {
+		s.logger.Error("Failed to list sessions from repository", "error", err)
+		return nil, fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	// Apply filters
+	if filter != "" {
+		switch filter {
+		case "active":
+			sessions = filterByStatus(sessions, interfaces.StatusActive)
+		case "inactive":
+			sessions = filterByStatus(sessions, interfaces.StatusInactive)
+		}
+	}
+
+	s.logger.Debug("Sessions listed successfully", "count", len(sessions))
+
+	s.logger.Performance("ListFilteredSessions", start, slog.String("filter", filter), slog.Int("session_count", len(sessions)))
+
+	return sessions, nil
+}
+
+// filterActiveSessions filters the sessions to only include active sessions
+
+func filterByStatus(sessions []*interfaces.Session, status interfaces.SessionStatus) []*interfaces.Session {
+	filteredSessions := make([]*interfaces.Session, 0)
+	for _, session := range sessions {
+		if session.Status == status {
+			filteredSessions = append(filteredSessions, session)
+		}
+	}
+	return filteredSessions
 }
 
 // UpdateSession updates session metadata
@@ -381,4 +429,9 @@ func (s *SessionService) KillAllSessions() error {
 // GetMultiplexer returns the underlying multiplexer (for legacy compatibility)
 func (s *SessionService) GetMultiplexer() interfaces.TerminalMultiplexer {
 	return s.multiplexer
+}
+
+// GetRepository returns the underlying repository
+func (s *SessionService) GetRepository() interfaces.SessionRepository {
+	return s.repository
 }

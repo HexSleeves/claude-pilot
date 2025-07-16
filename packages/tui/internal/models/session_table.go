@@ -32,7 +32,7 @@ type SessionTableModel struct {
 func NewSessionTableModel(client *api.Client) *SessionTableModel {
 	// Create Bubbles table with predefined columns
 	columns := components.GetBubblesTableColumns()
-	
+
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithFocused(true),
@@ -57,7 +57,7 @@ func (m *SessionTableModel) Init() tea.Cmd {
 // Update implements tea.Model
 func (m *SessionTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -98,7 +98,7 @@ func (m *SessionTableModel) View() string {
 	// Add session count info
 	selectedIdx := m.table.Cursor()
 	statusLine := fmt.Sprintf("Session %d of %d", selectedIdx+1, len(m.sessions))
-	
+
 	return tableView + "\n" + styles.DimTextStyle.Render(statusLine)
 }
 

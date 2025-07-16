@@ -11,7 +11,7 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	// Backend specifies the terminal multiplexer to use (tmux, zellij)
+	// Backend specifies the terminal multiplexer to use (tmux only)
 	Backend string `mapstructure:"backend" yaml:"backend"`
 
 	// BackendPath specifies the custom path to the multiplexer binary
@@ -31,9 +31,6 @@ type Config struct {
 
 	// Tmux-specific configuration
 	Tmux TmuxConfig `mapstructure:"tmux" yaml:"tmux"`
-
-	// Zellij-specific configuration
-	Zellij ZellijConfig `mapstructure:"zellij" yaml:"zellij"`
 }
 
 // UIConfig contains user interface configuration
@@ -60,15 +57,6 @@ type TmuxConfig struct {
 	StatusBar bool `mapstructure:"status_bar" yaml:"status_bar"`
 }
 
-// ZellijConfig contains zellij-specific configuration
-type ZellijConfig struct {
-	// LayoutFile specifies the default zellij layout file
-	LayoutFile string `mapstructure:"layout_file" yaml:"layout_file"`
-
-	// Theme specifies the zellij theme
-	Theme string `mapstructure:"theme" yaml:"theme"`
-}
-
 // LoggingConfig contains logging configuration
 type LoggingConfig struct {
 	// Enabled controls whether logging is active (disabled by default)
@@ -88,7 +76,7 @@ type LoggingConfig struct {
 func DefaultConfig() *Config {
 	homeDir, _ := os.UserHomeDir()
 	return &Config{
-		Backend:      "auto", // Auto-detect available backend
+		Backend:      "tmux", // Auto-detect available backend
 		BackendPath:  "",     // Use system PATH
 		SessionsDir:  filepath.Join(homeDir, ".config", "claude-pilot", "sessions"),
 		DefaultShell: "claude",
@@ -107,10 +95,6 @@ func DefaultConfig() *Config {
 			SessionPrefix: "claude-",
 			DefaultLayout: "main-horizontal",
 			StatusBar:     true,
-		},
-		Zellij: ZellijConfig{
-			LayoutFile: "",
-			Theme:      "default",
 		},
 	}
 }
@@ -220,7 +204,6 @@ func (cm *ConfigManager) Save() error {
 	viper.Set("logging", cm.config.Logging)
 	viper.Set("ui", cm.config.UI)
 	viper.Set("tmux", cm.config.Tmux)
-	viper.Set("zellij", cm.config.Zellij)
 
 	return viper.WriteConfig()
 }
@@ -253,8 +236,6 @@ func (cm *ConfigManager) setDefaults() {
 	viper.SetDefault("tmux.session_prefix", defaults.Tmux.SessionPrefix)
 	viper.SetDefault("tmux.default_layout", defaults.Tmux.DefaultLayout)
 	viper.SetDefault("tmux.status_bar", defaults.Tmux.StatusBar)
-	viper.SetDefault("zellij.layout_file", defaults.Zellij.LayoutFile)
-	viper.SetDefault("zellij.theme", defaults.Zellij.Theme)
 }
 
 // validateAndSetDefaults validates configuration and sets computed defaults
@@ -264,8 +245,12 @@ func (cm *ConfigManager) validateAndSetDefaults() error {
 		return fmt.Errorf("failed to create sessions directory: %w", err)
 	}
 
-	// Validate backend selection
-	validBackends := []string{"auto", "tmux", "zellij"}
+	// Validate backend selection - auto resolves to tmux
+	if cm.config.Backend == "auto" {
+		cm.config.Backend = "tmux"
+	}
+	
+	validBackends := []string{"tmux"}
 	isValid := false
 	for _, backend := range validBackends {
 		if cm.config.Backend == backend {
@@ -274,7 +259,7 @@ func (cm *ConfigManager) validateAndSetDefaults() error {
 		}
 	}
 	if !isValid {
-		return fmt.Errorf("invalid backend '%s', must be one of: %v", cm.config.Backend, validBackends)
+		return fmt.Errorf("invalid backend '%s', must be tmux (zellij support planned for future release)", cm.config.Backend)
 	}
 
 	// Validate UI mode
@@ -325,9 +310,8 @@ func (cm *ConfigManager) createDefaultConfigFileAt(configFilePath string) error 
 #
 # For more information, visit: https://github.com/HexSleeves/claude-pilot
 
-# Backend selection: auto, tmux, or zellij
-# 'auto' will automatically detect and prefer tmux if available
-backend: auto
+# Backend selection: tmux
+backend: tmux
 
 # Directory where session metadata is stored
 # Will be created automatically if it doesn't exist
@@ -365,10 +349,6 @@ ui:
 tmux:
   # Prefix for tmux session names (optional)
   session_prefix: claude-
-
-zellij:
-  # Custom layout file for zellij sessions (optional)
-  layout_file: ""
 `
 
 	// Write the default config file
@@ -391,9 +371,6 @@ func (cm *ConfigManager) expandHomePaths() error {
 
 	// Expand BackendPath if it starts with ~
 	cm.config.BackendPath = ExpandHomePath(cm.config.BackendPath, homeDir)
-
-	// Expand ZellijConfig.LayoutFile if it starts with ~
-	cm.config.Zellij.LayoutFile = ExpandHomePath(cm.config.Zellij.LayoutFile, homeDir)
 
 	// Expand Logging.File if it starts with ~
 	cm.config.Logging.File = ExpandHomePath(cm.config.Logging.File, homeDir)

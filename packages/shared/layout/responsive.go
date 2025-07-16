@@ -34,12 +34,58 @@ const (
 	FlexColumn
 )
 
-// FlexContainer represents a flexible container layout
+// JustifyContent represents the main-axis alignment
+type JustifyContent int
+
+const (
+	FlexStart JustifyContent = iota
+	FlexEnd
+	Center
+	SpaceBetween
+	SpaceAround
+	SpaceEvenly
+)
+
+// AlignItems represents the cross-axis alignment
+type AlignItems int
+
+const (
+	AlignStart AlignItems = iota
+	AlignCenter
+	AlignEnd
+	AlignStretch
+)
+
+// FlexWrap represents the wrap behavior
+type FlexWrap int
+
+const (
+	NoWrap FlexWrap = iota
+	Wrap
+	WrapReverse
+)
+
+// FlexItem represents an individual flex item with CSS flexbox properties
+type FlexItem struct {
+	Content    string      // The content to render
+	FlexGrow   int         // How much the item should grow (default: 0)
+	FlexShrink int         // How much the item should shrink (default: 1)
+	FlexBasis  int         // The initial main size (default: auto/-1)
+	AlignSelf  *AlignItems // Override container's align-items for this item
+	Order      int         // Display order (default: 0)
+}
+
+// FlexContainer represents a flexible container layout with CSS flexbox properties
 type FlexContainer struct {
-	config    LayoutConfig
-	direction FlexDirection
-	children  []string
-	weights   []int
+	config         LayoutConfig
+	direction      FlexDirection
+	justifyContent JustifyContent
+	alignItems     AlignItems
+	flexWrap       FlexWrap
+	items          []FlexItem
+	// Backward compatibility fields
+	children []string
+	weights  []int
 }
 
 // GridContainer represents a grid layout
@@ -62,11 +108,38 @@ type Panel struct {
 // NewFlexContainer creates a new flex container
 func NewFlexContainer(config LayoutConfig, direction FlexDirection) *FlexContainer {
 	return &FlexContainer{
-		config:    config,
-		direction: direction,
-		children:  make([]string, 0),
-		weights:   make([]int, 0),
+		config:         config,
+		direction:      direction,
+		justifyContent: FlexStart,
+		alignItems:     AlignStretch,
+		flexWrap:       NoWrap,
+		items:          make([]FlexItem, 0),
+		children:       make([]string, 0),
+		weights:        make([]int, 0),
 	}
+}
+
+// SetJustifyContent sets the justify-content property for chainable configuration
+func (f *FlexContainer) SetJustifyContent(justify JustifyContent) *FlexContainer {
+	f.justifyContent = justify
+	return f
+}
+
+// SetAlignItems sets the align-items property for chainable configuration
+func (f *FlexContainer) SetAlignItems(align AlignItems) *FlexContainer {
+	f.alignItems = align
+	return f
+}
+
+// SetFlexWrap sets the flex-wrap property for chainable configuration
+func (f *FlexContainer) SetFlexWrap(wrap FlexWrap) *FlexContainer {
+	f.flexWrap = wrap
+	return f
+}
+
+// AddItem adds a FlexItem to the container using the new API
+func (f *FlexContainer) AddItem(item FlexItem) {
+	f.items = append(f.items, item)
 }
 
 // NewGridContainer creates a new grid container
@@ -95,15 +168,26 @@ func NewPanel(config LayoutConfig, title, content string, border bool) *Panel {
 	}
 }
 
-// AddChild adds a child element to the flex container
+// AddChild adds a child element to the flex container (backward compatibility wrapper)
 func (f *FlexContainer) AddChild(content string, weight int) {
+	// Convert to FlexItem for new system
+	item := FlexItem{
+		Content:    content,
+		FlexGrow:   weight,
+		FlexShrink: 1,
+		FlexBasis:  -1, // auto
+		Order:      0,
+	}
+	f.items = append(f.items, item)
+
+	// Keep old fields for any legacy code that might access them directly
 	f.children = append(f.children, content)
 	f.weights = append(f.weights, weight)
 }
 
-// Render renders the flex container
+// Render renders the flex container using CSS flexbox algorithms
 func (f *FlexContainer) Render() string {
-	if len(f.children) == 0 {
+	if len(f.items) == 0 {
 		return ""
 	}
 
@@ -111,22 +195,48 @@ func (f *FlexContainer) Render() string {
 	availableWidth := f.config.Width - (f.config.Padding * 2) - (f.config.Margin * 2)
 	availableHeight := f.config.Height - (f.config.Padding * 2) - (f.config.Margin * 2)
 
-	// Calculate gap space
-	gapSpace := f.config.Gap * (len(f.children) - 1)
+	// Sort items by Order property
+	sortedItems := make([]FlexItem, len(f.items))
+	copy(sortedItems, f.items)
+	f.sortItemsByOrder(sortedItems)
 
+	// Calculate gap space
+	gapSpace := f.config.Gap * (len(sortedItems) - 1)
+
+	var result string
 	switch f.direction {
 	case FlexRow:
-		return f.renderRow(availableWidth-gapSpace, availableHeight)
+		result = f.renderFlexRow(sortedItems, availableWidth-gapSpace, availableHeight)
 	case FlexColumn:
-		return f.renderColumn(availableWidth, availableHeight-gapSpace)
+		result = f.renderFlexColumn(sortedItems, availableWidth, availableHeight-gapSpace)
 	default:
 		return ""
 	}
+
+	// Apply container styling
+	containerStyle := lipgloss.NewStyle().
+		Padding(f.config.Padding).
+		Margin(f.config.Margin)
+
+	return containerStyle.Render(result)
 }
 
-// renderRow renders children in a row layout
-func (f *FlexContainer) renderRow(width, height int) string {
-	if len(f.children) == 0 {
+// sortItemsByOrder sorts flex items by their Order property
+func (f *FlexContainer) sortItemsByOrder(items []FlexItem) {
+	// Simple bubble sort by Order property
+	n := len(items)
+	for i := 0; i < n-1; i++ {
+		for j := 0; j < n-i-1; j++ {
+			if items[j].Order > items[j+1].Order {
+				items[j], items[j+1] = items[j+1], items[j]
+			}
+		}
+	}
+}
+
+// renderFlexRow renders items in a row layout using CSS flexbox algorithms
+func (f *FlexContainer) renderFlexRow(items []FlexItem, width, height int) string {
+	if len(items) == 0 {
 		return ""
 	}
 
@@ -138,69 +248,237 @@ func (f *FlexContainer) renderRow(width, height int) string {
 		height = 1
 	}
 
-	// Calculate total weight
-	totalWeight := 0
-	for _, weight := range f.weights {
-		totalWeight += weight
-	}
+	// Calculate flex-basis for each item
+	itemWidths := make([]int, len(items))
+	totalBasis := 0
+	totalGrow := 0
+	totalShrink := 0
 
-	if totalWeight == 0 {
-		// Equal distribution
-		for i := range f.weights {
-			f.weights[i] = 1
+	for i, item := range items {
+		if item.FlexBasis > 0 {
+			itemWidths[i] = item.FlexBasis
+		} else {
+			// Auto basis - use content width or equal distribution
+			itemWidths[i] = width / len(items)
 		}
-		totalWeight = len(f.weights)
-	}
-
-	// Calculate widths for each child, distributing remainder pixels
-	childWidths := make([]int, len(f.children))
-	totalDistributed := 0
-
-	// First pass: calculate base widths using integer division
-	for i := range f.children {
-		childWidths[i] = (width * f.weights[i]) / totalWeight
-		totalDistributed += childWidths[i]
-	}
-
-	// Calculate remainder pixels and distribute them
-	remainderPixels := width - totalDistributed
-	for i := 0; i < remainderPixels && i < len(childWidths); i++ {
-		childWidths[i]++
-	}
-
-	// Render each child with calculated width
-	renderedChildren := make([]string, len(f.children))
-	for i, child := range f.children {
-		childWidth := childWidths[i]
-		if childWidth < f.config.MinPanelWidth && f.config.MinPanelWidth > 0 {
-			childWidth = f.config.MinPanelWidth
+		totalBasis += itemWidths[i]
+		totalGrow += item.FlexGrow
+		if item.FlexShrink > 0 {
+			totalShrink += item.FlexShrink
+		} else {
+			totalShrink += 1 // Default shrink is 1
 		}
-
-		// Apply width constraint to child content
-		childStyle := lipgloss.NewStyle().
-			Width(childWidth).
-			Height(height)
-
-		renderedChildren[i] = childStyle.Render(child)
 	}
 
-	// Join with gaps
-	gapStyle := lipgloss.NewStyle().Width(f.config.Gap)
-	gap := gapStyle.Render("")
+	// Distribute remaining space using flex-grow or flex-shrink
+	remainingSpace := width - totalBasis
+	if remainingSpace > 0 && totalGrow > 0 {
+		// Distribute extra space using flex-grow
+		for i, item := range items {
+			if item.FlexGrow > 0 {
+				extraWidth := (remainingSpace * item.FlexGrow) / totalGrow
+				itemWidths[i] += extraWidth
+			}
+		}
+	} else if remainingSpace < 0 && totalShrink > 0 {
+		// Shrink items using flex-shrink
+		shrinkSpace := -remainingSpace
+		for i, item := range items {
+			shrinkFactor := item.FlexShrink
+			if shrinkFactor == 0 {
+				shrinkFactor = 1
+			}
+			shrinkAmount := (shrinkSpace * shrinkFactor) / totalShrink
+			itemWidths[i] = max(0, itemWidths[i]-shrinkAmount)
+		}
+	}
 
-	result := strings.Join(renderedChildren, gap)
+	// Apply minimum panel width constraint
+	for i := range itemWidths {
+		if itemWidths[i] < f.config.MinPanelWidth && f.config.MinPanelWidth > 0 {
+			itemWidths[i] = f.config.MinPanelWidth
+		}
+	}
 
-	// Apply container styling
-	containerStyle := lipgloss.NewStyle().
-		Padding(f.config.Padding).
-		Margin(f.config.Margin)
-
-	return containerStyle.Render(result)
+	return f.renderRowWithJustifyContent(items, itemWidths, width, height)
 }
 
-// renderColumn renders children in a column layout
-func (f *FlexContainer) renderColumn(width, height int) string {
-	if len(f.children) == 0 {
+// renderRowWithJustifyContent applies justify-content spacing to row items
+func (f *FlexContainer) renderRowWithJustifyContent(items []FlexItem, itemWidths []int, containerWidth, height int) string {
+	// Calculate total item width
+	totalItemWidth := 0
+	for _, width := range itemWidths {
+		totalItemWidth += width
+	}
+
+	// Calculate available space for justify-content
+	availableSpace := containerWidth - totalItemWidth
+
+	// Render each item with proper alignment
+	renderedItems := make([]string, len(items))
+	for i, item := range items {
+		// Determine cross-axis alignment for this item
+		align := f.alignItems
+		if item.AlignSelf != nil {
+			align = *item.AlignSelf
+		}
+
+		// Calculate cross-axis positioning
+		var hAlign, vAlign lipgloss.Position
+		switch align {
+		case AlignStart:
+			vAlign = lipgloss.Top
+		case AlignCenter:
+			vAlign = lipgloss.Center
+		case AlignEnd:
+			vAlign = lipgloss.Bottom
+		case AlignStretch:
+			vAlign = lipgloss.Top // Will use full height
+		}
+		hAlign = lipgloss.Left
+
+		// Apply width and height constraints
+		itemStyle := lipgloss.NewStyle().Width(itemWidths[i])
+		if align == AlignStretch {
+			itemStyle = itemStyle.Height(height)
+		}
+
+		// Render the item content with alignment
+		styledContent := itemStyle.Render(item.Content)
+		if align != AlignStretch {
+			// Use lipgloss.Place for non-stretch alignment
+			renderedItems[i] = lipgloss.Place(itemWidths[i], height, hAlign, vAlign, styledContent)
+		} else {
+			renderedItems[i] = styledContent
+		}
+	}
+
+	// Apply justify-content spacing
+	return f.applyJustifyContentSpacing(renderedItems, availableSpace)
+}
+
+// applyJustifyContentSpacing applies justify-content spacing to rendered items
+func (f *FlexContainer) applyJustifyContentSpacing(renderedItems []string, availableSpace int) string {
+	if len(renderedItems) == 0 {
+		return ""
+	}
+
+	switch f.justifyContent {
+	case FlexStart:
+		// Items at start, gaps between items
+		return f.joinItemsWithGaps(renderedItems)
+
+	case FlexEnd:
+		// Items at end, add space at beginning
+		if availableSpace > 0 {
+			leadingSpace := lipgloss.NewStyle().Width(availableSpace).Render("")
+			return leadingSpace + f.joinItemsWithGaps(renderedItems)
+		}
+		return f.joinItemsWithGaps(renderedItems)
+
+	case Center:
+		// Items centered, equal space on both sides
+		if availableSpace > 0 {
+			sideSpace := availableSpace / 2
+			leadingSpace := lipgloss.NewStyle().Width(sideSpace).Render("")
+			return leadingSpace + f.joinItemsWithGaps(renderedItems)
+		}
+		return f.joinItemsWithGaps(renderedItems)
+
+	case SpaceBetween:
+		// Equal space between items, no space at edges
+		if len(renderedItems) == 1 {
+			return renderedItems[0]
+		}
+		if availableSpace > 0 {
+			spaceBetween := availableSpace / (len(renderedItems) - 1)
+			spaceStyle := lipgloss.NewStyle().Width(spaceBetween)
+			space := spaceStyle.Render("")
+
+			var result strings.Builder
+			for i, item := range renderedItems {
+				if i > 0 {
+					result.WriteString(space)
+				}
+				if f.config.Gap > 0 && i > 0 {
+					gapStyle := lipgloss.NewStyle().Width(f.config.Gap)
+					result.WriteString(gapStyle.Render(""))
+				}
+				result.WriteString(item)
+			}
+			return result.String()
+		}
+		return f.joinItemsWithGaps(renderedItems)
+
+	case SpaceAround:
+		// Equal space around each item
+		if availableSpace > 0 {
+			spaceAround := availableSpace / len(renderedItems)
+			halfSpace := spaceAround / 2
+			spaceStyle := lipgloss.NewStyle().Width(halfSpace)
+			space := spaceStyle.Render("")
+
+			var result strings.Builder
+			for i, item := range renderedItems {
+				result.WriteString(space)
+				if f.config.Gap > 0 && i > 0 {
+					gapStyle := lipgloss.NewStyle().Width(f.config.Gap)
+					result.WriteString(gapStyle.Render(""))
+				}
+				result.WriteString(item)
+				result.WriteString(space)
+			}
+			return result.String()
+		}
+		return f.joinItemsWithGaps(renderedItems)
+
+	case SpaceEvenly:
+		// Equal space between and around items
+		if availableSpace > 0 {
+			spaceEvenly := availableSpace / (len(renderedItems) + 1)
+			spaceStyle := lipgloss.NewStyle().Width(spaceEvenly)
+			space := spaceStyle.Render("")
+
+			var result strings.Builder
+			result.WriteString(space)
+			for i, item := range renderedItems {
+				if i > 0 {
+					result.WriteString(space)
+					if f.config.Gap > 0 {
+						gapStyle := lipgloss.NewStyle().Width(f.config.Gap)
+						result.WriteString(gapStyle.Render(""))
+					}
+				}
+				result.WriteString(item)
+			}
+			result.WriteString(space)
+			return result.String()
+		}
+		return f.joinItemsWithGaps(renderedItems)
+
+	default:
+		return f.joinItemsWithGaps(renderedItems)
+	}
+}
+
+// joinItemsWithGaps joins rendered items with configured gaps
+func (f *FlexContainer) joinItemsWithGaps(renderedItems []string) string {
+	if len(renderedItems) == 0 {
+		return ""
+	}
+
+	if f.config.Gap == 0 {
+		return strings.Join(renderedItems, "")
+	}
+
+	gapStyle := lipgloss.NewStyle().Width(f.config.Gap)
+	gap := gapStyle.Render("")
+	return strings.Join(renderedItems, gap)
+}
+
+// renderFlexColumn renders items in a column layout using CSS flexbox algorithms
+func (f *FlexContainer) renderFlexColumn(items []FlexItem, width, height int) string {
+	if len(items) == 0 {
 		return ""
 	}
 
@@ -212,67 +490,249 @@ func (f *FlexContainer) renderColumn(width, height int) string {
 		height = 3
 	}
 
-	// Calculate total weight
-	totalWeight := 0
-	for _, weight := range f.weights {
-		totalWeight += weight
-	}
+	// Calculate flex-basis for each item
+	itemHeights := make([]int, len(items))
+	totalBasis := 0
+	totalGrow := 0
+	totalShrink := 0
 
-	if totalWeight == 0 {
-		// Equal distribution
-		for i := range f.weights {
-			f.weights[i] = 1
+	for i, item := range items {
+		if item.FlexBasis > 0 {
+			itemHeights[i] = item.FlexBasis
+		} else {
+			// Auto basis - use equal distribution
+			itemHeights[i] = height / len(items)
 		}
-		totalWeight = len(f.weights)
+		totalBasis += itemHeights[i]
+		totalGrow += item.FlexGrow
+		if item.FlexShrink > 0 {
+			totalShrink += item.FlexShrink
+		} else {
+			totalShrink += 1 // Default shrink is 1
+		}
 	}
 
-	// Calculate heights for each child, distributing remainder pixels
-	childHeights := make([]int, len(f.children))
-	totalDistributed := 0
-
-	// First pass: calculate base heights using integer division
-	for i := range f.children {
-		childHeights[i] = (height * f.weights[i]) / totalWeight
-		totalDistributed += childHeights[i]
+	// Distribute remaining space using flex-grow or flex-shrink
+	remainingSpace := height - totalBasis
+	if remainingSpace > 0 && totalGrow > 0 {
+		// Distribute extra space using flex-grow
+		for i, item := range items {
+			if item.FlexGrow > 0 {
+				extraHeight := (remainingSpace * item.FlexGrow) / totalGrow
+				itemHeights[i] += extraHeight
+			}
+		}
+	} else if remainingSpace < 0 && totalShrink > 0 {
+		// Shrink items using flex-shrink
+		shrinkSpace := -remainingSpace
+		for i, item := range items {
+			shrinkFactor := item.FlexShrink
+			if shrinkFactor == 0 {
+				shrinkFactor = 1
+			}
+			shrinkAmount := (shrinkSpace * shrinkFactor) / totalShrink
+			itemHeights[i] = max(1, itemHeights[i]-shrinkAmount)
+		}
 	}
 
-	// Calculate remainder pixels and distribute them
-	remainderPixels := height - totalDistributed
-	for i := 0; i < remainderPixels && i < len(childHeights); i++ {
-		childHeights[i]++
+	return f.renderColumnWithJustifyContent(items, itemHeights, width, height)
+}
+
+// renderColumnWithJustifyContent applies justify-content spacing to column items
+func (f *FlexContainer) renderColumnWithJustifyContent(items []FlexItem, itemHeights []int, width, containerHeight int) string {
+	// Calculate total item height
+	totalItemHeight := 0
+	for _, height := range itemHeights {
+		totalItemHeight += height
 	}
 
-	// Render each child with calculated height
-	renderedChildren := make([]string, len(f.children))
-	for i, child := range f.children {
-		childHeight := childHeights[i]
+	// Calculate available space for justify-content
+	availableSpace := containerHeight - totalItemHeight
 
-		// Apply height constraint to child content
-		childStyle := lipgloss.NewStyle().
-			Width(width).
-			Height(childHeight)
+	// Render each item with proper alignment
+	renderedItems := make([]string, len(items))
+	for i, item := range items {
+		// Determine cross-axis alignment for this item
+		align := f.alignItems
+		if item.AlignSelf != nil {
+			align = *item.AlignSelf
+		}
 
-		renderedChildren[i] = childStyle.Render(child)
+		// Calculate cross-axis positioning
+		var hAlign, vAlign lipgloss.Position
+		switch align {
+		case AlignStart:
+			hAlign = lipgloss.Left
+		case AlignCenter:
+			hAlign = lipgloss.Center
+		case AlignEnd:
+			hAlign = lipgloss.Right
+		case AlignStretch:
+			hAlign = lipgloss.Left // Will use full width
+		}
+		vAlign = lipgloss.Top
+
+		// Apply width and height constraints
+		itemStyle := lipgloss.NewStyle().Height(itemHeights[i])
+		if align == AlignStretch {
+			itemStyle = itemStyle.Width(width)
+		}
+
+		// Render the item content with alignment
+		styledContent := itemStyle.Render(item.Content)
+		if align != AlignStretch {
+			// Use lipgloss.Place for non-stretch alignment
+			renderedItems[i] = lipgloss.Place(width, itemHeights[i], hAlign, vAlign, styledContent)
+		} else {
+			renderedItems[i] = styledContent
+		}
 	}
 
-	// Join vertically with gaps
+	// Apply justify-content spacing for column layout
+	return f.applyJustifyContentSpacingColumn(renderedItems, availableSpace)
+}
+
+// applyJustifyContentSpacingColumn applies justify-content spacing to column items
+func (f *FlexContainer) applyJustifyContentSpacingColumn(renderedItems []string, availableSpace int) string {
+	if len(renderedItems) == 0 {
+		return ""
+	}
+
 	var result strings.Builder
-	for i, child := range renderedChildren {
+
+	switch f.justifyContent {
+	case FlexStart:
+		// Items at start, gaps between items
+		return f.joinItemsWithGapsVertical(renderedItems)
+
+	case FlexEnd:
+		// Items at end, add space at beginning
+		if availableSpace > 0 {
+			for i := 0; i < availableSpace; i++ {
+				result.WriteString("\n")
+			}
+		}
+		result.WriteString(f.joinItemsWithGapsVertical(renderedItems))
+		return result.String()
+
+	case Center:
+		// Items centered, equal space on both sides
+		if availableSpace > 0 {
+			sideSpace := availableSpace / 2
+			for i := 0; i < sideSpace; i++ {
+				result.WriteString("\n")
+			}
+		}
+		result.WriteString(f.joinItemsWithGapsVertical(renderedItems))
+		return result.String()
+
+	case SpaceBetween:
+		// Equal space between items, no space at edges
+		if len(renderedItems) == 1 {
+			return renderedItems[0]
+		}
+		if availableSpace > 0 {
+			spaceBetween := availableSpace / (len(renderedItems) - 1)
+
+			for i, item := range renderedItems {
+				if i > 0 {
+					// Add space between items
+					for j := 0; j < spaceBetween; j++ {
+						result.WriteString("\n")
+					}
+					// Add configured gap
+					for j := 0; j < f.config.Gap; j++ {
+						result.WriteString("\n")
+					}
+				}
+				result.WriteString(item)
+			}
+			return result.String()
+		}
+		return f.joinItemsWithGapsVertical(renderedItems)
+
+	case SpaceAround:
+		// Equal space around each item
+		if availableSpace > 0 {
+			spaceAround := availableSpace / len(renderedItems)
+			halfSpace := spaceAround / 2
+
+			for i, item := range renderedItems {
+				// Add half space before item
+				for j := 0; j < halfSpace; j++ {
+					result.WriteString("\n")
+				}
+				if i > 0 {
+					// Add configured gap
+					for j := 0; j < f.config.Gap; j++ {
+						result.WriteString("\n")
+					}
+				}
+				result.WriteString(item)
+				// Add half space after item
+				for j := 0; j < halfSpace; j++ {
+					result.WriteString("\n")
+				}
+			}
+			return result.String()
+		}
+		return f.joinItemsWithGapsVertical(renderedItems)
+
+	case SpaceEvenly:
+		// Equal space between and around items
+		if availableSpace > 0 {
+			spaceEvenly := availableSpace / (len(renderedItems) + 1)
+
+			// Add space at beginning
+			for i := 0; i < spaceEvenly; i++ {
+				result.WriteString("\n")
+			}
+
+			for i, item := range renderedItems {
+				if i > 0 {
+					// Add space between items
+					for j := 0; j < spaceEvenly; j++ {
+						result.WriteString("\n")
+					}
+					// Add configured gap
+					for j := 0; j < f.config.Gap; j++ {
+						result.WriteString("\n")
+					}
+				}
+				result.WriteString(item)
+			}
+
+			// Add space at end
+			for i := 0; i < spaceEvenly; i++ {
+				result.WriteString("\n")
+			}
+			return result.String()
+		}
+		return f.joinItemsWithGapsVertical(renderedItems)
+
+	default:
+		return f.joinItemsWithGapsVertical(renderedItems)
+	}
+}
+
+// joinItemsWithGapsVertical joins rendered items vertically with configured gaps
+func (f *FlexContainer) joinItemsWithGapsVertical(renderedItems []string) string {
+	if len(renderedItems) == 0 {
+		return ""
+	}
+
+	var result strings.Builder
+	for i, item := range renderedItems {
 		if i > 0 {
 			// Add gap lines
 			for j := 0; j < f.config.Gap; j++ {
 				result.WriteString("\n")
 			}
 		}
-		result.WriteString(child)
+		result.WriteString(item)
 	}
 
-	// Apply container styling
-	containerStyle := lipgloss.NewStyle().
-		Padding(f.config.Padding).
-		Margin(f.config.Margin)
-
-	return containerStyle.Render(result.String())
+	return result.String()
 }
 
 // SetCell sets content for a specific grid cell

@@ -8,7 +8,9 @@
       "Bash(go list:*)",
       "Bash(go mod:*)",
       "Bash(make test-tui:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(go test:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

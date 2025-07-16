@@ -20,7 +20,7 @@ Examples:
   claude-pilot kill my-session    # Kill specific session
   claude-pilot kill --all         # Kill all sessions
   claude-pilot kill --force       # Kill without confirmation`,
-	Aliases: []string{"terminate", "stop"},
+	Aliases: []string{"terminate", "stop", "delete", "remove", "del"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Initialize common command context
 		ctx, err := InitializeCommand()
