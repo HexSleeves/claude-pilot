@@ -450,43 +450,28 @@ func (m *DashboardModel) renderFooter() string {
 
 // overlayModal overlays the create modal over the dashboard content using flexbox
 func (m *DashboardModel) overlayModal(background, modal string) string {
-	// Modal dimensions
-	modalWidth := 60
-	modalHeight := 15
+	// Modal dimensions - increased width for better form layout
+	modalWidth := 80
+	modalHeight := 18
 
 	// Create modal content with styling
 	overlay := lipgloss.NewStyle().
 		Width(modalWidth).
 		Height(modalHeight).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(styles.ClaudePrimary).
-		Background(styles.BackgroundPrimary)
+		BorderForeground(styles.ClaudePrimary)
+		// Background(styles.BackgroundPrimary)
 
 	styledModal := overlay.Render(modal)
 
-	// Use flexbox container for perfect centering
-	modalContainer := layout.NewFlexContainer(
-		layout.LayoutConfig{Width: m.width, Height: m.height, Padding: 0, Gap: 0},
-		layout.FlexRow,
-	).SetJustifyContent(layout.Center).SetAlignItems(layout.AlignCenter)
-
-	modalContainer.AddItem(layout.FlexItem{
-		Content:    styledModal,
-		FlexGrow:   0, // Don't grow
-		FlexShrink: 0, // Don't shrink
-		Order:      1,
-	})
-
-	// Render with background styling
-	result := modalContainer.Render()
-
-	// Apply background styling using lipgloss.Place for whitespace handling
+	// Overlay the modal on top of the background using lipgloss.Place
 	return lipgloss.Place(
 		m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
-		result,
+		styledModal,
 		lipgloss.WithWhitespaceChars(" "),
 		lipgloss.WithWhitespaceForeground(styles.BackgroundSecondary),
+		lipgloss.WithWhitespaceBackground(lipgloss.Color(background)),
 	)
 }
 

@@ -19,6 +19,9 @@ type KeyMap struct {
 	Refresh key.Binding
 	Help    key.Binding
 
+	// Search
+	Search key.Binding
+
 	// System
 	Quit   key.Binding
 	Escape key.Binding
@@ -87,6 +90,12 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("?", "toggle help"),
 		),
 
+		// Search
+		Search: key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "search"),
+		),
+
 		// System
 		Quit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),
@@ -138,7 +147,7 @@ func DefaultKeyMap() KeyMap {
 // MainKeys returns the key bindings for the main dashboard
 func (k KeyMap) MainKeys() []key.Binding {
 	return []key.Binding{
-		k.Up, k.Down, k.Tab, k.Enter, k.Create, k.Kill, k.Refresh, k.Help, k.Quit,
+		k.Up, k.Down, k.Tab, k.Enter, k.Create, k.Kill, k.Refresh, k.Search, k.Help, k.Quit,
 	}
 }
 
@@ -159,7 +168,7 @@ func (k KeyMap) DetailKeys() []key.Binding {
 // Implement help.KeyMap interface
 func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
-		k.Up, k.Down, k.Tab, k.Enter, k.Create, k.Kill, k.Refresh, k.Help, k.Quit,
+		k.Up, k.Down, k.Tab, k.Enter, k.Create, k.Kill, k.Refresh, k.Search, k.Help, k.Quit,
 	}
 }
 

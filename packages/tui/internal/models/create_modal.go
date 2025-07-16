@@ -12,6 +12,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Message types
+type SessionCreatedMsg struct {
+	Session *api.Session
+	Error   error
+}
+
 // CreateModalModel represents the session creation modal
 type CreateModalModel struct {
 	client *api.Client
@@ -47,19 +53,19 @@ func NewCreateModalModel(client *api.Client) *CreateModalModel {
 	inputs[inputName] = textinput.New()
 	inputs[inputName].Placeholder = "my-session"
 	inputs[inputName].Focus()
-	inputs[inputName].Width = 40
+	inputs[inputName].Width = 60
 	inputs[inputName] = styles.ConfigureBubblesTextInput(inputs[inputName])
 
 	// Description input (optional)
 	inputs[inputDescription] = textinput.New()
 	inputs[inputDescription].Placeholder = "Optional session description"
-	inputs[inputDescription].Width = 40
+	inputs[inputDescription].Width = 60
 	inputs[inputDescription] = styles.ConfigureBubblesTextInput(inputs[inputDescription])
 
 	// Project path input (optional)
 	inputs[inputProjectPath] = textinput.New()
 	inputs[inputProjectPath].Placeholder = "/path/to/project (optional)"
-	inputs[inputProjectPath].Width = 40
+	inputs[inputProjectPath].Width = 60
 	inputs[inputProjectPath] = styles.ConfigureBubblesTextInput(inputs[inputProjectPath])
 
 	return &CreateModalModel{
@@ -86,9 +92,9 @@ func (m *CreateModalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// Update input widths if needed
+		// Update input widths - dashboard handles modal sizing
 		for i := range m.inputs {
-			m.inputs[i].Width = min(40, m.width-10)
+			m.inputs[i].Width = 60 // Larger width for better layout in wider modal
 		}
 
 	case tea.KeyMsg:
@@ -125,10 +131,12 @@ func (m *CreateModalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Update all inputs for cursor blinking
+	// Update all inputs for cursor blinking (skip focused input to avoid double update)
 	for i := range m.inputs {
-		m.inputs[i], cmd = m.inputs[i].Update(msg)
-		cmds = append(cmds, cmd)
+		if i != m.focused {
+			m.inputs[i], cmd = m.inputs[i].Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -139,13 +147,14 @@ func (m *CreateModalModel) View() string {
 	return m.renderModal()
 }
 
-// renderModal renders the modal content
+// renderModal renders the modal content (positioning handled by dashboard)
 func (m *CreateModalModel) renderModal() string {
+	// Build modal content
 	var content strings.Builder
 
 	// Title
 	title := styles.TitleStyle.Render("Create New Session")
-	content.WriteString(lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).Render(title))
+	content.WriteString(lipgloss.NewStyle().Align(lipgloss.Center).Width(70).Render(title))
 	content.WriteString("\n\n")
 
 	// Form fields
@@ -165,6 +174,7 @@ func (m *CreateModalModel) renderModal() string {
 	content.WriteString("\n")
 	content.WriteString(m.renderInstructions())
 
+	// Return just the content - dashboard will handle positioning and styling
 	return content.String()
 }
 
@@ -172,17 +182,48 @@ func (m *CreateModalModel) renderModal() string {
 func (m *CreateModalModel) renderInput(index int) string {
 	var field strings.Builder
 
-	// Label
+	// Label with focused styling - centered
 	labelStyle := styles.LabelStyle
 	if index == m.focused {
-		labelStyle = styles.FocusedStyle
+		labelStyle = lipgloss.NewStyle().
+			Foreground(styles.ClaudePrimary).
+			Bold(true)
 	}
 
-	field.WriteString(labelStyle.Render(m.labels[index]))
+	// Center the label
+	centeredLabel := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(70).
+		Render(labelStyle.Render(m.labels[index]))
+
+	field.WriteString(centeredLabel)
 	field.WriteString("\n")
 
-	// Input field - rendered by Bubbles textinput
-	field.WriteString(m.inputs[index].View())
+	// Input field with modal-appropriate styling - centered
+	inputView := m.inputs[index].View()
+	if index == m.focused {
+		// Add subtle highlight for focused input
+		inputView = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(styles.ClaudePrimary).
+			Padding(0, 1).
+			Render(inputView)
+	} else {
+		// Subtle border for unfocused inputs
+		inputView = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(styles.TextMuted).
+			Padding(0, 1).
+			Render(inputView)
+	}
+
+	// Center the input field
+	centeredInput := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(70).
+		Render(inputView)
+
+	field.WriteString(centeredInput)
 
 	return field.String()
 }
@@ -195,7 +236,15 @@ func (m *CreateModalModel) renderInstructions() string {
 		"Esc: Cancel",
 	}
 
-	return styles.DimTextStyle.Render(strings.Join(instructions, " • "))
+	// Style instructions with divider
+	instructionText := strings.Join(instructions, " • ")
+	return lipgloss.NewStyle().
+		Foreground(styles.TextDim).
+		Align(lipgloss.Center).
+		Border(lipgloss.NormalBorder(), true, false, false, false).
+		BorderForeground(styles.TextMuted).
+		Padding(1, 0, 0, 0).
+		Render(instructionText)
 }
 
 // handleEnter handles the enter key press
@@ -298,10 +347,4 @@ func (m *CreateModalModel) Reset() {
 	if len(m.inputs) > 0 {
 		m.inputs[0].Focus()
 	}
-}
-
-// Message types
-type SessionCreatedMsg struct {
-	Session *api.Session
-	Error   error
 }

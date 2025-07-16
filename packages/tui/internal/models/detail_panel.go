@@ -114,6 +114,29 @@ func (m *DetailPanelModel) View() string {
 	return m.renderDetail()
 }
 
+// renderScrollIndicators renders scroll position indicators for user feedback
+func (m *DetailPanelModel) renderScrollIndicators() string {
+	if m.viewport.TotalLineCount() <= m.viewport.Height {
+		return "" // No scrolling needed
+	}
+
+	// Calculate scroll position percentage
+	scrollPercent := float64(m.viewport.YOffset) / float64(m.viewport.TotalLineCount()-m.viewport.Height) * 100
+	if scrollPercent > 100 {
+		scrollPercent = 100
+	}
+
+	// Create scroll indicator
+	indicator := fmt.Sprintf("%.0f%%", scrollPercent)
+	if m.viewport.AtTop() {
+		indicator = "TOP"
+	} else if m.viewport.AtBottom() {
+		indicator = "BOT"
+	}
+
+	return styles.DimTextStyle.Render(fmt.Sprintf(" [%s] ", indicator))
+}
+
 // renderEmpty renders the empty state
 func (m *DetailPanelModel) renderEmpty() string {
 	emptyMsg := styles.DimTextStyle.Render("Select a session to view details")
@@ -137,8 +160,8 @@ func (m *DetailPanelModel) renderEmpty() string {
 func (m *DetailPanelModel) renderDetail() string {
 	var content strings.Builder
 
-	// Session info section
-	content.WriteString(m.renderSessionInfo())
+	// Session details section (using the required method name)
+	content.WriteString(m.renderSessionDetails())
 	content.WriteString("\n\n")
 
 	// Action buttons section
@@ -148,9 +171,123 @@ func (m *DetailPanelModel) renderDetail() string {
 	// Messages section
 	content.WriteString(m.renderMessages())
 
-	// Set viewport content and return the viewport view
+	// Set viewport content and return the viewport view with scroll indicators
 	m.viewport.SetContent(content.String())
-	return m.viewport.View()
+	viewportContent := m.viewport.View()
+
+	// Add scroll indicators if needed
+	scrollIndicator := m.renderScrollIndicators()
+	if scrollIndicator != "" {
+		// Add scroll indicator to the bottom right of the viewport
+		lines := strings.Split(viewportContent, "\n")
+		if len(lines) > 0 {
+			lastLineIdx := len(lines) - 1
+			lastLine := lines[lastLineIdx]
+			// Pad the last line and add scroll indicator
+			padding := m.width - lipgloss.Width(lastLine) - lipgloss.Width(scrollIndicator)
+			if padding > 0 {
+				lines[lastLineIdx] = lastLine + strings.Repeat(" ", padding) + scrollIndicator
+			} else {
+				lines[lastLineIdx] = lastLine + scrollIndicator
+			}
+			viewportContent = strings.Join(lines, "\n")
+		}
+	}
+
+	return viewportContent
+}
+
+// renderSessionDetails formats session metadata display as required by task 3.2
+func (m *DetailPanelModel) renderSessionDetails() string {
+	var details strings.Builder
+
+	// Header with session name
+	details.WriteString(styles.SessionNameStyle.Render(m.session.Name))
+	details.WriteString("\n")
+	details.WriteString(styles.SessionIDStyle.Render(fmt.Sprintf("ID: %s", m.session.ID[:8])))
+	details.WriteString("\n\n")
+
+	// Format session metadata using the required method
+	details.WriteString(m.formatSessionMetadata())
+
+	return details.String()
+}
+
+// formatSessionMetadata formats session metadata as required by task 3.3
+func (m *DetailPanelModel) formatSessionMetadata() string {
+	var metadata strings.Builder
+
+	// Status with styling
+	statusText := m.formatStatus(m.session.Status)
+	metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Status:"), statusText))
+
+	// Backend
+	backend := m.client.GetBackend()
+	metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Backend:"), styles.DimTextStyle.Render(backend)))
+
+	// Creation time - formatted as required
+	metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Created:"),
+		styles.DimTextStyle.Render(m.session.CreatedAt.Format("2006-01-02 15:04"))))
+
+	// Last active time - formatted as required
+	metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Last Active:"),
+		styles.DimTextStyle.Render(m.formatTimeAgo(m.session.LastActive))))
+
+	// Project path if available - formatted as required
+	if m.session.ProjectPath != "" {
+		metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Project:"),
+			styles.DimTextStyle.Render(m.truncatePath(m.session.ProjectPath))))
+	}
+
+	// Message count
+	metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Messages:"),
+		styles.HighlightStyle.Render(fmt.Sprintf("%d", len(m.session.Messages)))))
+
+	// Description if available - with proper text wrapping
+	if m.session.Description != "" {
+		// Wrap text for long descriptions
+		wrappedDesc := m.wrapText(m.session.Description, m.width-15) // Account for label width
+		metadata.WriteString(fmt.Sprintf("%-12s %s\n", styles.Bold("Description:"),
+			styles.SecondaryTextStyle.Render(wrappedDesc)))
+	}
+
+	return metadata.String()
+}
+
+// wrapText wraps text to fit within specified width
+func (m *DetailPanelModel) wrapText(text string, maxWidth int) string {
+	if maxWidth <= 0 {
+		maxWidth = 50 // Default fallback
+	}
+
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return text
+	}
+
+	var lines []string
+	var currentLine strings.Builder
+
+	for _, word := range words {
+		// If adding this word would exceed the width, start a new line
+		if currentLine.Len() > 0 && currentLine.Len()+len(word)+1 > maxWidth {
+			lines = append(lines, currentLine.String())
+			currentLine.Reset()
+		}
+
+		// Add word to current line
+		if currentLine.Len() > 0 {
+			currentLine.WriteString(" ")
+		}
+		currentLine.WriteString(word)
+	}
+
+	// Add the last line if it has content
+	if currentLine.Len() > 0 {
+		lines = append(lines, currentLine.String())
+	}
+
+	return strings.Join(lines, "\n             ") // Indent continuation lines
 }
 
 // renderSessionInfo renders the basic session information
