@@ -99,7 +99,7 @@ func (m *SessionTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Update search input
 				var cmd tea.Cmd
 				m.searchInput, cmd = m.searchInput.Update(msg)
-				
+
 				// Update search query and filter sessions
 				newQuery := m.searchInput.Value()
 				if newQuery != m.searchQuery {
@@ -172,12 +172,12 @@ func (m *SessionTableModel) View() string {
 		searchHeader := styles.HeaderStyle.Render("Search Sessions")
 		view.WriteString(searchHeader + "\n")
 		view.WriteString(m.searchInput.View() + "\n")
-		
+
 		// Show results count
 		currentSessions := m.getCurrentSessionList()
 		resultCount := len(currentSessions)
 		totalCount := len(m.sessions)
-		
+
 		var countText string
 		if m.searchQuery == "" {
 			countText = fmt.Sprintf("Total: %d sessions", totalCount)
@@ -205,7 +205,7 @@ func (m *SessionTableModel) View() string {
 	} else {
 		statusLine = "No sessions match your search"
 	}
-	
+
 	// Add search instruction if not in search mode
 	if !m.searchActive {
 		statusLine += " • Press '/' to search"
@@ -221,7 +221,7 @@ func (m *SessionTableModel) View() string {
 // SetSessions updates the sessions data
 func (m *SessionTableModel) SetSessions(sessions []*api.Session) {
 	m.sessions = sessions
-	
+
 	// Apply current filter if active
 	if m.searchQuery != "" {
 		m.filterSessions(m.searchQuery)
@@ -245,12 +245,12 @@ func (m *SessionTableModel) SetSize(width, height int) {
 func (m *SessionTableModel) updateTableSize() {
 	// Calculate available height for the table (account for headers and status line)
 	availableHeight := m.height - 4 // Account for borders and status line
-	
+
 	// Account for search header if active
 	if m.searchActive {
 		availableHeight -= 4 // Search header, input, count, and spacing
 	}
-	
+
 	if availableHeight < 3 {
 		availableHeight = 3
 	}
@@ -340,37 +340,37 @@ func (m *SessionTableModel) filterSessions(query string) {
 	} else {
 		query = strings.ToLower(strings.TrimSpace(query))
 		var filtered []*api.Session
-		
+
 		for _, session := range m.sessions {
 			// Search in session name
 			if strings.Contains(strings.ToLower(session.Name), query) {
 				filtered = append(filtered, session)
 				continue
 			}
-			
+
 			// Search in session status
 			if strings.Contains(strings.ToLower(string(session.Status)), query) {
 				filtered = append(filtered, session)
 				continue
 			}
-			
+
 			// Search in project path (if available)
 			if session.ProjectPath != "" && strings.Contains(strings.ToLower(session.ProjectPath), query) {
 				filtered = append(filtered, session)
 				continue
 			}
-			
+
 			// Search in description (if available)
 			if session.Description != "" && strings.Contains(strings.ToLower(session.Description), query) {
 				filtered = append(filtered, session)
 				continue
 			}
 		}
-		
+
 		m.filteredSessions = filtered
 		m.filteredSessionData = m.convertToSessionData(filtered)
 	}
-	
+
 	// Update table with filtered results
 	rows := components.ToBubblesSessionRows(m.filteredSessionData)
 	m.table.SetRows(rows)
@@ -382,7 +382,7 @@ func (m *SessionTableModel) clearFilter() {
 	m.searchInput.SetValue("")
 	m.filteredSessions = nil
 	m.filteredSessionData = nil
-	
+
 	// Reset table to show all sessions
 	m.sessionData = m.convertToSessionData(m.sessions)
 	rows := components.ToBubblesSessionRows(m.sessionData)

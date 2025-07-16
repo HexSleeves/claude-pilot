@@ -406,7 +406,7 @@ func ToBubblesSessionRows(sessions []SessionData) []table.Row {
 		rows[i] = table.Row{
 			styles.TruncateText(session.ID, 11),
 			styles.TruncateText(session.Name, 19),
-			session.Status,
+			session.Status, // This now contains the enhanced status display
 			session.Backend,
 			session.Created.Format("2006-01-02 15:04"),
 			formatTimeAgoPlain(session.LastActive),

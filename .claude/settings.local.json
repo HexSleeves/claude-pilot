@@ -10,7 +10,8 @@
       "Bash(make test-tui:*)",
       "Bash(make:*)",
       "Bash(go test:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(go build:*)"
     ],
     "deny": []
   }

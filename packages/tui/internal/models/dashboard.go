@@ -6,6 +6,7 @@ import (
 	"claude-pilot/shared/styles"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -177,6 +178,14 @@ func (m *DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			// Successfully killed session - refresh the session list
 			cmds = append(cmds, m.loadSessions())
+		}
+
+	case RefreshTickMsg:
+		// Forward refresh tick to session table for real-time updates
+		if m.sessionTable != nil {
+			newTable, tableCmd := m.sessionTable.Update(msg)
+			m.sessionTable = newTable.(*SessionTableModel)
+			cmds = append(cmds, tableCmd)
 		}
 	}
 
@@ -634,4 +643,9 @@ type SessionAttachedMsg struct {
 type SessionKilledMsg struct {
 	SessionID string
 	Error     error
+}
+
+// RefreshTickMsg represents a periodic refresh tick
+type RefreshTickMsg struct {
+	Time time.Time
 }

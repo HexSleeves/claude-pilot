@@ -57,58 +57,58 @@
     - Add search highlighting and result count display
     - _Requirements: 8.3_
 
-  - [ ] 4.3 Enhance status display and real-time updates
+  - [-] 4.3 Enhance status display and real-time updates
     - Improve status formatting with consistent icons and colors using shared styles
     - Implement automatic status refresh every 5 seconds for real-time updates
     - Add visual indicators for recently updated sessions
     - _Requirements: 7.1, 7.2, 7.3, 10.2_
 
-- [x] 5. Implement Create Modal Model
-  - [x] 5.1 Create modal structure and form inputs
+- [ ] 5. Implement Create Modal Model
+  - [ ] 5.1 Create modal structure and form inputs
     - Write CreateModalModel with textinput fields for name and description
     - Implement modal lifecycle methods (Init, Update, View, Reset, IsCompleted)
     - Add form field navigation using Tab key and focus management
     - _Requirements: 3.1, 3.2, 8.4, 8.5_
 
-  - [x] 5.2 Add input validation and error handling
+  - [ ] 5.2 Add input validation and error handling
     - Implement validateInput() method to check session name requirements
     - Add real-time validation feedback with error message display
     - Handle duplicate session name detection and user feedback
     - _Requirements: 3.3, 3.4_
 
-  - [x] 5.3 Implement session creation workflow
+  - [ ] 5.3 Implement session creation workflow
     - Write createSession() command to call core API for session creation
     - Handle creation success/failure with appropriate user feedback
     - Implement modal closing and data refresh after successful creation
     - _Requirements: 3.3, 3.5_
 
-- [x] 6. Enhance Dashboard Model coordination
-  - [x] 6.1 Implement comprehensive focus management
+- [ ] 6. Enhance Dashboard Model coordination
+  - [ ] 6.1 Implement comprehensive focus management
     - Enhance cycleFocus() method to handle all focusable components
     - Add visual focus indicators for each component type
     - Implement context-aware keyboard shortcuts based on focused component
     - _Requirements: 8.1, 8.2, 8.4, 8.5_
 
-  - [x] 6.2 Add modal overlay system
+  - [ ] 6.2 Add modal overlay system
     - Enhance overlayModal() method to properly center modals on different screen sizes
     - Implement modal backdrop with proper z-index layering
     - Add modal animation or transition effects for better user experience
     - _Requirements: 3.1, 6.4_
 
-  - [x] 6.3 Implement responsive layout logic
+  - [ ] 6.3 Implement responsive layout logic
     - Enhance renderMainContent() with improved responsive breakpoint handling
     - Add dynamic panel sizing based on available screen real estate
     - Implement panel hiding/showing logic for very small terminals
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [x] 7. Add session management actions
-  - [x] 7.1 Implement session attachment functionality
+- [ ] 7. Add session management actions
+  - [ ] 7.1 Implement session attachment functionality
     - Write attachToSession() command that calls core API attach method
     - Handle attachment success by gracefully exiting TUI to CLI session
     - Add error handling for failed attachments with user feedback
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [x] 7.2 Implement session termination with confirmation
+  - [ ] 7.2 Implement session termination with confirmation
     - Write killSession() command with confirmation dialog
     - Add bulk termination support for killing all sessions
     - Implement proper cleanup and session list refresh after termination
@@ -133,8 +133,8 @@
     - Add dynamic shortcut hints based on focused component
     - _Requirements: 8.1, 8.5_
 
-- [x] 9. Implement real-time updates and refresh system
-  - [x] 9.1 Add automatic session data refresh
+- [ ] 9. Implement real-time updates and refresh system
+  - [ ] 9.1 Add automatic session data refresh
     - Implement periodic refresh timer that updates session data every 5 seconds
     - Write efficient refresh logic that only updates changed sessions
     - Add manual refresh capability with 'r' key binding
