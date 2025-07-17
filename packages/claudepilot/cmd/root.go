@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"claude-pilot/internal/styles"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -18,11 +19,10 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "claude-pilot",
 	Short: "A CLI tool for managing multiple Claude code sessions",
-	Long: ui.RootBanner() + "\n\n" + ui.CommandList(map[string]string{
+	Long: styles.RootBanner() + "\n\n" + ui.CommandList(map[string]string{
 		"create":   "Create a new Claude session",
 		"list":     "List all active sessions",
 		"attach":   "Attach to a specific session",
-		"detach":   "Detach from a specific session",
 		"kill":     "Terminate a session",
 		"kill-all": "Terminate all sessions",
 		"tui":      "Launch interactive terminal UI",
@@ -32,7 +32,7 @@ var rootCmd = &cobra.Command{
 		ctx, err := InitializeCommand()
 		if err != nil {
 			// If we can't initialize, just show help
-			cmd.Help()
+			_ = cmd.Help()
 			return
 		}
 
@@ -43,7 +43,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Default behavior: show help
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 
@@ -71,5 +71,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
 	// Bind flags to viper
-	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	err := viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	if err != nil {
+		fmt.Println("Error binding verbose flag to viper:", err)
+	}
 }

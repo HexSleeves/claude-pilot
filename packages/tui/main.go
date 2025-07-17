@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"claude-pilot/core/api"
-	"claude-pilot/tui/internal/ui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -19,7 +18,7 @@ func main() {
 	}
 
 	// Create the main TUI model
-	model := ui.NewMainModel(client)
+	model := NewModel(client)
 
 	// Create the Bubbletea program
 	program := tea.NewProgram(

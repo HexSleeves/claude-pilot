@@ -4,7 +4,14 @@
       "Bash(gemini:*)",
       "Bash(./claude-pilot:*)",
       "Bash(go get:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(go list:*)",
+      "Bash(go mod:*)",
+      "Bash(make test-tui:*)",
+      "Bash(make:*)",
+      "Bash(go test:*)",
+      "Bash(ls:*)",
+      "Bash(go build:*)"
     ],
     "deny": []
   }

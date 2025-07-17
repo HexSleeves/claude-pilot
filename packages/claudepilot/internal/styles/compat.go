@@ -1,6 +1,9 @@
 package styles
 
 import (
+	"claude-pilot/shared/interfaces"
+	"claude-pilot/shared/styles"
+	"claude-pilot/shared/utils"
 	"fmt"
 	"strings"
 	"time"
@@ -8,39 +11,28 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// SessionInfo represents basic session information for display
+type SessionInfo struct {
+	ID   string
+	Name string
+}
+
 // Compatibility functions that match the existing UI interface
 // These functions provide the same API as the current ui/colors.go but with lipgloss styling
-
-// Message formatting functions (matching ui/colors.go interface)
-func SuccessMsg(text string) string {
-	return Success(text)
-}
-
-func ErrorMsg(text string) string {
-	return Error(text)
-}
-
-func WarningMsg(text string) string {
-	return Warning(text)
-}
-
-func InfoMsg(text string) string {
-	return Info(text)
-}
 
 // Status formatting functions
 func FormatStatus(status string) string {
 	switch strings.ToLower(status) {
 	case "active", "running":
-		return StatusActive(status)
+		return styles.StatusActive(status)
 	case "inactive", "stopped":
-		return StatusInactive(status)
+		return styles.StatusInactive(status)
 	case "connected", "attached":
-		return StatusConnected(status)
+		return styles.StatusConnected(status)
 	case "error", "failed":
-		return StatusError(status)
+		return styles.StatusError(status)
 	default:
-		return Dim(status)
+		return styles.Dim(status)
 	}
 }
 
@@ -48,30 +40,30 @@ func FormatStatus(status string) string {
 func FormatTmuxStatus(status string) string {
 	switch status {
 	case "running":
-		return StatusActive(status)
+		return styles.StatusActive(status)
 	case "attached":
-		return StatusConnected(status)
+		return styles.StatusConnected(status)
 	case "stopped":
-		return StatusInactive(status)
+		return styles.StatusInactive(status)
 	case "error":
-		return StatusError(status)
+		return styles.StatusError(status)
 	default:
-		return Dim("? " + status)
+		return styles.Dim("? " + status)
 	}
 }
 
 // Progress indicators
 func CheckMark() string {
-	return SuccessStyle.Render("✓")
+	return styles.SuccessStyle.Render("✓")
 }
 
 func CrossMark() string {
-	return ErrorStyle.Render("✗")
+	return styles.ErrorStyle.Render("✗")
 }
 
 // Time formatting
 func FormatTime(t time.Time) string {
-	return Dim(t.Format("2006-01-02 15:04"))
+	return styles.Dim(t.Format("2006-01-02 15:04"))
 }
 
 // Text truncation with styling
@@ -79,67 +71,25 @@ func TruncateText(text string, maxLen int) string {
 	if len(text) <= maxLen {
 		return text
 	}
-	return text[:maxLen-3] + Dim("...")
+	return text[:maxLen-3] + styles.Dim("...")
 }
 
 // Enhanced banner for the root command
 func RootBanner() string {
-	// Create the main title
-	title := lipgloss.NewStyle().
-		Foreground(ClaudePrimary).
-		Bold(true).
-		Render("Claude Pilot 🚀")
-
-	// Create the subtitle
-	subtitle := lipgloss.NewStyle().
-		Foreground(TextSecondary).
-		Render("A powerful CLI tool for managing multiple Claude code sessions")
-
-	// Create decorative border
-	borderStyle := lipgloss.NewStyle().
-		Foreground(ClaudePrimary).
-		Bold(true)
-
-	topBorder := borderStyle.Render("╔" + strings.Repeat("═", 58) + "╗")
-	bottomBorder := borderStyle.Render("╚" + strings.Repeat("═", 58) + "╝")
-
-	// Center the content
-	titleCentered := lipgloss.PlaceHorizontal(58, lipgloss.Center, title)
-	subtitleCentered := lipgloss.PlaceHorizontal(58, lipgloss.Center, subtitle)
-	emptyCentered := lipgloss.PlaceHorizontal(58, lipgloss.Center, "")
-
-	// Add side borders
-	titleLine := borderStyle.Render("║") + titleCentered + borderStyle.Render("║")
-	subtitleLine := borderStyle.Render("║") + subtitleCentered + borderStyle.Render("║")
-	emptyLine := borderStyle.Render("║") + emptyCentered + borderStyle.Render("║")
-
-	// Join all parts
-	banner := lipgloss.JoinVertical(lipgloss.Left,
-		topBorder,
-		emptyLine,
-		titleLine,
-		emptyLine,
-		subtitleLine,
-		emptyLine,
-		bottomBorder,
-	)
-
-	return banner
+	// Use shared theme banner function for consistency
+	return styles.Banner("Claude Pilot 🚀", "A powerful CLI tool for managing multiple Claude code sessions") // TODO: Add banner
 }
 
 // Enhanced command list formatting
 func CommandList(commands map[string]string) string {
 	var lines []string
 
-	// Header
-	header := lipgloss.NewStyle().
-		Foreground(InfoColor).
-		Bold(true).
-		Render("Available Commands:")
+	// Header with enhanced styling
+	header := InfoStyle.Render("Available Commands:")
 	lines = append(lines, header)
 	lines = append(lines, "")
 
-	// Commands
+	// Commands with improved formatting
 	for cmd, desc := range commands {
 		cmdStyled := lipgloss.NewStyle().
 			Foreground(ClaudePrimary).
@@ -158,50 +108,64 @@ func CommandList(commands map[string]string) string {
 	return strings.Join(lines, "\n")
 }
 
-// Session summary formatting
-func SessionSummary(total, active, inactive int, showAll bool) string {
+// Session summary formatting - Enhanced with standardized theme
+func SessionSummary(total, active, inactive int) string {
 	var parts []string
 
 	if total > 0 {
+		// Use enhanced card-style formatting
 		totalText := fmt.Sprintf("Total: %d", total)
-		parts = append(parts, BoldStyle.Background(BackgroundSecondary).Render(totalText))
+		parts = append(parts, lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(BackgroundSecondary).
+			Bold(true).
+			Padding(0, 1).
+			Render(totalText))
 
 		if active > 0 {
 			activeText := fmt.Sprintf("Active: %d", active)
-			parts = append(parts, StatusActiveStyle.Background(BackgroundSecondary).Render(activeText))
+			parts = append(parts, lipgloss.NewStyle().
+				Foreground(SuccessColor).
+				Background(BackgroundSecondary).
+				Bold(true).
+				Padding(0, 1).
+				Render(activeText))
 		}
 
 		if inactive > 0 {
 			inactiveText := fmt.Sprintf("Inactive: %d", inactive)
-			parts = append(parts, StatusInactiveStyle.Background(BackgroundSecondary).Render(inactiveText))
+			parts = append(parts, lipgloss.NewStyle().
+				Foreground(WarningColor).
+				Background(BackgroundSecondary).
+				Bold(true).
+				Padding(0, 1).
+				Render(inactiveText))
 		}
 	}
 
 	if len(parts) == 0 {
-		return Dim("No sessions found")
+		return styles.Dim("No sessions found")
 	}
 
-	// Join the parts with a separator that also has the background
-	separator := WithBackground(" | ", BackgroundSecondary)
+	// Join with enhanced separator
+	separator := lipgloss.NewStyle().
+		Foreground(TextMuted).
+		Background(BackgroundSecondary).
+		Render(" | ")
 	summary := strings.Join(parts, separator)
 
-	if !showAll && inactive > 0 {
-		hint := Dim("(Use --all to show inactive sessions)")
-		summary = fmt.Sprintf("%s\n%s", summary, hint)
-	}
-
-	return InfoBox(summary)
+	return styles.InfoBox(summary)
 }
 
 // Next steps formatting
 func NextSteps(commands ...string) string {
 	var lines []string
 
-	header := Info("Next steps:")
+	header := styles.Info("Next steps:")
 	lines = append(lines, header)
 
 	for _, cmd := range commands {
-		line := fmt.Sprintf("  %s %s", Arrow(), Highlight(cmd))
+		line := fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight(cmd))
 		lines = append(lines, line)
 	}
 
@@ -212,11 +176,11 @@ func NextSteps(commands ...string) string {
 func AvailableCommands(commands ...string) string {
 	var lines []string
 
-	header := Info("Available commands:")
+	header := styles.Info("Available commands:")
 	lines = append(lines, header)
 
 	for _, cmd := range commands {
-		line := fmt.Sprintf("  %s %s", Arrow(), Highlight(cmd))
+		line := fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight(cmd))
 		lines = append(lines, line)
 	}
 
@@ -224,25 +188,32 @@ func AvailableCommands(commands ...string) string {
 }
 
 // Session details formatting
-func SessionDetails(sessionID, name, status, backend, created, project, description string) string {
+func SessionDetails(session *interfaces.Session, backend string) string {
 	var lines []string
 
 	// Create a consistent width for labels
 	labelWidth := 15
 
+	sessionID := session.ID
+	name := session.Name
+	created := utils.TimeFormat(session.CreatedAt)
+	project := session.ProjectPath
+	description := session.Description
+	status := string(session.Status)
+
 	// Format each field
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("ID:"), sessionID))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Name:"), Title(name)))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Status:"), FormatStatus(status)))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Backend:"), backend))
-	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Created:"), created))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("ID:"), sessionID))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Name:"), styles.Title(name)))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Status:"), FormatStatus(status)))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Backend:"), backend))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Created:"), created))
 
 	if project != "" {
-		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Project:"), project))
+		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Project:"), project))
 	}
 
 	if description != "" {
-		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, Bold("Description:"), description))
+		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Description:"), description))
 	}
 
 	return strings.Join(lines, "\n")
@@ -251,8 +222,8 @@ func SessionDetails(sessionID, name, status, backend, created, project, descript
 // Available sessions list formatting
 func AvailableSessionsList(sessions []SessionInfo) string {
 	if len(sessions) == 0 {
-		return Dim("  No sessions available") + "\n" +
-			fmt.Sprintf("  %s %s", Arrow(), Highlight("claude-pilot create [session-name]"))
+		return styles.Dim("  No sessions available") + "\n" +
+			fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight("claude-pilot create [session-name]"))
 	}
 
 	var lines []string
@@ -262,15 +233,9 @@ func AvailableSessionsList(sessions []SessionInfo) string {
 			idDisplay = s.ID[:8]
 		}
 
-		line := fmt.Sprintf("  %s %s (%s)", Arrow(), Highlight(s.Name), Dim(idDisplay))
+		line := fmt.Sprintf("  %s %s (%s)", styles.Arrow(), styles.Highlight(s.Name), styles.Dim(idDisplay))
 		lines = append(lines, line)
 	}
 
 	return strings.Join(lines, "\n")
-}
-
-// SessionInfo represents basic session information for display
-type SessionInfo struct {
-	ID   string
-	Name string
 }

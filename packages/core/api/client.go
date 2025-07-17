@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"claude-pilot/core/internal/config"
-	"claude-pilot/core/internal/interfaces"
 	"claude-pilot/core/internal/logger"
 	"claude-pilot/core/internal/multiplexer"
 	"claude-pilot/core/internal/service"
 	"claude-pilot/core/internal/storage"
+	"claude-pilot/shared/interfaces"
 )
 
 // Client provides a high-level API for both CLI and TUI to consume
@@ -124,6 +124,11 @@ func (c *Client) ListSessions() ([]*interfaces.Session, error) {
 	return c.service.ListSessions()
 }
 
+// ListFilteredSessions returns all sessions with the given filter
+func (c *Client) ListFilteredSessions(filter string) ([]*interfaces.Session, error) {
+	return c.service.ListFilteredSessions(filter)
+}
+
 // GetSession retrieves a session by ID or name
 func (c *Client) GetSession(identifier string) (*interfaces.Session, error) {
 	return c.service.GetSession(identifier)
@@ -132,14 +137,6 @@ func (c *Client) GetSession(identifier string) (*interfaces.Session, error) {
 // AttachToSession connects to an existing session
 func (c *Client) AttachToSession(identifier string) error {
 	return c.service.AttachToSession(identifier)
-}
-
-// DetachFromSession disconnects from a session
-// Note: Detaching is typically handled by the terminal multiplexer itself (Ctrl+B D for tmux)
-func (c *Client) DetachFromSession(identifier string) error {
-	// For now, we don't have a programmatic way to detach
-	// This would need to be implemented in the multiplexer interface if needed
-	return fmt.Errorf("detaching from sessions is not currently supported programmatically")
 }
 
 // KillSession terminates a specific session

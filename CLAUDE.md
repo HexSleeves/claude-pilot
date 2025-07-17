@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Claude Pilot is a CLI tool for managing multiple Claude Code sessions with terminal multiplexer (tmux/zellij) support, built with a modular monorepo architecture.
+Claude Pilot is a CLI tool for managing multiple Claude Code sessions with terminal multiplexer (tmux) support, built with a modular monorepo architecture.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ Claude Pilot is a CLI tool for managing multiple Claude Code sessions with termi
 
 - **`internal/config/`** - Viper-based configuration management
 - **`internal/service/`** - Session management business logic
-- **`internal/multiplexer/`** - tmux/zellij backend implementations
+- **`internal/multiplexer/`** - tmux backend implementation
 - **`internal/storage/`** - JSON session persistence with repository pattern
 - **`internal/logger/`** - Structured logging with configurable levels
 - **`internal/interfaces/`** - Core interfaces and contracts
@@ -104,9 +104,9 @@ make clean          # Clean artifacts and session data
 
 ### Backend Support
 
-- **tmux** - Preferred backend with session prefix support
-- **zellij** - Alternative backend with layout file support
-- Auto-detection with tmux preference
+- **tmux** - Current backend with session prefix support
+- **zellij** - Planned future backend with layout file support
+- Auto-detection with tmux as current default
 
 ## Session Management
 

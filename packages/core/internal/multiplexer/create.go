@@ -2,10 +2,9 @@ package multiplexer
 
 import (
 	"fmt"
-	"slices"
 	"sync"
 
-	"claude-pilot/core/internal/interfaces"
+	"claude-pilot/shared/interfaces"
 )
 
 // MultiplexerCache caches multiplexer instances to avoid repeated creation
@@ -47,12 +46,10 @@ func CreateMultiplexer(backend, sessionPrefix string) (interfaces.TerminalMultip
 	switch backend {
 	case "tmux":
 		mux, err = NewTmuxMultiplexer(sessionPrefix)
-	case "zellij":
-		mux, err = NewZellijMultiplexer(sessionPrefix)
 	case "auto":
 		mux, err = createAutoMultiplexer(sessionPrefix)
 	default:
-		return nil, fmt.Errorf("unsupported multiplexer backend: %s", backend)
+		return nil, fmt.Errorf("unsupported multiplexer backend: %s (only tmux is currently supported)", backend)
 	}
 
 	if err != nil {
@@ -80,11 +77,6 @@ func GetAvailableBackends(sessionPrefix string) []string {
 		available = append(available, "tmux")
 	}
 
-	// Check zellij availability
-	if zellij, err := NewZellijMultiplexer(sessionPrefix); err == nil && zellij.IsAvailable() {
-		available = append(available, "zellij")
-	}
-
 	return available
 }
 
@@ -95,28 +87,17 @@ func GetDefaultBackend(sessionPrefix string) string {
 		return "tmux" // fallback default
 	}
 
-	// Prefer tmux if available, otherwise use first available
-	for _, backend := range available {
-		if backend == "tmux" {
-			return backend
-		}
-	}
-
-	return available[0]
+	// Currently only tmux is supported
+	return "tmux"
 }
 
 // createAutoMultiplexer automatically selects the best available backend
 func createAutoMultiplexer(sessionPrefix string) (interfaces.TerminalMultiplexer, error) {
 	available := GetAvailableBackends(sessionPrefix)
 	if len(available) == 0 {
-		return nil, fmt.Errorf("no terminal multiplexer backends available (install tmux or zellij)")
+		return nil, fmt.Errorf("no terminal multiplexer backends available (tmux is required)")
 	}
 
-	// Prefer tmux if available
-	if slices.Contains(available, "tmux") {
-		return CreateMultiplexer("tmux", sessionPrefix)
-	}
-
-	// Otherwise use first available
-	return CreateMultiplexer(available[0], sessionPrefix)
+	// Currently only tmux is supported
+	return CreateMultiplexer("tmux", sessionPrefix)
 }
