@@ -2,8 +2,8 @@ package main
 
 import (
 	"claude-pilot/core/api"
+	"claude-pilot/shared/components"
 	"claude-pilot/shared/interfaces"
-	"fmt"
 	"strings"
 	"time"
 
@@ -11,6 +11,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/evertras/bubble-table/table"
+
+	"claude-pilot/shared/styles"
 )
 
 // ViewState represents the current view state of the TUI
@@ -62,16 +64,6 @@ type Model struct {
 }
 
 const (
-	// Table column keys for evertras/bubble-table
-	columnKeyID         = "id"
-	columnKeyName       = "name"
-	columnKeyStatus     = "status"
-	columnKeyBackend    = "backend"
-	columnKeyCreated    = "created"
-	columnKeyLastActive = "last_active"
-	columnKeyMessages   = "messages"
-	columnKeyProject    = "project"
-
 	// Layout constants
 	fixedVerticalMargin = 4 // Fixed margin for description & instructions
 
@@ -89,16 +81,6 @@ func NewModel(client *api.Client) Model {
 	if client == nil {
 		panic("NewModel: client cannot be nil")
 	}
-	// Create table model with predefined columns
-	// t := table.New(
-	// 	table.WithColumns(components.GetBubblesTableColumns()),
-	// 	table.WithFocused(true),
-	// 	table.WithHeight(15),
-	// )
-
-	// // Apply Claude theme styling to the table
-	// t.SetStyles(styles.GetBubblesTableStyles())
-
 	// Create text inputs for session creation
 	nameInput := textinput.New()
 	nameInput.Placeholder = "Session name"
@@ -128,16 +110,10 @@ func NewModel(client *api.Client) Model {
 		isLoading:        false,
 		showHelp:         false,
 
-		table: table.New([]table.Column{
-			table.NewFlexColumn(columnKeyID, "ID", 1),
-			table.NewFlexColumn(columnKeyName, "Name", 1),
-			table.NewFlexColumn(columnKeyStatus, "Status", 1),
-			table.NewFlexColumn(columnKeyBackend, "Backend", 1),
-			table.NewFlexColumn(columnKeyCreated, "Created", 1),
-			table.NewFlexColumn(columnKeyLastActive, "Last Active", 1),
-			table.NewFlexColumn(columnKeyProject, "Project", 1),
-			table.NewFlexColumn(columnKeyMessages, "Messages", 1),
-		}).WithRows([]table.Row{}),
+		// Initialize evertras table with shared component columns and Claude theme styling
+		table: styles.ConfigureEvertrasTable(
+			table.New(components.GetEvertrasTableColumns()).WithRows([]table.Row{}),
+		),
 	}
 }
 
@@ -288,9 +264,14 @@ func (m Model) View() string {
 }
 
 func (m *Model) recalculateTable() {
+	width := m.calculateWidth()
+	height := m.calculateHeight()
+
+	// Update evertras table with responsive columns and dimensions
 	m.table = m.table.
-		WithTargetWidth(m.calculateWidth()).
-		WithMinimumHeight(m.calculateHeight())
+		WithColumns(components.GetEvertrasTableColumns()).
+		WithTargetWidth(width).
+		WithMinimumHeight(height)
 }
 
 func (m Model) calculateWidth() int {
@@ -375,7 +356,7 @@ func (m *Model) handleCreatePromptKeys(msg tea.KeyMsg) tea.Cmd {
 }
 
 // updateTableData updates the table with current session data
-// and manages memory efficiently to prevent leaks
+// using the shared component's conversion methods
 func (m *Model) updateTableData() {
 	if len(m.sessions) == 0 {
 		// Clear table data to free memory
@@ -383,36 +364,30 @@ func (m *Model) updateTableData() {
 		return
 	}
 
-	// Pre-allocate slice with exact capacity to avoid reallocations
-	rows := make([]table.Row, 0, len(m.sessions))
-
-	// Convert sessions to table rows with optimized processing
+	// Convert interfaces.Session to components.SessionData for shared component utility
+	sessionData := make([]components.SessionData, 0, len(m.sessions))
 	for _, session := range m.sessions {
 		if session == nil {
 			continue // Skip nil sessions
 		}
 
-		// Create row data for evertras/bubble-table
-		// Use defensive copying to prevent reference retention
-		rowData := table.RowData{
-			columnKeyID:         session.ID,
-			columnKeyName:       session.Name,
-			columnKeyStatus:     string(session.Status),
-			columnKeyBackend:    "claude", // Default backend for now
-			columnKeyCreated:    session.CreatedAt.Format("2006-01-02 15:04"),
-			columnKeyLastActive: session.LastActive.Format("2006-01-02 15:04"),
-			columnKeyMessages:   fmt.Sprintf("%d", len(session.Messages)),
-			columnKeyProject:    session.ProjectPath,
-		}
-
-		rows = append(rows, table.NewRow(rowData))
+		sessionData = append(sessionData, components.SessionData{
+			ID:          session.ID,
+			Name:        session.Name,
+			Status:      string(session.Status),
+			Backend:     "claude", // Default backend for now
+			Created:     session.CreatedAt,
+			LastActive:  session.LastActive,
+			Messages:    len(session.Messages),
+			ProjectPath: session.ProjectPath,
+		})
 	}
 
-	if len(rows) > 0 {
+	// Use shared component's method to convert to evertras rows
+	rows := components.ToEvertrasSessionRows(sessionData)
 
-		// Update table with new rows, replacing old data completely
-		m.table = m.table.WithRows(rows)
-	}
+	// Update evertras table with new rows
+	m.table = m.table.WithRows(rows)
 }
 
 // resetCreateForm resets the create session form to its initial state

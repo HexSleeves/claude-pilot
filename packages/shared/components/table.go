@@ -19,8 +19,8 @@ const (
 	columnKeyBackend    = "backend"
 	columnKeyCreated    = "created"
 	columnKeyLastActive = "last_active"
-	columnKeyMessages   = "messages"
 	columnKeyProject    = "project"
+	columnKeyMessages   = "messages"
 )
 
 // TableConfig holds configuration for table rendering
@@ -393,11 +393,11 @@ func (t *Table) ToEvertrasColumns() []table.Column {
 		table.NewColumn(columnKeyLastActive, "Last Active", columnWidths[5]).WithStyle(
 			lipgloss.NewStyle().Foreground(styles.TextMuted),
 		),
-		table.NewColumn(columnKeyMessages, "Messages", columnWidths[6]).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary),
-		),
 		table.NewFlexColumn(columnKeyProject, "Project", 1).WithStyle(
 			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewColumn(columnKeyMessages, "Messages", columnWidths[6]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
 		),
 	}
 
@@ -420,8 +420,8 @@ func (t *Table) ToEvertrasRows() []table.Row {
 				columnKeyBackend:    row[3],
 				columnKeyCreated:    row[4],
 				columnKeyLastActive: row[5],
-				columnKeyMessages:   row[6],
-				columnKeyProject:    row[7],
+				columnKeyProject:    row[6],
+				columnKeyMessages:   row[7],
 			})
 		}
 	}
@@ -458,26 +458,26 @@ func GetEvertrasTableColumns() []table.Column {
 		table.NewColumn(columnKeyID, "ID", 12).WithStyle(
 			lipgloss.NewStyle().Foreground(styles.TextMuted),
 		),
-		table.NewFlexColumn(columnKeyName, "Name", 2).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextPrimary).Bold(true),
+		table.NewFlexColumn(columnKeyName, "Name", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextPrimary).Bold(true).Align(lipgloss.Center),
 		),
 		table.NewColumn(columnKeyStatus, "Status", 10).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
 		),
 		table.NewColumn(columnKeyBackend, "Backend", 8).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
 		),
-		table.NewColumn(columnKeyCreated, "Created", 16).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		table.NewFlexColumn(columnKeyCreated, "Created", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
 		),
-		table.NewColumn(columnKeyLastActive, "Last Active", 12).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted),
-		),
-		table.NewColumn(columnKeyMessages, "Messages", 8).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		table.NewFlexColumn(columnKeyLastActive, "Last Active", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
 		),
 		table.NewFlexColumn(columnKeyProject, "Project", 1).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted),
+			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
+		),
+		table.NewFlexColumn(columnKeyMessages, "Messages", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
 		),
 	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 // KeyMap defines keyboard shortcuts for the TUI
@@ -125,8 +124,3 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	}
 }
 
-// KeyMatches is a utility function for key matching that wraps the bubbles key.Matches function.
-// This function is currently unused and could be removed as key.Matches is used directly throughout the codebase.
-func KeyMatches(msg tea.KeyMsg, binding key.Binding) bool {
-	return key.Matches(msg, binding)
-}

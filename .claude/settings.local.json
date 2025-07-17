@@ -1,17 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gemini:*)",
       "Bash(./claude-pilot:*)",
-      "Bash(go get:*)",
+      "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(go list:*)",
-      "Bash(go mod:*)",
+      "Bash(gemini:*)",
       "Bash(make test-tui:*)",
       "Bash(make:*)",
-      "Bash(go test:*)",
-      "Bash(ls:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(go get:*)",
+      "Bash(go list:*)",
+      "Bash(go mod:*)",
+      "Bash(go test:*)"
     ],
     "deny": []
   }

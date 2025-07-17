@@ -1,10 +1,8 @@
 package styles
 
 import (
-	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	evertrastable "github.com/evertras/bubble-table/table"
 )
@@ -318,55 +316,6 @@ func ConfigureBubblesTextInputStyles(ti textinput.Model) textinput.Model {
 	return ti
 }
 
-// ConfigureBubblesViewportStyles applies styling to a viewport model
-func ConfigureBubblesViewportStyles(vp viewport.Model) viewport.Model {
-	// Note: Viewport styling is limited in bubbles v0.21.0
-	// Most styling is handled through the content
-	return vp
-}
-
-// ConfigureBubblesHelpStyles applies styling to a help model
-func ConfigureBubblesHelpStyles(h help.Model) help.Model {
-	// Configure help styles
-	h.Styles.ShortKey = lipgloss.NewStyle().
-		Foreground(ClaudePrimary).
-		Bold(true)
-	h.Styles.ShortDesc = lipgloss.NewStyle().
-		Foreground(TextSecondary)
-	h.Styles.ShortSeparator = lipgloss.NewStyle().
-		Foreground(TextMuted)
-	h.Styles.FullKey = lipgloss.NewStyle().
-		Foreground(ClaudePrimary).
-		Bold(true)
-	h.Styles.FullDesc = lipgloss.NewStyle().
-		Foreground(TextSecondary)
-	h.Styles.FullSeparator = lipgloss.NewStyle().
-		Foreground(TextMuted)
-
-	return h
-}
-
-// ConfigureBubblesTable applies Claude theme to a table model
-func ConfigureBubblesTable(t table.Model) table.Model {
-	t.SetStyles(GetBubblesTableStyles())
-	return t
-}
-
-// ConfigureBubblesTextInput applies Claude theme to a textinput model
-func ConfigureBubblesTextInput(ti textinput.Model) textinput.Model {
-	return ConfigureBubblesTextInputStyles(ti)
-}
-
-// ConfigureBubblesViewport applies Claude theme to a viewport model
-func ConfigureBubblesViewport(vp viewport.Model) viewport.Model {
-	return ConfigureBubblesViewportStyles(vp)
-}
-
-// ConfigureBubblesHelp applies Claude theme to a help model
-func ConfigureBubblesHelp(h help.Model) help.Model {
-	return ConfigureBubblesHelpStyles(h)
-}
-
 // Evertras Table Styling Functions
 // These functions provide styled configurations for evertras/bubble-table components
 // using the existing Claude orange theme
@@ -377,21 +326,6 @@ func GetEvertrasTableStyles() lipgloss.Style {
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(ClaudePrimary).
 		Foreground(TextPrimary)
-}
-
-// GetEvertrasColumnWidths creates responsive column definitions with appropriate flex behavior
-func GetEvertrasColumnWidths(terminalWidth int) []int {
-	switch {
-	case terminalWidth < BreakpointSmall:
-		// Compact layout for small terminals
-		return []int{8, 15, 8, 6, 12, 10, 6, 20}
-	case terminalWidth < BreakpointMedium:
-		// Balanced layout for medium terminals
-		return []int{10, 18, 10, 8, 14, 12, 8, 25}
-	default:
-		// Full layout for large terminals
-		return []int{12, 20, 10, 8, 16, 12, 8, 30}
-	}
 }
 
 // ConfigureEvertrasTable applies Claude theme styling to an evertras table model

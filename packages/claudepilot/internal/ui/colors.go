@@ -1,7 +1,9 @@
 package ui
 
 import (
-	compat "claude-pilot/internal/styles"
+	"fmt"
+	"strings"
+
 	"claude-pilot/shared/interfaces"
 	"claude-pilot/shared/styles"
 
@@ -11,6 +13,12 @@ import (
 // CLI Color Scheme - Migrated to Shared Theme
 // This file provides CLI-optimized styling functions using the unified theme
 // from packages/shared/styles while maintaining backward compatibility
+
+// SessionInfo represents basic session information for display
+type SessionInfo struct {
+	ID   string
+	Name string
+}
 
 // Deprecated: Legacy fatih/color variables - Use shared theme styles instead
 // These are kept for backward compatibility but should be migrated to lipgloss
@@ -177,32 +185,82 @@ func Input(text string) string {
 
 // Enhanced session summary with better formatting
 func SessionSummary(total, active, inactive int) string {
-	return compat.SessionSummary(total, active, inactive)
+	return styles.InfoBox(fmt.Sprintf("Total: %d | Active: %d | Inactive: %d", total, active, inactive))
 }
 
 // Enhanced next steps display
 func NextSteps(commands ...string) string {
-	return compat.NextSteps(commands...)
+	var lines []string
+	header := styles.Info("Next steps:")
+	lines = append(lines, header)
+	for _, cmd := range commands {
+		line := fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight(cmd))
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Enhanced available commands display
 func AvailableCommands(commands ...string) string {
-	return compat.AvailableCommands(commands...)
+	var lines []string
+	header := styles.Info("Available commands:")
+	lines = append(lines, header)
+	for _, cmd := range commands {
+		line := fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight(cmd))
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Enhanced session details formatting
 func SessionDetailsFormatted(session *interfaces.Session, backend string) string {
-	return compat.SessionDetails(session, backend)
+	var lines []string
+	labelWidth := 15
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("ID:"), session.ID))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Name:"), styles.Title(session.Name)))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Status:"), FormatStatus(string(session.Status))))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Backend:"), backend))
+	lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Created:"), session.CreatedAt.Format("2006-01-02 15:04:05")))
+	if session.ProjectPath != "" {
+		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Project:"), session.ProjectPath))
+	}
+	if session.Description != "" {
+		lines = append(lines, fmt.Sprintf("%-*s %s", labelWidth, styles.Bold("Description:"), session.Description))
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Enhanced available sessions list
-func AvailableSessionsList(sessions []compat.SessionInfo) string {
-	return compat.AvailableSessionsList(sessions)
+func AvailableSessionsList(sessions []SessionInfo) string {
+	if len(sessions) == 0 {
+		return styles.Dim("  No sessions available") + "\n" +
+			fmt.Sprintf("  %s %s", styles.Arrow(), styles.Highlight("claude-pilot create [session-name]"))
+	}
+	var lines []string
+	for _, s := range sessions {
+		idDisplay := s.ID
+		if len(s.ID) > 8 {
+			idDisplay = s.ID[:8]
+		}
+		line := fmt.Sprintf("  %s %s (%s)", styles.Arrow(), styles.Highlight(s.Name), styles.Dim(idDisplay))
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Enhanced command list formatting
 func CommandList(commands map[string]string) string {
-	return compat.CommandList(commands)
+	var lines []string
+	header := styles.InfoStyle.Render("Available Commands:")
+	lines = append(lines, header)
+	lines = append(lines, "")
+	for cmd, desc := range commands {
+		cmdStyled := styles.TitleStyle.Render(cmd)
+		descStyled := styles.SecondaryTextStyle.Render(desc)
+		line := fmt.Sprintf("  %s %s", cmdStyled, descStyled)
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Enhanced header formatting

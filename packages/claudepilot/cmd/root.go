@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"claude-pilot/internal/styles"
+	"claude-pilot/shared/styles"
 	"claude-pilot/internal/ui"
 
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "claude-pilot",
 	Short: "A CLI tool for managing multiple Claude code sessions",
-	Long: styles.RootBanner() + "\n\n" + ui.CommandList(map[string]string{
+	Long: styles.Banner("Claude Pilot 🚀", "A powerful CLI tool for managing multiple Claude code sessions") + "\n\n" + ui.CommandList(map[string]string{
 		"create":   "Create a new Claude session",
 		"list":     "List all active sessions",
 		"attach":   "Attach to a specific session",
