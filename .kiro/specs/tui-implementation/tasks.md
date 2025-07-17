@@ -57,20 +57,20 @@
     - Add search highlighting and result count display
     - _Requirements: 8.3_
 
-  - [-] 4.3 Enhance status display and real-time updates
+  - [ ] 4.3 Enhance status display and real-time updates
     - Improve status formatting with consistent icons and colors using shared styles
     - Implement automatic status refresh every 5 seconds for real-time updates
     - Add visual indicators for recently updated sessions
     - _Requirements: 7.1, 7.2, 7.3, 10.2_
 
-- [ ] 5. Implement Create Modal Model
-  - [ ] 5.1 Create modal structure and form inputs
+- [x] 5. Implement Create Modal Model
+  - [x] 5.1 Create modal structure and form inputs
     - Write CreateModalModel with textinput fields for name and description
     - Implement modal lifecycle methods (Init, Update, View, Reset, IsCompleted)
     - Add form field navigation using Tab key and focus management
     - _Requirements: 3.1, 3.2, 8.4, 8.5_
 
-  - [ ] 5.2 Add input validation and error handling
+  - [x] 5.2 Add input validation and error handling
     - Implement validateInput() method to check session name requirements
     - Add real-time validation feedback with error message display
     - Handle duplicate session name detection and user feedback

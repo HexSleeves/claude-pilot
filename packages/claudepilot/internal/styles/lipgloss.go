@@ -153,12 +153,6 @@ var (
 	WarningBoxStyle = styles.WarningBoxStyle
 	ErrorBoxStyle   = styles.ErrorBoxStyle
 
-	// Card styles
-	CardStyle        = styles.CardStyle
-	CardHeaderStyle  = styles.CardHeaderStyle
-	CardContentStyle = styles.CardContentStyle
-	CardFooterStyle  = styles.CardFooterStyle
-
 	// Modal and dialog styles
 	ModalStyle        = styles.ModalStyle
 	ModalHeaderStyle  = styles.ModalHeaderStyle

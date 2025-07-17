@@ -32,7 +32,7 @@ var (
 var (
 	// Background colors
 	BackgroundPrimary      = lipgloss.Color("#2C3E50") // Primary dark background
-	BackgroundSecondary    = lipgloss.Color("#34495E") // Alternative background for cards/surfaces
+	BackgroundSecondary    = lipgloss.Color("#34495E") // Alternative background for surfaces
 	BackgroundAccent       = lipgloss.Color("#58D68D") // More readable green accent
 	BackgroundSurface      = lipgloss.Color("#4A5568") // Elevated surface color
 	BackgroundSurfaceLight = lipgloss.Color("#718096") // Light surface for subtle elevation
@@ -367,25 +367,11 @@ var (
 			Padding(1, 2).
 			Margin(1, 0)
 
-	// Card styles for content organization
-	CardStyle = lipgloss.NewStyle().
+	// Simple box styles for basic content organization
+	SimpleBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(BackgroundSurface).
-			Padding(0, 1).
-			Margin(1, 0)
-
-	CardHeaderStyle = lipgloss.NewStyle().
-			Foreground(ClaudePrimary).
-			Bold(true).
-			Padding(0, 0, 1, 0)
-
-	CardContentStyle = lipgloss.NewStyle().
-				Foreground(TextSecondary).
-				Padding(0)
-
-	CardFooterStyle = lipgloss.NewStyle().
-			Foreground(TextMuted).
-			Padding(1, 0, 0, 0)
+			Padding(1)
 
 	// Modal and dialog styles
 	ModalStyle = lipgloss.NewStyle().
