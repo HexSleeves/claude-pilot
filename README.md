@@ -63,12 +63,7 @@ It's built with Go and leverages terminal multiplexers like `tmux` to provide a 
 
 Watch this short demo to see Claude Pilot in action:
 
-<p align="center">
-  <video controls poster="assets/claude-pilot-demo.gif">
-    <source src="assets/claude-pilot-demo.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
+[![Watch the video](assets/claude-pilot-demo.gif)](assets/claude-pilot-demo.gif)
 
 ---
 
