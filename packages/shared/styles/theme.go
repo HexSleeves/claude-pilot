@@ -65,7 +65,7 @@ var (
 	FocusColor      = ClaudePrimary             // Focus state (primary orange)
 	ActiveColor     = ClaudePrimaryDark         // Active/pressed state (darker orange)
 	DisabledColor   = lipgloss.Color("#4A5568") // Disabled state (muted gray)
-	SelectedColor   = ClaudePrimary             // Selected state (primary orange)
+	SelectedColor   = ClaudeSecondary           // Selected state (primary blue)
 	SelectedBgColor = lipgloss.Color("#2A1810") // Selected background (dark orange tint)
 )
 
