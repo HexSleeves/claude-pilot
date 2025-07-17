@@ -3,6 +3,7 @@ package main
 import (
 	"claude-pilot/core/api"
 	"claude-pilot/shared/interfaces"
+	"fmt"
 	"strings"
 	"time"
 
@@ -29,11 +30,10 @@ type Model struct {
 	client *api.Client
 
 	// State management
-	currentView     ViewState
-	selectedSession *interfaces.Session
-	errorMessage    string
-	statusMessage   string
-	lastRefresh     time.Time
+	currentView   ViewState
+	errorMessage  string
+	statusMessage string
+	lastRefresh   time.Time
 
 	// Session data
 	sessions  []*interfaces.Session
@@ -63,13 +63,14 @@ type Model struct {
 
 const (
 	// Table column keys for evertras/bubble-table
-	columnKeyName        = "name"
-	columnKeyElement     = "element"
-	columnKeyDescription = "description"
-
-	// UI dimension constraints
-	minWidth  = 30
-	minHeight = 8
+	columnKeyID         = "id"
+	columnKeyName       = "name"
+	columnKeyStatus     = "status"
+	columnKeyBackend    = "backend"
+	columnKeyCreated    = "created"
+	columnKeyLastActive = "last_active"
+	columnKeyMessages   = "messages"
+	columnKeyProject    = "project"
 
 	// Layout constants
 	fixedVerticalMargin = 4 // Fixed margin for description & instructions
@@ -128,26 +129,15 @@ func NewModel(client *api.Client) Model {
 		showHelp:         false,
 
 		table: table.New([]table.Column{
-			table.NewColumn(columnKeyName, "Name", 10),
-			// This table uses flex columns, but it will still need a target
-			// width in order to know what width it should fill.  In this example
-			// the target width is set below in `recalculateTable`, which sets
-			// the table to the width of the screen to demonstrate resizing
-			// with flex columns.
-			table.NewFlexColumn(columnKeyElement, "Element", 1),
-			table.NewFlexColumn(columnKeyDescription, "Description", 3),
-		}).WithRows([]table.Row{
-			table.NewRow(table.RowData{
-				columnKeyName:        "Pikachu",
-				columnKeyElement:     "Electric",
-				columnKeyDescription: "Super zappy mouse, handle with care",
-			}),
-			table.NewRow(table.RowData{
-				columnKeyName:        "Charmander",
-				columnKeyElement:     "Fire",
-				columnKeyDescription: "直立した恐竜のような身体と、尻尾の先端に常に燃えている炎が特徴。",
-			}),
-		}).WithStaticFooter("A footer!"),
+			table.NewFlexColumn(columnKeyID, "ID", 1),
+			table.NewFlexColumn(columnKeyName, "Name", 1),
+			table.NewFlexColumn(columnKeyStatus, "Status", 1),
+			table.NewFlexColumn(columnKeyBackend, "Backend", 1),
+			table.NewFlexColumn(columnKeyCreated, "Created", 1),
+			table.NewFlexColumn(columnKeyLastActive, "Last Active", 1),
+			table.NewFlexColumn(columnKeyProject, "Project", 1),
+			table.NewFlexColumn(columnKeyMessages, "Messages", 1),
+		}).WithRows([]table.Row{}),
 	}
 }
 
@@ -230,7 +220,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentView = TableView
 			m.resetCreateForm()
 			m.statusMessage = "Session created successfully"
-			cmd = loadSessionsCmd(m.client)
+			cmds = append(cmds, loadSessionsCmd(m.client))
 		}
 
 	case sessionKilledMsg:
@@ -240,7 +230,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.errorMessage = msg.err.Error()
 		} else {
 			m.statusMessage = "Session killed successfully"
-			cmd = loadSessionsCmd(m.client)
+			cmds = append(cmds, loadSessionsCmd(m.client))
 		}
 
 	case errorMsg:
@@ -405,16 +395,24 @@ func (m *Model) updateTableData() {
 		// Create row data for evertras/bubble-table
 		// Use defensive copying to prevent reference retention
 		rowData := table.RowData{
-			columnKeyName:        session.Name,
-			columnKeyElement:     string(session.Status),
-			columnKeyDescription: session.ProjectPath,
+			columnKeyID:         session.ID,
+			columnKeyName:       session.Name,
+			columnKeyStatus:     string(session.Status),
+			columnKeyBackend:    "claude", // Default backend for now
+			columnKeyCreated:    session.CreatedAt.Format("2006-01-02 15:04"),
+			columnKeyLastActive: session.LastActive.Format("2006-01-02 15:04"),
+			columnKeyMessages:   fmt.Sprintf("%d", len(session.Messages)),
+			columnKeyProject:    session.ProjectPath,
 		}
 
 		rows = append(rows, table.NewRow(rowData))
 	}
 
-	// Update table with new rows, replacing old data completely
-	m.table = m.table.WithRows(rows)
+	if len(rows) > 0 {
+
+		// Update table with new rows, replacing old data completely
+		m.table = m.table.WithRows(rows)
+	}
 }
 
 // resetCreateForm resets the create session form to its initial state

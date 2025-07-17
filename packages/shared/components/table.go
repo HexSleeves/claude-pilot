@@ -6,9 +6,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 	lipglosstable "github.com/charmbracelet/lipgloss/table"
+	"github.com/evertras/bubble-table/table"
+)
+
+// Column key constants for evertras table
+const (
+	columnKeyID         = "id"
+	columnKeyName       = "name"
+	columnKeyStatus     = "status"
+	columnKeyBackend    = "backend"
+	columnKeyCreated    = "created"
+	columnKeyLastActive = "last_active"
+	columnKeyMessages   = "messages"
+	columnKeyProject    = "project"
 )
 
 // TableConfig holds configuration for table rendering
@@ -350,11 +362,11 @@ func formatProjectPath(path string, maxLen int) string {
 	return styles.TableCellStyle.Render(path)
 }
 
-// Bubbles Integration Methods
-// These methods provide compatibility with the Bubbles table component
+// Evertras Integration Methods
+// These methods provide compatibility with the evertras/bubble-table component
 
-// ToBubblesColumns returns table.Column definitions for Bubbles table
-func (t *Table) ToBubblesColumns() []table.Column {
+// ToEvertrasColumns returns table.Column definitions for evertras table
+func (t *Table) ToEvertrasColumns() []table.Column {
 	if len(t.data.Headers) == 0 {
 		return nil
 	}
@@ -362,94 +374,130 @@ func (t *Table) ToBubblesColumns() []table.Column {
 	// Calculate column widths based on content and terminal width
 	columnWidths := styles.GetTableColumnWidths(t.config.Width, len(t.data.Headers))
 
-	columns := make([]table.Column, len(t.data.Headers))
-	for i, header := range t.data.Headers {
-		width := 10 // Default width
-		if i < len(columnWidths) {
-			width = columnWidths[i]
-		}
-
-		columns[i] = table.Column{
-			Title: header,
-			Width: width,
-		}
+	columns := []table.Column{
+		table.NewColumn(columnKeyID, "ID", columnWidths[0]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewFlexColumn(columnKeyName, "Name", 2).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextPrimary).Bold(true),
+		),
+		table.NewColumn(columnKeyStatus, "Status", columnWidths[2]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		),
+		table.NewColumn(columnKeyBackend, "Backend", columnWidths[3]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		),
+		table.NewColumn(columnKeyCreated, "Created", columnWidths[4]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewColumn(columnKeyLastActive, "Last Active", columnWidths[5]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewColumn(columnKeyMessages, "Messages", columnWidths[6]).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		),
+		table.NewFlexColumn(columnKeyProject, "Project", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
 	}
 
 	return columns
 }
 
-// ToBubblesRows converts table data to table.Row format for Bubbles table
-func (t *Table) ToBubblesRows() []table.Row {
+// ToEvertrasRows converts table data to table.Row format for evertras table
+func (t *Table) ToEvertrasRows() []table.Row {
 	if len(t.data.Rows) == 0 {
 		return nil
 	}
 
 	rows := make([]table.Row, len(t.data.Rows))
 	for i, row := range t.data.Rows {
-		// Convert []string to table.Row
-		bubbleRow := make(table.Row, len(row))
-		copy(bubbleRow, row)
-		rows[i] = bubbleRow
-	}
-
-	return rows
-}
-
-// ToBubblesSessionRows converts session data directly to table.Row format
-func ToBubblesSessionRows(sessions []SessionData) []table.Row {
-	if len(sessions) == 0 {
-		return nil
-	}
-
-	rows := make([]table.Row, len(sessions))
-	for i, session := range sessions {
-		rows[i] = table.Row{
-			styles.TruncateText(session.ID, 11),
-			styles.TruncateText(session.Name, 19),
-			session.Status, // This now contains the enhanced status display
-			session.Backend,
-			session.Created.Format("2006-01-02 15:04"),
-			formatTimeAgoPlain(session.LastActive),
-			fmt.Sprintf("%d", session.Messages),
-			formatProjectPathPlain(session.ProjectPath, 29),
+		if len(row) >= 8 {
+			rows[i] = table.NewRow(table.RowData{
+				columnKeyID:         row[0],
+				columnKeyName:       row[1],
+				columnKeyStatus:     row[2],
+				columnKeyBackend:    row[3],
+				columnKeyCreated:    row[4],
+				columnKeyLastActive: row[5],
+				columnKeyMessages:   row[6],
+				columnKeyProject:    row[7],
+			})
 		}
 	}
 
 	return rows
 }
 
-// GetBubblesTableColumns returns predefined column definitions for session table
-func GetBubblesTableColumns() []table.Column {
+// ToEvertrasSessionRows converts session data directly to table.Row format
+func ToEvertrasSessionRows(sessions []SessionData) []table.Row {
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	rows := make([]table.Row, len(sessions))
+	for i, session := range sessions {
+		rows[i] = table.NewRow(table.RowData{
+			columnKeyID:         styles.TruncateText(session.ID, 11),
+			columnKeyName:       styles.TruncateText(session.Name, 19),
+			columnKeyStatus:     session.Status,
+			columnKeyBackend:    session.Backend,
+			columnKeyCreated:    session.Created.Format("2006-01-02 15:04"),
+			columnKeyLastActive: formatTimeAgoPlain(session.LastActive),
+			columnKeyMessages:   fmt.Sprintf("%d", session.Messages),
+			columnKeyProject:    formatProjectPathPlain(session.ProjectPath, 29),
+		})
+	}
+
+	return rows
+}
+
+// GetEvertrasTableColumns returns predefined column definitions for session table
+func GetEvertrasTableColumns() []table.Column {
 	return []table.Column{
-		{Title: "ID", Width: 12},
-		{Title: "Name", Width: 20},
-		{Title: "Status", Width: 10},
-		{Title: "Backend", Width: 8},
-		{Title: "Created", Width: 16},
-		{Title: "Last Active", Width: 12},
-		{Title: "Messages", Width: 8},
-		{Title: "Project", Width: 30},
+		table.NewColumn(columnKeyID, "ID", 12).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewFlexColumn(columnKeyName, "Name", 2).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextPrimary).Bold(true),
+		),
+		table.NewColumn(columnKeyStatus, "Status", 10).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		),
+		table.NewColumn(columnKeyBackend, "Backend", 8).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		),
+		table.NewColumn(columnKeyCreated, "Created", 16).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewColumn(columnKeyLastActive, "Last Active", 12).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewColumn(columnKeyMessages, "Messages", 8).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary),
+		),
+		table.NewFlexColumn(columnKeyProject, "Project", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
 	}
 }
 
-// ConfigureBubblesTable applies Claude theme and configuration to a Bubbles table
-func (t *Table) ConfigureBubblesTable(bubblesTable table.Model) table.Model {
-	// Apply Claude theme styling
-	bubblesTable.SetStyles(styles.GetBubblesTableStyles())
-
+// AsEvertrasModel configures an evertras table model with data and styling
+func (t *Table) AsEvertrasModel(baseModel table.Model) table.Model {
 	// Set columns and rows
-	bubblesTable.SetColumns(t.ToBubblesColumns())
-	bubblesTable.SetRows(t.ToBubblesRows())
+	model := baseModel.
+		WithColumns(t.ToEvertrasColumns()).
+		WithRows(t.ToEvertrasRows())
 
 	// Configure dimensions
 	if t.config.Width > 0 {
-		bubblesTable.SetWidth(t.config.Width)
+		model = model.WithTargetWidth(t.config.Width)
 	}
 	if t.config.MaxRows > 0 {
-		bubblesTable.SetHeight(t.config.MaxRows)
+		model = model.WithMinimumHeight(t.config.MaxRows)
 	}
 
-	return bubblesTable
+	return model
 }
 
 // Utility functions for plain text formatting (without lipgloss styling)

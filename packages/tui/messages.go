@@ -52,8 +52,3 @@ type statusMsg struct {
 type viewStateMsg struct {
 	state ViewState
 }
-
-// refreshCompleteMsg signals that a refresh operation has completed.
-// This message is used to update the UI state after background
-// refresh operations finish.
-type refreshCompleteMsg struct{}

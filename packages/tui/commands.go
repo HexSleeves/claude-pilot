@@ -126,8 +126,3 @@ func attachSessionCmd(client *api.Client, sessionID string) tea.Cmd {
 		})
 	}
 }
-
-// refreshSessionsCmd is an alias for loadSessionsCmd for clarity
-func refreshSessionsCmd(client *api.Client) tea.Cmd {
-	return loadSessionsCmd(client)
-}
