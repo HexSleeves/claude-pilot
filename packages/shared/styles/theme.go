@@ -113,7 +113,7 @@ var (
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(ClaudePrimary).
 			Bold(true).
-			Padding(0, 1)
+			Padding(0, 0)
 
 	SubtitleStyle = lipgloss.NewStyle().
 			Foreground(ClaudeSecondary).
@@ -140,6 +140,12 @@ var (
 	BoldStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(TextPrimary)
+
+	KeyStyle = lipgloss.NewStyle().
+			Foreground(ClaudePrimary).
+			Bold(true).
+			Background(BackgroundSurface).
+			Padding(0, 1)
 
 	HighlightStyle = lipgloss.NewStyle().
 			Foreground(ClaudePrimary).
@@ -395,6 +401,12 @@ var (
 				Foreground(TextSecondary).
 				Align(lipgloss.Center).
 				Padding(1, 0, 0, 0)
+
+	DialogBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(ClaudePrimary).
+			Padding(2, 4).
+			Margin(1, 2)
 
 	// Panel styles for dashboard layout
 	PanelStyle = lipgloss.NewStyle().

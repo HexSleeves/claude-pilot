@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"claude-pilot/shared/styles"
 	"claude-pilot/internal/ui"
+	"claude-pilot/shared/styles"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

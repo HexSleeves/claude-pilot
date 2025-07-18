@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"claude-pilot/internal/ui"
+	"claude-pilot/shared/interfaces"
 
 	"github.com/spf13/cobra"
 )
@@ -23,6 +24,30 @@ Examples:
 			HandleError(err, "initialize command")
 		}
 
+		// List every session if no identifier is provided
+		if len(args) == 0 {
+			// Get the session
+			sessions, err := ctx.Client.ListSessions()
+			if err != nil {
+				HandleError(err, "list sessions")
+			}
+
+			for _, session := range sessions {
+				listDetails(ctx, session)
+			}
+
+			// Show enhanced next steps
+			fmt.Println(ui.NextSteps(
+				"claude-pilot list",
+				"claude-pilot details [session-name]",
+				"claude-pilot create [session-name]",
+				"claude-pilot kill [session-name]",
+				"claude-pilot attach [session-name]",
+			))
+
+			return
+		}
+
 		identifier := args[0]
 
 		// Get the session
@@ -32,9 +57,7 @@ Examples:
 		}
 
 		// Show enhanced session details
-		details := ui.SessionDetailsFormatted(sess, ctx.Client.GetBackend())
-		fmt.Println(details)
-		fmt.Println()
+		listDetails(ctx, sess)
 
 		// Show enhanced next steps
 		fmt.Println(ui.NextSteps(
@@ -46,4 +69,11 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(detailsCmd)
+}
+
+func listDetails(ctx *CommandContext, sess *interfaces.Session) {
+	// Show enhanced session details
+	details := ui.SessionDetailsFormatted(sess, ctx.Client.GetBackend())
+	fmt.Println(details)
+	fmt.Println()
 }

@@ -28,12 +28,52 @@ func renderTableView(m Model) string {
 		b.WriteString("\n\n")
 	}
 
+	// Filter input when in filter mode
+	if m.filterMode {
+		filterLabel := styles.BoldStyle.Render("Filter: ")
+		filterInput := styles.InputFocusedStyle.Render(m.tableFilter.View())
+		b.WriteString(filterLabel + filterInput)
+		b.WriteString("\n\n")
+	} else if m.tableFilter.Value() != "" {
+		// Show active filter indicator
+		filterIndicator := styles.StyleFilterIndicator(m.tableFilter.Value())
+		b.WriteString(filterIndicator)
+		b.WriteString("\n")
+	}
+
+	// Sort indicator
+	if m.tableSortColumn != "" {
+		sortIndicator := fmt.Sprintf("Sorted by %s %s",
+			m.tableSortColumn,
+			styles.StyleSortIndicator(m.tableSortColumn, m.tableSortDirection))
+		b.WriteString(styles.MutedTextStyle.Render(sortIndicator))
+		b.WriteString("\n")
+	}
+
+	// Selection information when multi-select is enabled
+	if len(m.tableSelectedRows) > 0 {
+		selectionInfo := fmt.Sprintf("%d row(s) selected", len(m.tableSelectedRows))
+		b.WriteString(styles.InfoStyle.Render(selectionInfo))
+		b.WriteString("\n")
+	}
+
 	// Table
 	if len(m.sessions) == 0 {
 		emptyMessage := styles.MutedTextStyle.Render("No sessions found. Press 'c' to create a new session.")
 		b.WriteString(emptyMessage)
 	} else {
 		b.WriteString(m.table.View())
+	}
+
+	// Pagination information
+	if m.tablePageSize > 0 {
+		currentPage, totalPages, startRow, endRow, totalRows := m.getCurrentPageInfo()
+		paginationInfo := fmt.Sprintf("Page %d of %d • Rows %d-%d of %d • Page size: %d",
+			currentPage, totalPages, startRow, endRow, totalRows, m.tablePageSize)
+		b.WriteString("\n")
+		b.WriteString(styles.StylePaginationInfo(currentPage, totalPages))
+		b.WriteString(" ")
+		b.WriteString(styles.MutedTextStyle.Render(paginationInfo))
 	}
 
 	b.WriteString("\n\n")
@@ -221,19 +261,41 @@ func renderFooter(m Model) string {
 
 	switch m.currentView {
 	case TableView:
-		shortcuts = []string{
-			"↑/↓: Navigate",
-			"Enter: Attach",
-			"c: Create",
-			"k: Kill",
-			"r: Refresh",
-			"?: Help",
-			"q: Quit",
+		if m.showTableHelp {
+			shortcuts = []string{
+				"s+n: Sort by name",
+				"s+s: Sort by status",
+				"s+c: Sort by created",
+				"s+a: Sort by last active",
+				"/: Filter",
+				"space: Select row",
+				"ctrl+a: Select all",
+				"ctrl+n/p: Next/Prev page",
+				"?: Toggle help",
+			}
+		} else {
+			shortcuts = []string{
+				"↑/↓: Navigate",
+				"Enter: Attach",
+				"c: Create",
+				"k: Kill",
+				"/: Filter",
+				"space: Select",
+				"r: Refresh",
+				"?: Help",
+				"q: Quit",
+			}
 		}
 	case CreatePrompt:
 		shortcuts = []string{
 			"Tab: Next field",
 			"Enter: Create",
+			"Esc: Cancel",
+		}
+	case KillConfirmation:
+		shortcuts = []string{
+			"y: Yes, kill session",
+			"n: No, cancel",
 			"Esc: Cancel",
 		}
 	case Error:
@@ -251,4 +313,62 @@ func renderFooter(m Model) string {
 	// Join shortcuts with separators
 	shortcutText := strings.Join(shortcuts, " • ")
 	return styles.FooterStyle.Render(shortcutText)
+}
+
+// renderKillConfirmationView renders the kill confirmation dialog
+func renderKillConfirmationView(m Model) string {
+	var b strings.Builder
+
+	// Header
+	header := renderHeader(m)
+	b.WriteString(header)
+	b.WriteString("\n\n")
+
+	if m.sessionToKill == nil {
+		// Fallback if no session selected
+		b.WriteString(styles.ErrorStyle.Render("No session selected"))
+		b.WriteString("\n\n")
+		b.WriteString(renderFooter(m))
+		return b.String()
+	}
+
+	// Confirmation dialog
+	sessionInfo := fmt.Sprintf("Session: %s (ID: %s)",
+		styles.BoldStyle.Render(m.sessionToKill.Name),
+		styles.MutedTextStyle.Render(m.sessionToKill.ID))
+
+	warningText := styles.ErrorStyle.Render("⚠️  Are you sure you want to kill this session?")
+	confirmationText := "This action cannot be undone."
+
+	optionsText := fmt.Sprintf("%s or %s",
+		styles.KeyStyle.Render("y")+" Yes",
+		styles.KeyStyle.Render("n")+" No")
+
+	// Center the dialog content
+	dialogContent := lipgloss.JoinVertical(lipgloss.Center,
+		sessionInfo,
+		"",
+		warningText,
+		confirmationText,
+		"",
+		optionsText,
+	)
+
+	// Create a bordered box around the dialog
+	dialog := styles.DialogBoxStyle.Render(dialogContent)
+
+	// Center the dialog on screen
+	centered := lipgloss.Place(
+		m.totalWidth,
+		m.totalHeight-4, // Account for header/footer
+		lipgloss.Center,
+		lipgloss.Center,
+		dialog,
+	)
+
+	b.WriteString(centered)
+	b.WriteString("\n")
+	b.WriteString(renderFooter(m))
+
+	return b.String()
 }

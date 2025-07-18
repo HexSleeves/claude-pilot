@@ -1,6 +1,8 @@
 package styles
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
@@ -328,9 +330,233 @@ func GetEvertrasTableStyles() lipgloss.Style {
 		Foreground(TextPrimary)
 }
 
-// ConfigureEvertrasTable applies Claude theme styling to an evertras table model
+// ConfigureEvertrasTable applies comprehensive Claude theme styling to an evertras table model
+// with support for interactive features. Individual styling is handled through column definitions
+// and row data formatting since evertras table uses a different styling approach
 func ConfigureEvertrasTable(t evertrastable.Model) evertrastable.Model {
-	// Apply Claude theme styling with borders and colors
-	return t.
-		WithBaseStyle(GetEvertrasTableStyles())
+	// Apply base styling with borders and colors
+	// Note: Row-level styling (hover, selection) is handled through column styles and data formatting
+	return t.WithBaseStyle(GetEvertrasTableStyles())
+}
+
+// EvertrasColumnStyles holds styling configurations for different column types
+type EvertrasColumnStyles struct {
+	Header    lipgloss.Style
+	ID        lipgloss.Style
+	Name      lipgloss.Style
+	Status    lipgloss.Style
+	Backend   lipgloss.Style
+	Timestamp lipgloss.Style
+	Project   lipgloss.Style
+	Messages  lipgloss.Style
+}
+
+// GetEvertrasColumnStyles returns column-specific styles for different data types
+func GetEvertrasColumnStyles() EvertrasColumnStyles {
+	return EvertrasColumnStyles{
+		Header: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(ClaudePrimary).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		ID: lipgloss.NewStyle().
+			Foreground(TextMuted).
+			Padding(0, 1).
+			Align(lipgloss.Left),
+		Name: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Left),
+		Status: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Backend: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Timestamp: lipgloss.NewStyle().
+			Foreground(TextDim).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Project: lipgloss.NewStyle().
+			Foreground(TextMuted).
+			Padding(0, 1).
+			Align(lipgloss.Left),
+		Messages: lipgloss.NewStyle().
+			Foreground(InfoColor).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Right),
+	}
+}
+
+// EvertrasRowStyles holds styling configurations for different row states
+type EvertrasRowStyles struct {
+	Normal    lipgloss.Style
+	Selected  lipgloss.Style
+	Hover     lipgloss.Style
+	Alternate lipgloss.Style
+}
+
+// GetEvertrasRowStyles returns row state styles for normal, selected, hover, and alternate states
+func GetEvertrasRowStyles() EvertrasRowStyles {
+	return EvertrasRowStyles{
+		Normal: lipgloss.NewStyle().
+			Foreground(TextSecondary),
+		Selected: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(SelectedColor).
+			Bold(true),
+		Hover: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(HoverColor).
+			Bold(true),
+		Alternate: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Background(BackgroundSurface),
+	}
+}
+
+// EvertrasPaginationStyles holds styling configurations for pagination elements
+type EvertrasPaginationStyles struct {
+	Footer     lipgloss.Style
+	PageInfo   lipgloss.Style
+	Navigation lipgloss.Style
+	Disabled   lipgloss.Style
+}
+
+// GetEvertrasPaginationStyles returns pagination footer styling configurations
+func GetEvertrasPaginationStyles() EvertrasPaginationStyles {
+	return EvertrasPaginationStyles{
+		Footer: lipgloss.NewStyle().
+			Foreground(TextMuted).
+			Background(BackgroundSecondary).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		PageInfo: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Bold(true),
+		Navigation: lipgloss.NewStyle().
+			Foreground(ClaudeSecondary).
+			Bold(true),
+		Disabled: lipgloss.NewStyle().
+			Foreground(DisabledColor),
+	}
+}
+
+// EvertrasSortStyles holds styling configurations for sort indicators
+type EvertrasSortStyles struct {
+	Indicator  lipgloss.Style
+	Ascending  lipgloss.Style
+	Descending lipgloss.Style
+	Neutral    lipgloss.Style
+}
+
+// GetEvertrasSortStyles returns sort indicator styling configurations
+func GetEvertrasSortStyles() EvertrasSortStyles {
+	return EvertrasSortStyles{
+		Indicator: lipgloss.NewStyle().
+			Foreground(ClaudePrimary).
+			Bold(true),
+		Ascending: lipgloss.NewStyle().
+			Foreground(SuccessColor).
+			Bold(true),
+		Descending: lipgloss.NewStyle().
+			Foreground(WarningColor).
+			Bold(true),
+		Neutral: lipgloss.NewStyle().
+			Foreground(TextMuted),
+	}
+}
+
+// ConfigureResponsiveEvertrasTable adjusts table dimensions and features based on terminal size
+// Disables certain features on very small terminals and adapts column widths for different screen sizes
+func ConfigureResponsiveEvertrasTable(model evertrastable.Model, width, height int) evertrastable.Model {
+	// Apply base configuration
+	configuredModel := ConfigureEvertrasTable(model)
+
+	// Adjust based on terminal size
+	switch {
+	case width < BreakpointSmall:
+		// Small terminal: minimal features, compact layout
+		configuredModel = configuredModel.
+			WithTargetWidth(width - 4).
+			WithMinimumHeight(height - 6)
+		// Disable pagination on very small screens
+		if height < 20 {
+			configuredModel = configuredModel.WithPageSize(0)
+		}
+
+	case width < BreakpointMedium:
+		// Medium terminal: balanced features
+		configuredModel = configuredModel.
+			WithTargetWidth(width - 8).
+			WithMinimumHeight(height - 8)
+
+	default:
+		// Large terminal: full features
+		configuredModel = configuredModel.
+			WithTargetWidth(width - 12).
+			WithMinimumHeight(height - 10)
+	}
+
+	return configuredModel
+}
+
+// StyleSortIndicator renders sort arrows for column headers based on sort direction
+func StyleSortIndicator(column, direction string) string {
+	styles := GetEvertrasSortStyles()
+
+	switch direction {
+	case "asc":
+		return styles.Ascending.Render("↑")
+	case "desc":
+		return styles.Descending.Render("↓")
+	default:
+		return styles.Neutral.Render("•")
+	}
+}
+
+// StylePaginationInfo renders page information with consistent styling
+func StylePaginationInfo(current, total int) string {
+	styles := GetEvertrasPaginationStyles()
+
+	if total <= 1 {
+		return ""
+	}
+
+	info := fmt.Sprintf("Page %d of %d", current, total)
+	return styles.PageInfo.Render(info)
+}
+
+// StyleRowSelection handles row state styling for selection and hover states
+func StyleRowSelection(content string, isSelected, isHovered bool) string {
+	styles := GetEvertrasRowStyles()
+
+	switch {
+	case isSelected:
+		return styles.Selected.Render(content)
+	case isHovered:
+		return styles.Hover.Render(content)
+	default:
+		return styles.Normal.Render(content)
+	}
+}
+
+// StyleFilterIndicator shows active filter status with visual feedback
+func StyleFilterIndicator(filterText string) string {
+	if filterText == "" {
+		return ""
+	}
+
+	filterStyle := lipgloss.NewStyle().
+		Foreground(InfoColor).
+		Background(BackgroundSecondary).
+		Bold(true).
+		Padding(0, 1)
+
+	return filterStyle.Render(fmt.Sprintf("Filter: %s", filterText))
 }
