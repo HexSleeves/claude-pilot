@@ -268,10 +268,9 @@ func createButtonStyle(foreground, background lipgloss.Color, options ButtonStyl
 }
 
 // Input styles
-func createInputStyle(foreground, background, borderForeground lipgloss.Color) lipgloss.Style {
+func createInputStyle(foreground, borderForeground lipgloss.Color) lipgloss.Style {
 	return lipgloss.NewStyle().
 		Foreground(foreground).
-		Background(background).
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(borderForeground).
 		Padding(0, 1).
@@ -311,10 +310,10 @@ var (
 	ButtonDisabledStyle = createButtonStyle(TextDisabled, DisabledColor, ButtonStyleOptions{})
 
 	// Form elements with enhanced styling
-	InputStyle         = createInputStyle(TextPrimary, BackgroundSecondary, TextMuted)
-	InputFocusedStyle  = createInputStyle(TextPrimary, BackgroundSecondary, FocusColor)
-	InputErrorStyle    = createInputStyle(TextPrimary, BackgroundSecondary, ErrorColor)
-	InputDisabledStyle = createInputStyle(TextDisabled, DisabledColor, DisabledColor)
+	InputStyle         = createInputStyle(TextPrimary, TextMuted)
+	InputFocusedStyle  = createInputStyle(TextPrimary, FocusColor)
+	InputErrorStyle    = createInputStyle(TextPrimary, ErrorColor)
+	InputDisabledStyle = createInputStyle(TextDisabled, DisabledColor)
 
 	LabelStyle         = createLabelStyle(TextPrimary, BackgroundSecondary)
 	LabelRequiredStyle = createLabelStyle(TextPrimary, BackgroundSecondary)

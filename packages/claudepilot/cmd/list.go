@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"sort"
 
 	"claude-pilot/core/api"
 	"claude-pilot/internal/ui"
@@ -74,25 +73,7 @@ Examples:
 			sessions = activeSessions
 		}
 
-		// Sort sessions
-		switch sortBy {
-		case "name":
-			sort.Slice(sessions, func(i, j int) bool {
-				return sessions[i].Name < sessions[j].Name
-			})
-		case "created":
-			sort.Slice(sessions, func(i, j int) bool {
-				return sessions[i].CreatedAt.Before(sessions[j].CreatedAt)
-			})
-		case "status":
-			sort.Slice(sessions, func(i, j int) bool {
-				return sessions[i].Status < sessions[j].Status
-			})
-		default: // "activity" or default
-			sort.Slice(sessions, func(i, j int) bool {
-				return sessions[i].LastActive.After(sessions[j].LastActive)
-			})
-		}
+		// Note: Sorting is now handled by the table component
 
 		// Display header with enhanced styling
 		fmt.Println(ui.Header("Claude Pilot Sessions"))
@@ -110,16 +91,33 @@ Examples:
 		// Convert API sessions to shared table format
 		sessionData := convertToSessionData(sessions)
 
-		// Create and configure table for CLI output
+		// Create and configure table for CLI output with enhanced features
 		table := components.NewTable(components.TableConfig{
-			Width:       120, // Reasonable width for CLI
-			ShowHeaders: true,
-			Interactive: false,
-			MaxRows:     0, // Show all rows
+			Width:         120, // Reasonable width for CLI
+			ShowHeaders:   true,
+			Interactive:   false,
+			MaxRows:       0, // Show all rows
+			SortEnabled:   true,
+			FilterEnabled: true,
 		})
 
 		// Set the session data
 		table.SetSessionData(sessionData)
+		
+		// Apply CLI sort option using table's built-in sorting
+		if sortBy != "" {
+			direction := "asc"
+			if sortBy == "activity" {
+				sortBy = "last_active"
+				direction = "desc" // Most recent first for activity
+			}
+			table.SetSort(sortBy, direction)
+		}
+		
+		// Apply CLI filter option using table's built-in filtering
+		if filter != "" && filter != "active" {
+			table.SetFilter(filter)
+		}
 
 		// Display sessions table using shared component
 		fmt.Println(table.RenderCLI())

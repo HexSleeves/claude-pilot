@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	lipglosstable "github.com/charmbracelet/lipgloss/table"
 	"github.com/evertras/bubble-table/table"
@@ -45,14 +47,8 @@ type TableConfig struct {
 	FilterEnabled bool
 	FilterText    string
 
-	// Multi-selection configuration
-	MultiSelectEnabled bool
-	SelectedRows       []int
-
-	// Display enhancements
-	HoverEnabled    bool
-	ShowRowNumbers  bool
-	ColumnWidthMode string // "fixed", "flex", "auto"
+	// Note: Removed unused multi-selection and display enhancement options
+	// These features are not currently utilized in CLI or TUI
 }
 
 // TableData represents structured data for table rendering
@@ -73,22 +69,146 @@ type SessionData struct {
 	ProjectPath string
 }
 
-// Table provides a unified table component for both CLI and TUI
+// Table provides a unified table component wrapping evertras/bubble-table
+// This is the primary table interface for both CLI and TUI components
 type Table struct {
 	config TableConfig
 	data   TableData
+
+	// Evertras table model - this is the core wrapped component
+	evertrasModel table.Model
+
+	// Internal state
+	initialized bool
+	keyMap      TableKeyMap
 }
 
-// NewTable creates a new table instance
-func NewTable(config TableConfig) *Table {
-	return &Table{
-		config: config,
+// TableKeyMap defines key bindings for table interaction
+type TableKeyMap struct {
+	Up       key.Binding
+	Down     key.Binding
+	Left     key.Binding
+	Right    key.Binding
+	PageUp   key.Binding
+	PageDown key.Binding
+	Home     key.Binding
+	End      key.Binding
+	Enter    key.Binding
+	Space    key.Binding
+	Filter   key.Binding
+	Sort     key.Binding
+}
+
+// DefaultTableKeyMap returns the default key bindings for table interaction
+func DefaultTableKeyMap() TableKeyMap {
+	return TableKeyMap{
+		Up:       key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
+		Down:     key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
+		Left:     key.NewBinding(key.WithKeys("left", "h"), key.WithHelp("←/h", "left")),
+		Right:    key.NewBinding(key.WithKeys("right", "l"), key.WithHelp("→/l", "right")),
+		PageUp:   key.NewBinding(key.WithKeys("pgup", "b"), key.WithHelp("pgup/b", "page up")),
+		PageDown: key.NewBinding(key.WithKeys("pgdown", "f"), key.WithHelp("pgdn/f", "page down")),
+		Home:     key.NewBinding(key.WithKeys("home", "g"), key.WithHelp("home/g", "top")),
+		End:      key.NewBinding(key.WithKeys("end", "G"), key.WithHelp("end/G", "bottom")),
+		Enter:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+		Space:    key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "toggle")),
+		Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+		Sort:     key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "sort")),
 	}
 }
 
-// SetData sets the table data
+// NewTable creates a new table instance with evertras wrapper
+func NewTable(config TableConfig) *Table {
+	t := &Table{
+		config: config,
+		keyMap: DefaultTableKeyMap(),
+	}
+
+	// Initialize the evertras model
+	t.initializeEvertrasModel()
+
+	return t
+}
+
+// initializeEvertrasModel sets up the underlying evertras table model
+func (t *Table) initializeEvertrasModel() {
+	// Create base model with default configuration
+	t.evertrasModel = table.New([]table.Column{}).WithBaseStyle(
+		lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(styles.ClaudePrimary).
+			Align(lipgloss.Left),
+	)
+
+	// Apply initial configuration
+	if t.config.Width > 0 {
+		t.evertrasModel = t.evertrasModel.WithTargetWidth(t.config.Width)
+	}
+
+	if t.config.MaxRows > 0 {
+		t.evertrasModel = t.evertrasModel.WithMinimumHeight(t.config.MaxRows)
+	}
+
+	if t.config.PageSize > 0 {
+		t.evertrasModel = t.evertrasModel.WithPageSize(t.config.PageSize)
+	}
+
+	// Configure for interactive use if enabled
+	if t.config.Interactive {
+		t.evertrasModel = t.evertrasModel.Focused(true)
+	}
+
+	t.initialized = true
+}
+
+// SetData sets the table data and updates the evertras model
 func (t *Table) SetData(data TableData) {
 	t.data = data
+	t.refreshEvertrasModel()
+}
+
+// refreshEvertrasModel updates the evertras model with current data and config
+func (t *Table) refreshEvertrasModel() {
+	if !t.initialized {
+		t.initializeEvertrasModel()
+	}
+
+	// Update columns
+	columns := t.ToEvertrasColumns()
+	if len(columns) > 0 {
+		t.evertrasModel = t.evertrasModel.WithColumns(columns)
+	}
+
+	// Update rows with processed data
+	rows := t.ToEvertrasRows()
+	if len(rows) > 0 {
+		t.evertrasModel = t.evertrasModel.WithRows(rows)
+	}
+
+	// Apply current configuration
+	t.applyConfigToEvertrasModel()
+}
+
+// applyConfigToEvertrasModel applies current config to the evertras model
+func (t *Table) applyConfigToEvertrasModel() {
+	if t.config.Width > 0 {
+		t.evertrasModel = t.evertrasModel.WithTargetWidth(t.config.Width)
+	}
+
+	if t.config.MaxRows > 0 {
+		t.evertrasModel = t.evertrasModel.WithMinimumHeight(t.config.MaxRows)
+	}
+
+	if t.config.PageSize > 0 {
+		t.evertrasModel = t.evertrasModel.WithPageSize(t.config.PageSize)
+	}
+
+	// Apply interactive state
+	if t.config.Interactive {
+		t.evertrasModel = t.evertrasModel.Focused(true)
+	} else {
+		t.evertrasModel = t.evertrasModel.Focused(false)
+	}
 }
 
 // SetSessionData converts session data to table format
@@ -156,69 +276,51 @@ func (t *Table) RenderCLI() string {
 	return tbl.String()
 }
 
-// RenderTUI renders the table for TUI output (can be interactive)
-func (t *Table) RenderTUI() string {
-	if len(t.data.Rows) == 0 {
-		return styles.Dim("No data to display.")
-	}
-
-	var builder strings.Builder
-
-	// Render headers if configured
-	if t.config.ShowHeaders && len(t.data.Headers) > 0 {
-		headerRow := make([]string, len(t.data.Headers))
-		for i, header := range t.data.Headers {
-			headerRow[i] = styles.TableHeaderStyle.Render(header)
-		}
-		builder.WriteString(strings.Join(headerRow, " ") + "\n")
-		builder.WriteString(styles.HorizontalLine(t.config.Width) + "\n")
-	}
-
-	// Render data rows
-	maxRows := len(t.data.Rows)
-	if t.config.MaxRows > 0 && t.config.MaxRows < maxRows {
-		maxRows = t.config.MaxRows
-	}
-
-	for i := 0; i < maxRows; i++ {
-		row := t.data.Rows[i]
-		isSelected := t.config.Interactive && i == t.config.SelectedRow
-
-		styledRow := make([]string, len(row))
-		for j, cell := range row {
-			styledRow[j] = t.styleCellForTUI(cell, j, isSelected)
-		}
-
-		rowString := strings.Join(styledRow, " ")
-		if isSelected {
-			rowString = styles.TableSelectedRowStyle.Render(rowString)
-		}
-		builder.WriteString(rowString + "\n")
-	}
-
-	return builder.String()
-}
-
 // SetSelectedRow updates the selected row for interactive mode
 func (t *Table) SetSelectedRow(row int) {
 	if row >= 0 && row < len(t.data.Rows) {
 		t.config.SelectedRow = row
+		// Update evertras model if initialized
+		if t.initialized {
+			// Note: evertras handles row selection through its own state
+			// This is maintained for compatibility with existing CLI rendering
+		}
 	}
 }
 
-// SetWidth sets the table width
+// SetWidth sets the table width and updates the evertras model
 func (t *Table) SetWidth(width int) {
 	t.config.Width = width
+	if t.initialized {
+		t.evertrasModel = t.evertrasModel.WithTargetWidth(width)
+	}
 }
 
 // SetMaxRows sets the maximum number of rows to display
 func (t *Table) SetMaxRows(maxRows int) {
 	t.config.MaxRows = maxRows
+	if t.initialized {
+		t.evertrasModel = t.evertrasModel.WithMinimumHeight(maxRows)
+	}
 }
 
 // GetSelectedRow returns the currently selected row index
+// For TUI mode, this returns the evertras highlighted row
+// For CLI mode, this returns the internal config value
 func (t *Table) GetSelectedRow() int {
+	if t.initialized && t.config.Interactive {
+		return t.evertrasModel.GetHighlightedRowIndex()
+	}
 	return t.config.SelectedRow
+}
+
+// GetHighlightedRowIndex returns the highlighted row from evertras model
+// This is the preferred method for TUI interactions
+func (t *Table) GetHighlightedRowIndex() int {
+	if t.initialized {
+		return t.evertrasModel.GetHighlightedRowIndex()
+	}
+	return -1
 }
 
 // GetRowCount returns the number of rows in the table
@@ -228,11 +330,14 @@ func (t *Table) GetRowCount() int {
 
 // GetSelectedData returns the data for the currently selected row
 func (t *Table) GetSelectedData() []string {
-	if t.config.SelectedRow >= 0 && t.config.SelectedRow < len(t.data.Rows) {
-		return t.data.Rows[t.config.SelectedRow]
+	selectedRow := t.GetSelectedRow()
+	if selectedRow >= 0 && selectedRow < len(t.data.Rows) {
+		return t.data.Rows[selectedRow]
 	}
 	return nil
 }
+
+// Note: Removed GetSelectedRows as multi-select is not used
 
 // Sorting Methods
 
@@ -257,6 +362,12 @@ func (t *Table) SetSort(column, direction string) error {
 
 	t.config.SortColumn = column
 	t.config.SortDirection = direction
+
+	// Apply to evertras model if initialized
+	if t.initialized {
+		t.SortByColumn(column, direction == "asc")
+	}
+
 	return nil
 }
 
@@ -323,62 +434,8 @@ func (t *Table) ClearFilter() {
 	t.config.FilterText = ""
 }
 
-// Selection Methods
-
-// SelectRow selects a row by index (for multi-select mode)
-func (t *Table) SelectRow(index int) error {
-	if !t.config.MultiSelectEnabled {
-		return fmt.Errorf("multi-select not enabled")
-	}
-
-	if index < 0 || index >= len(t.data.Rows) {
-		return fmt.Errorf("invalid row index: %d", index)
-	}
-
-	// Check if already selected
-	for _, selected := range t.config.SelectedRows {
-		if selected == index {
-			return nil // Already selected
-		}
-	}
-
-	t.config.SelectedRows = append(t.config.SelectedRows, index)
-	return nil
-}
-
-// DeselectRow deselects a row by index
-func (t *Table) DeselectRow(index int) error {
-	if !t.config.MultiSelectEnabled {
-		return fmt.Errorf("multi-select not enabled")
-	}
-
-	for i, selected := range t.config.SelectedRows {
-		if selected == index {
-			// Remove from slice
-			t.config.SelectedRows = append(t.config.SelectedRows[:i], t.config.SelectedRows[i+1:]...)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("row %d not selected", index)
-}
-
-// SelectAll selects all visible rows
-func (t *Table) SelectAll() {
-	if !t.config.MultiSelectEnabled {
-		return
-	}
-
-	t.config.SelectedRows = make([]int, len(t.data.Rows))
-	for i := range t.data.Rows {
-		t.config.SelectedRows[i] = i
-	}
-}
-
-// ClearSelection clears all selected rows
-func (t *Table) ClearSelection() {
-	t.config.SelectedRows = []int{}
-}
+// Note: Removed unused selection methods (SelectRow, DeselectRow, etc.)
+// Multi-select functionality is not used in current implementation
 
 // Data Retrieval Methods
 
@@ -668,87 +725,8 @@ func (t *Table) getColumnIndex(column string) int {
 	return -1
 }
 
-// sortSessionData sorts session data by the specified column and direction
-func sortSessionData(sessions []SessionData, column, direction string) []SessionData {
-	if len(sessions) == 0 {
-		return sessions
-	}
-
-	sortedSessions := make([]SessionData, len(sessions))
-	copy(sortedSessions, sessions)
-
-	sort.Slice(sortedSessions, func(i, j int) bool {
-		switch column {
-		case "id":
-			if direction == "desc" {
-				return sortedSessions[i].ID > sortedSessions[j].ID
-			}
-			return sortedSessions[i].ID < sortedSessions[j].ID
-		case "name":
-			if direction == "desc" {
-				return sortedSessions[i].Name > sortedSessions[j].Name
-			}
-			return sortedSessions[i].Name < sortedSessions[j].Name
-		case "status":
-			if direction == "desc" {
-				return sortedSessions[i].Status > sortedSessions[j].Status
-			}
-			return sortedSessions[i].Status < sortedSessions[j].Status
-		case "backend":
-			if direction == "desc" {
-				return sortedSessions[i].Backend > sortedSessions[j].Backend
-			}
-			return sortedSessions[i].Backend < sortedSessions[j].Backend
-		case "created":
-			if direction == "desc" {
-				return sortedSessions[i].Created.After(sortedSessions[j].Created)
-			}
-			return sortedSessions[i].Created.Before(sortedSessions[j].Created)
-		case "last_active":
-			if direction == "desc" {
-				return sortedSessions[i].LastActive.After(sortedSessions[j].LastActive)
-			}
-			return sortedSessions[i].LastActive.Before(sortedSessions[j].LastActive)
-		case "project":
-			if direction == "desc" {
-				return sortedSessions[i].ProjectPath > sortedSessions[j].ProjectPath
-			}
-			return sortedSessions[i].ProjectPath < sortedSessions[j].ProjectPath
-		case "messages":
-			if direction == "desc" {
-				return sortedSessions[i].Messages > sortedSessions[j].Messages
-			}
-			return sortedSessions[i].Messages < sortedSessions[j].Messages
-		default:
-			return false
-		}
-	})
-
-	return sortedSessions
-}
-
-// filterSessionData filters session data based on the filter text
-func filterSessionData(sessions []SessionData, filterText string) []SessionData {
-	if filterText == "" {
-		return sessions
-	}
-
-	filterText = strings.ToLower(filterText)
-	var filteredSessions []SessionData
-
-	for _, session := range sessions {
-		// Check if any field contains the filter text
-		if strings.Contains(strings.ToLower(session.ID), filterText) ||
-			strings.Contains(strings.ToLower(session.Name), filterText) ||
-			strings.Contains(strings.ToLower(session.Status), filterText) ||
-			strings.Contains(strings.ToLower(session.Backend), filterText) ||
-			strings.Contains(strings.ToLower(session.ProjectPath), filterText) {
-			filteredSessions = append(filteredSessions, session)
-		}
-	}
-
-	return filteredSessions
-}
+// Note: Removed duplicate sortSessionData and filterSessionData functions
+// These are redundant as the table already has sortTableData and filterTableData methods
 
 // Utility functions - Enhanced with comprehensive status formatting
 
@@ -829,17 +807,8 @@ func (t *Table) ToEvertrasColumns() []table.Column {
 	// Calculate column widths based on content and terminal width
 	columnWidths := styles.GetTableColumnWidths(t.config.Width, len(t.data.Headers))
 
-	// Apply column width mode
-	switch t.config.ColumnWidthMode {
-	case "fixed":
-		return t.createFixedWidthColumns(columnWidths)
-	case "flex":
-		return t.createFlexColumns()
-	case "auto":
-		return t.createAutoColumns(columnWidths)
-	default:
-		return t.createDefaultColumns(columnWidths)
-	}
+	// Use default column configuration
+	return t.createDefaultColumns(columnWidths)
 }
 
 // createDefaultColumns creates columns with default configuration
@@ -856,48 +825,8 @@ func (t *Table) createDefaultColumns(columnWidths []int) []table.Column {
 	}
 }
 
-// createFixedWidthColumns creates columns with fixed widths
-func (t *Table) createFixedWidthColumns(columnWidths []int) []table.Column {
-	return []table.Column{
-		t.createEvertrasColumn(columnKeyID, "ID", 12, styles.TextMuted, false),
-		t.createEvertrasColumn(columnKeyName, "Name", 20, styles.TextPrimary, true),
-		t.createEvertrasColumn(columnKeyStatus, "Status", 10, styles.TextSecondary, false),
-		t.createEvertrasColumn(columnKeyBackend, "Backend", 8, styles.TextSecondary, false),
-		t.createEvertrasColumn(columnKeyCreated, "Created", 16, styles.TextMuted, false),
-		t.createEvertrasColumn(columnKeyLastActive, "Last Active", 12, styles.TextMuted, false),
-		t.createEvertrasColumn(columnKeyProject, "Project", 30, styles.TextMuted, false),
-		t.createEvertrasColumn(columnKeyMessages, "Messages", 8, styles.TextSecondary, false),
-	}
-}
-
-// createFlexColumns creates columns with flexible widths
-func (t *Table) createFlexColumns() []table.Column {
-	return []table.Column{
-		t.createEvertrasFlexColumn(columnKeyID, "ID", 1, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyName, "Name", 3, styles.TextPrimary, true),
-		t.createEvertrasFlexColumn(columnKeyStatus, "Status", 1, styles.TextSecondary, false),
-		t.createEvertrasFlexColumn(columnKeyBackend, "Backend", 1, styles.TextSecondary, false),
-		t.createEvertrasFlexColumn(columnKeyCreated, "Created", 2, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyLastActive, "Last Active", 2, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyProject, "Project", 3, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyMessages, "Messages", 1, styles.TextSecondary, false),
-	}
-}
-
-// createAutoColumns creates columns with automatic width calculation
-func (t *Table) createAutoColumns(columnWidths []int) []table.Column {
-	// Use a mix of fixed and flex columns for optimal display
-	return []table.Column{
-		t.createEvertrasColumn(columnKeyID, "ID", 12, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyName, "Name", 2, styles.TextPrimary, true),
-		t.createEvertrasColumn(columnKeyStatus, "Status", 10, styles.TextSecondary, false),
-		t.createEvertrasColumn(columnKeyBackend, "Backend", 8, styles.TextSecondary, false),
-		t.createEvertrasFlexColumn(columnKeyCreated, "Created", 1, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyLastActive, "Last Active", 1, styles.TextMuted, false),
-		t.createEvertrasFlexColumn(columnKeyProject, "Project", 2, styles.TextMuted, false),
-		t.createEvertrasColumn(columnKeyMessages, "Messages", 8, styles.TextSecondary, false),
-	}
-}
+// Note: Removed unused createFixedWidthColumns, createFlexColumns, and createAutoColumns methods
+// These complex column creation methods were never used as ColumnWidthMode is not utilized
 
 // createEvertrasColumn creates a standard column with enhanced styling
 func (t *Table) createEvertrasColumn(key, title string, width int, color lipgloss.Color, bold bool) table.Column {
@@ -944,79 +873,10 @@ func (t *Table) ToEvertrasRows() []table.Row {
 	return rows
 }
 
-// ToEvertrasSessionRows converts session data directly to table.Row format
-func ToEvertrasSessionRows(sessions []SessionData) []table.Row {
-	if len(sessions) == 0 {
-		return nil
-	}
+// Note: Removed unused ToEvertrasSessionRows and GetEvertrasTableColumns functions
+// These are replaced by instance methods ToEvertrasRows and ToEvertrasColumns
 
-	rows := make([]table.Row, len(sessions))
-	for i, session := range sessions {
-		rows[i] = table.NewRow(table.RowData{
-			columnKeyID:         styles.TruncateText(session.ID, 11),
-			columnKeyName:       styles.TruncateText(session.Name, 19),
-			columnKeyStatus:     session.Status,
-			columnKeyBackend:    session.Backend,
-			columnKeyCreated:    session.Created.Format("2006-01-02 15:04"),
-			columnKeyLastActive: formatTimeAgoPlain(session.LastActive),
-			columnKeyMessages:   fmt.Sprintf("%d", session.Messages),
-			columnKeyProject:    formatProjectPathPlain(session.ProjectPath, 29),
-		})
-	}
-
-	return rows
-}
-
-// GetEvertrasTableColumns returns predefined column definitions for session table
-func GetEvertrasTableColumns() []table.Column {
-	return []table.Column{
-		table.NewColumn(columnKeyID, "ID", 12).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted),
-		),
-		table.NewFlexColumn(columnKeyName, "Name", 1).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextPrimary).Bold(true).Align(lipgloss.Center),
-		),
-		table.NewColumn(columnKeyStatus, "Status", 10).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
-		),
-		table.NewColumn(columnKeyBackend, "Backend", 8).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
-		),
-		table.NewFlexColumn(columnKeyCreated, "Created", 1).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
-		),
-		table.NewFlexColumn(columnKeyLastActive, "Last Active", 1).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
-		),
-		table.NewFlexColumn(columnKeyProject, "Project", 1).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
-		),
-		table.NewFlexColumn(columnKeyMessages, "Messages", 1).WithStyle(
-			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
-		),
-	}
-}
-
-// AsEvertrasModel configures an evertras table model with data and styling
-func (t *Table) AsEvertrasModel(baseModel table.Model) table.Model {
-	// Set columns and rows
-	model := baseModel.
-		WithColumns(t.ToEvertrasColumns()).
-		WithRows(t.ToEvertrasRows())
-
-	// Configure dimensions
-	if t.config.Width > 0 {
-		model = model.WithTargetWidth(t.config.Width)
-	}
-	if t.config.MaxRows > 0 {
-		model = model.WithMinimumHeight(t.config.MaxRows)
-	}
-
-	// Apply interactive features
-	model = t.ConfigureInteractiveFeatures(model)
-
-	return model
-}
+// Note: Removed AsEvertrasModel - not used in current implementation
 
 // ConfigureInteractiveFeatures applies all interactive settings to the evertras model
 func (t *Table) ConfigureInteractiveFeatures(model table.Model) table.Model {
@@ -1029,12 +889,7 @@ func (t *Table) ConfigureInteractiveFeatures(model table.Model) table.Model {
 		}
 	}
 
-	// Configure multi-selection if enabled
-	if t.config.MultiSelectEnabled {
-		model = model.WithMultiline(true)
-		// Note: Individual row selection must be handled through key events
-		// in the consuming TUI application
-	}
+	// Note: Multi-selection configuration removed (not used)
 
 	// Apply base styling
 	model = model.WithBaseStyle(styles.GetEvertrasTableStyles())
@@ -1099,10 +954,7 @@ func (t *Table) convertToEvertrasRows(data [][]string) []table.Row {
 				columnKeyMessages:   row[7],
 			}
 
-			// Add row numbers if enabled
-			if t.config.ShowRowNumbers {
-				rowData["row_number"] = fmt.Sprintf("%d", i+1)
-			}
+			// Note: Row numbers feature removed (not used)
 
 			rows[i] = table.NewRow(rowData)
 		}
@@ -1152,4 +1004,223 @@ func formatProjectPathPlain(path string, maxLen int) string {
 	}
 
 	return path
+}
+
+// ===== BUBBLE TEA INTERFACE METHODS =====
+// These methods provide the Bubble Tea interface for TUI usage
+
+// Init initializes the table for Bubble Tea
+func (t *Table) Init() tea.Cmd {
+	if !t.initialized {
+		t.initializeEvertrasModel()
+	}
+	return t.evertrasModel.Init()
+}
+
+// Update handles Bubble Tea messages and key events
+func (t *Table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if !t.initialized {
+		t.initializeEvertrasModel()
+	}
+
+	// Pass all key events directly to evertras for better performance
+
+	// Pass message to evertras model
+	var cmd tea.Cmd
+	t.evertrasModel, cmd = t.evertrasModel.Update(msg)
+
+	return t, cmd
+}
+
+// View renders the table for Bubble Tea
+func (t *Table) View() string {
+	if !t.initialized {
+		t.initializeEvertrasModel()
+	}
+	return t.evertrasModel.View()
+}
+
+// handleKeyEvent processes key events for table navigation
+// Simplified to let evertras handle navigation directly
+func (t *Table) handleKeyEvent(msg tea.KeyMsg) tea.Cmd {
+	// Let evertras table handle all key events natively
+	return nil
+}
+
+// Note: Removed unused navigation methods (MoveUp, MoveDown, etc.)
+// These wrapper methods are not used by the TUI, which handles navigation
+// through the underlying evertras model directly
+
+// ===== EVERTRAS MODEL ACCESS =====
+// These methods provide direct access to the underlying evertras model
+
+// GetEvertrasTableColumns returns predefined column definitions for session table
+func GetEvertrasTableColumns() []table.Column {
+	return []table.Column{
+		table.NewColumn(columnKeyID, "ID", 12).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted),
+		),
+		table.NewFlexColumn(columnKeyName, "Name", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextPrimary).Bold(true).Align(lipgloss.Center),
+		),
+		table.NewColumn(columnKeyStatus, "Status", 10).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
+		),
+		table.NewColumn(columnKeyBackend, "Backend", 8).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
+		),
+		table.NewFlexColumn(columnKeyCreated, "Created", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
+		),
+		table.NewFlexColumn(columnKeyLastActive, "Last Active", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
+		),
+		table.NewFlexColumn(columnKeyProject, "Project", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextMuted).Align(lipgloss.Center),
+		),
+		table.NewFlexColumn(columnKeyMessages, "Messages", 1).WithStyle(
+			lipgloss.NewStyle().Foreground(styles.TextSecondary).Align(lipgloss.Center),
+		),
+	}
+}
+
+// ToEvertrasSessionRows converts session data directly to table.Row format
+func ToEvertrasSessionRows(sessions []SessionData) []table.Row {
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	rows := make([]table.Row, len(sessions))
+	for i, session := range sessions {
+		rows[i] = table.NewRow(table.RowData{
+			columnKeyID:         styles.TruncateText(session.ID, 11),
+			columnKeyName:       styles.TruncateText(session.Name, 19),
+			columnKeyStatus:     session.Status,
+			columnKeyBackend:    session.Backend,
+			columnKeyCreated:    session.Created.Format("2006-01-02 15:04"),
+			columnKeyLastActive: formatTimeAgoPlain(session.LastActive),
+			columnKeyMessages:   fmt.Sprintf("%d", session.Messages),
+			columnKeyProject:    formatProjectPathPlain(session.ProjectPath, 29),
+		})
+	}
+
+	return rows
+}
+
+// GetEvertrasModel returns the underlying evertras table model
+// Use this for advanced evertras-specific functionality
+func (t *Table) GetEvertrasModel() table.Model {
+	if !t.initialized {
+		t.initializeEvertrasModel()
+	}
+	return t.evertrasModel
+}
+
+// SetEvertrasModel allows setting a custom evertras model
+// Use this for advanced customization
+func (t *Table) SetEvertrasModel(model table.Model) {
+	t.evertrasModel = model
+	t.initialized = true
+}
+
+// WithEvertrasModel applies a transformation to the evertras model
+// This allows chaining evertras-specific methods
+func (t *Table) WithEvertrasModel(fn func(table.Model) table.Model) *Table {
+	if !t.initialized {
+		t.initializeEvertrasModel()
+	}
+	t.evertrasModel = fn(t.evertrasModel)
+	return t
+}
+
+// ===== FOCUS AND INTERACTION =====
+
+// Focus sets the table as focused for interactive use
+func (t *Table) Focus() {
+	t.config.Interactive = true
+	if t.initialized {
+		t.evertrasModel = t.evertrasModel.Focused(true)
+	}
+}
+
+// Blur removes focus from the table
+func (t *Table) Blur() {
+	t.config.Interactive = false
+	if t.initialized {
+		t.evertrasModel = t.evertrasModel.Focused(false)
+	}
+}
+
+// IsFocused returns whether the table is currently focused
+func (t *Table) IsFocused() bool {
+	if t.initialized {
+		return t.evertrasModel.GetFocused()
+	}
+	return t.config.Interactive
+}
+
+// Note: Removed unused selection methods (ToggleRowSelection, SelectAllRows, etc.)
+// Multi-select functionality is not currently used in CLI or TUI
+
+// ===== SORTING METHODS =====
+
+// SortByColumn sorts the table by the specified column
+func (t *Table) SortByColumn(columnKey string, ascending bool) {
+	if t.initialized {
+		if ascending {
+			t.evertrasModel = t.evertrasModel.SortByAsc(columnKey)
+		} else {
+			t.evertrasModel = t.evertrasModel.SortByDesc(columnKey)
+		}
+	}
+
+	// Update internal config
+	t.config.SortColumn = columnKey
+	if ascending {
+		t.config.SortDirection = "asc"
+	} else {
+		t.config.SortDirection = "desc"
+	}
+}
+
+// ===== FILTERING METHODS =====
+
+// SetFilterText sets the filter text and applies it
+func (t *Table) SetFilterText(text string) {
+	t.SetFilter(text)
+	if t.initialized {
+		// Custom filter function that matches our existing logic
+		t.evertrasModel = t.evertrasModel.WithFilterFunc(func(row table.Row, filterInput string) bool {
+			if filterInput == "" {
+				return true
+			}
+
+			lowerText := strings.ToLower(filterInput)
+			// Check all column values
+			for key := range row.Data {
+				if val, ok := row.Data[key].(string); ok {
+					if strings.Contains(strings.ToLower(val), lowerText) {
+						return true
+					}
+				}
+			}
+			return false
+		})
+	}
+}
+
+// GetFilterText returns the current filter text
+func (t *Table) GetFilterText() string {
+	if t.initialized {
+		return t.evertrasModel.GetCurrentFilter()
+	}
+	return t.config.FilterText
+}
+
+// CanFilter returns whether filtering is enabled
+func (t *Table) CanFilter() bool {
+	if t.initialized {
+		return t.evertrasModel.GetCanFilter()
+	}
+	return t.config.FilterEnabled
 }

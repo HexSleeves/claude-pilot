@@ -11,7 +11,8 @@
       "Bash(go get:*)",
       "Bash(go list:*)",
       "Bash(go mod:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "WebFetch(domain:pkg.go.dev)"
     ],
     "deny": []
   }
