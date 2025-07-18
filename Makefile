@@ -28,7 +28,7 @@ build-claudepilot: $(GO_CLAUDEPILOT)
 .PHONY: build-tui
 build-tui: $(GO_TUI)
 	@echo "Building $(TUI_BINARY_NAME)..."
-	@cd $(TUI_DIR) && go build -o ../../$(TUI_BINARY_NAME) .
+	@cd $(TUI_DIR)/cmd && go build -o ../../../$(TUI_BINARY_NAME) .
 
 # Install dependencies for both
 .PHONY: deps

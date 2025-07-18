@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"claude-pilot/core/api"
