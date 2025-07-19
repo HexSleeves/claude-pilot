@@ -4,7 +4,6 @@ import (
 	"claude-pilot/core/api"
 	"claude-pilot/shared/components"
 	"claude-pilot/shared/interfaces"
-	"sort"
 	"strings"
 	"time"
 
@@ -289,29 +288,6 @@ func (m Model) View() string {
 	}
 }
 
-// handleTablePagination handles page navigation
-func (m *Model) handleTablePagination(action string) tea.Cmd {
-	totalPages := m.calculateTotalPages()
-
-	switch action {
-	case "next":
-		if m.tableCurrentPage < totalPages {
-			m.tableCurrentPage++
-		}
-	case "prev":
-		if m.tableCurrentPage > 1 {
-			m.tableCurrentPage--
-		}
-	case "first":
-		m.tableCurrentPage = 1
-	case "last":
-		m.tableCurrentPage = totalPages
-	}
-
-	m.refreshTableWithCurrentState()
-	return nil
-}
-
 // handleTableSelection manages row selection
 func (m *Model) handleTableSelection(action string, rowIndex int) tea.Cmd {
 	switch action {
@@ -366,85 +342,11 @@ func (m *Model) refreshTableWithCurrentState() {
 	m.syncTableState()
 }
 
-// updateTableDimensions handles responsive table sizing
-func (m *Model) updateTableDimensions() {
-	m.recalculateTable()
-}
-
 // syncTableState keeps model state in sync with table component state
 func (m *Model) syncTableState() {
 	// Apply current state to the table component
 	// This method ensures the evertras table reflects our model state
 	m.table = m.table.WithTargetWidth(m.calculateWidth()).WithMinimumHeight(m.calculateHeight())
-}
-
-// calculateTotalPages calculates total pages based on current data and page size
-func (m *Model) calculateTotalPages() int {
-	if m.tablePageSize <= 0 {
-		return 1
-	}
-
-	totalRows := len(m.sessions)
-	return (totalRows + m.tablePageSize - 1) / m.tablePageSize
-}
-
-// sortSessionData sorts session data by the specified column and direction
-func (m *Model) sortSessionData(sessions []components.SessionData, column, direction string) []components.SessionData {
-	if len(sessions) == 0 {
-		return sessions
-	}
-
-	sortedSessions := make([]components.SessionData, len(sessions))
-	copy(sortedSessions, sessions)
-
-	sort.Slice(sortedSessions, func(i, j int) bool {
-		switch column {
-		case "id":
-			if direction == "desc" {
-				return sortedSessions[i].ID > sortedSessions[j].ID
-			}
-			return sortedSessions[i].ID < sortedSessions[j].ID
-		case "name":
-			if direction == "desc" {
-				return sortedSessions[i].Name > sortedSessions[j].Name
-			}
-			return sortedSessions[i].Name < sortedSessions[j].Name
-		case "status":
-			if direction == "desc" {
-				return sortedSessions[i].Status > sortedSessions[j].Status
-			}
-			return sortedSessions[i].Status < sortedSessions[j].Status
-		case "backend":
-			if direction == "desc" {
-				return sortedSessions[i].Backend > sortedSessions[j].Backend
-			}
-			return sortedSessions[i].Backend < sortedSessions[j].Backend
-		case "created":
-			if direction == "desc" {
-				return sortedSessions[i].Created.After(sortedSessions[j].Created)
-			}
-			return sortedSessions[i].Created.Before(sortedSessions[j].Created)
-		case "last_active":
-			if direction == "desc" {
-				return sortedSessions[i].LastActive.After(sortedSessions[j].LastActive)
-			}
-			return sortedSessions[i].LastActive.Before(sortedSessions[j].LastActive)
-		case "project":
-			if direction == "desc" {
-				return sortedSessions[i].ProjectPath > sortedSessions[j].ProjectPath
-			}
-			return sortedSessions[i].ProjectPath < sortedSessions[j].ProjectPath
-		case "messages":
-			if direction == "desc" {
-				return sortedSessions[i].Messages > sortedSessions[j].Messages
-			}
-			return sortedSessions[i].Messages < sortedSessions[j].Messages
-		default:
-			return false
-		}
-	})
-
-	return sortedSessions
 }
 
 // paginateSessionData returns a specific page of session data
@@ -522,26 +424,6 @@ func (m *Model) handleTableViewKeys(msg tea.KeyMsg) tea.Cmd {
 			m.isLoading = true
 			m.currentView = Loading
 			return loadSessionsCmd(m.client)
-		}
-
-	// Table pagination keys
-	case key.Matches(msg, m.keymap.NextPage):
-		return m.handleTablePagination("next")
-	case key.Matches(msg, m.keymap.PrevPage):
-		return m.handleTablePagination("prev")
-	case key.Matches(msg, m.keymap.FirstPage):
-		return m.handleTablePagination("first")
-	case key.Matches(msg, m.keymap.LastPage):
-		return m.handleTablePagination("last")
-	case key.Matches(msg, m.keymap.PageSizeIncrease):
-		if m.tablePageSize < 50 {
-			m.tablePageSize += 5
-			m.refreshTableWithCurrentState()
-		}
-	case key.Matches(msg, m.keymap.PageSizeDecrease):
-		if m.tablePageSize > 5 {
-			m.tablePageSize -= 5
-			m.refreshTableWithCurrentState()
 		}
 
 	// Table selection keys

@@ -32,27 +32,6 @@ type KeyMap struct {
 	Help key.Binding
 	Back key.Binding
 
-	// Table sorting
-	SortByName          key.Binding
-	SortByStatus        key.Binding
-	SortByCreated       key.Binding
-	SortByLastActive    key.Binding
-	ToggleSortDirection key.Binding
-	ClearSort           key.Binding
-
-	// Table pagination
-	NextPage         key.Binding
-	PrevPage         key.Binding
-	FirstPage        key.Binding
-	LastPage         key.Binding
-	PageSizeIncrease key.Binding
-	PageSizeDecrease key.Binding
-
-	// Table filtering
-	ToggleFilter key.Binding
-	ClearFilter  key.Binding
-	FocusFilter  key.Binding
-
 	// Table selection
 	SelectAll          key.Binding
 	DeselectAll        key.Binding
@@ -144,72 +123,6 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("esc", "back"),
 		),
 
-		// Table sorting
-		SortByName: key.NewBinding(
-			key.WithKeys("s", "n"),
-			key.WithHelp("s/n", "sort by name"),
-		),
-		SortByStatus: key.NewBinding(
-			key.WithKeys("s", "s"),
-			key.WithHelp("s+s", "sort by status"),
-		),
-		SortByCreated: key.NewBinding(
-			key.WithKeys("s", "c"),
-			key.WithHelp("s+c", "sort by created"),
-		),
-		SortByLastActive: key.NewBinding(
-			key.WithKeys("s", "a"),
-			key.WithHelp("s+a", "sort by last active"),
-		),
-		ToggleSortDirection: key.NewBinding(
-			key.WithKeys("s", "d"),
-			key.WithHelp("s+d", "toggle sort direction"),
-		),
-		ClearSort: key.NewBinding(
-			key.WithKeys("s", "x"),
-			key.WithHelp("s+x", "clear sort"),
-		),
-
-		// Table pagination
-		NextPage: key.NewBinding(
-			key.WithKeys("ctrl+n"),
-			key.WithHelp("ctrl+n", "next page"),
-		),
-		PrevPage: key.NewBinding(
-			key.WithKeys("ctrl+p"),
-			key.WithHelp("ctrl+p", "previous page"),
-		),
-		FirstPage: key.NewBinding(
-			key.WithKeys("g", "g"),
-			key.WithHelp("g+g", "first page"),
-		),
-		LastPage: key.NewBinding(
-			key.WithKeys("G"),
-			key.WithHelp("G", "last page"),
-		),
-		PageSizeIncrease: key.NewBinding(
-			key.WithKeys("+"),
-			key.WithHelp("+", "increase page size"),
-		),
-		PageSizeDecrease: key.NewBinding(
-			key.WithKeys("-"),
-			key.WithHelp("-", "decrease page size"),
-		),
-
-		// Table filtering
-		ToggleFilter: key.NewBinding(
-			key.WithKeys("/"),
-			key.WithHelp("/", "toggle filter"),
-		),
-		ClearFilter: key.NewBinding(
-			key.WithKeys("ctrl+l"),
-			key.WithHelp("ctrl+l", "clear filter"),
-		),
-		FocusFilter: key.NewBinding(
-			key.WithKeys("ctrl+f"),
-			key.WithHelp("ctrl+f", "focus filter"),
-		),
-
 		// Table selection
 		SelectAll: key.NewBinding(
 			key.WithKeys("ctrl+a"),
@@ -250,7 +163,6 @@ func (k KeyMap) ShortHelp() []key.Binding {
 		k.Attach,
 		k.Create,
 		k.Kill,
-		k.ToggleFilter,
 		k.ToggleRowSelection,
 		k.Help,
 		k.Quit,
@@ -266,14 +178,6 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		{k.Attach, k.Create, k.Kill, k.Refresh},
 		// Confirmation
 		{k.Yes, k.No},
-		// Table Sorting
-		{k.SortByName, k.SortByStatus, k.SortByCreated, k.SortByLastActive},
-		{k.ToggleSortDirection, k.ClearSort},
-		// Table Pagination
-		{k.NextPage, k.PrevPage, k.FirstPage, k.LastPage},
-		{k.PageSizeIncrease, k.PageSizeDecrease},
-		// Table Filtering
-		{k.ToggleFilter, k.ClearFilter, k.FocusFilter},
 		// Table Selection
 		{k.SelectAll, k.DeselectAll, k.ToggleRowSelection, k.InvertSelection},
 		// Table View Options
