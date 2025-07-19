@@ -43,17 +43,6 @@ func renderTableView(m Model) string {
 		b.WriteString(m.table.View())
 	}
 
-	// Pagination information
-	if m.tablePageSize > 0 {
-		currentPage, totalPages, startRow, endRow, totalRows := m.getCurrentPageInfo()
-		paginationInfo := fmt.Sprintf("Page %d of %d • Rows %d-%d of %d • Page size: %d",
-			currentPage, totalPages, startRow, endRow, totalRows, m.tablePageSize)
-		b.WriteString("\n")
-		b.WriteString(styles.StylePaginationInfo(currentPage, totalPages))
-		b.WriteString(" ")
-		b.WriteString(styles.MutedTextStyle.Render(paginationInfo))
-	}
-
 	b.WriteString("\n\n")
 
 	// Footer with key shortcuts

@@ -63,6 +63,7 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 	session := &interfaces.Session{
 		ID:          uuid.New().String(),
 		Name:        name,
+		Backend:     s.multiplexer.GetName(),
 		Status:      interfaces.StatusActive,
 		CreatedAt:   time.Now(),
 		LastActive:  time.Now(),

@@ -467,26 +467,6 @@ func (m *Model) paginateSessionData(sessions []components.SessionData, page, pag
 	return sessions[startIndex:endIndex]
 }
 
-// getCurrentPageInfo returns information about the current page
-func (m *Model) getCurrentPageInfo() (currentPage, totalPages, startRow, endRow, totalRows int) {
-	totalRows = len(m.sessions)
-
-	if m.tablePageSize <= 0 {
-		return 1, 1, 1, totalRows, totalRows
-	}
-
-	currentPage = m.tableCurrentPage
-	totalPages = m.calculateTotalPages()
-
-	startRow = (currentPage-1)*m.tablePageSize + 1
-	endRow = currentPage * m.tablePageSize
-	if endRow > totalRows {
-		endRow = totalRows
-	}
-
-	return currentPage, totalPages, startRow, endRow, totalRows
-}
-
 func (m *Model) recalculateTable() {
 	width := m.calculateWidth()
 	// height := m.calculateHeight()
@@ -662,7 +642,7 @@ func (m *Model) updateTableData() {
 			ID:          session.ID,
 			Name:        session.Name,
 			Status:      string(session.Status),
-			Backend:     "claude", // Default backend for now
+			Backend:     session.Backend,
 			Created:     session.CreatedAt,
 			LastActive:  session.LastActive,
 			Messages:    len(session.Messages),
@@ -676,7 +656,7 @@ func (m *Model) updateTableData() {
 	}
 
 	// Use shared component's method to convert to evertras rows
-	rows := components.ToEvertrasSessionRows(sessionData)
+	rows := components.GetEvertrasSessionRows(sessionData, m.calculateWidth())
 
 	// Update evertras table with new rows
 	m.table = m.table.WithRows(rows)

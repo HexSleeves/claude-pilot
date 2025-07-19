@@ -89,8 +89,7 @@ Examples:
 
 		// Convert API sessions to shared table format and display
 		sessionData := convertToSessionDataForKill(sessions)
-		table := components.NewTable(components.TableConfig{
-			Width:       120,
+		table := components.NewSessionTable(components.TableConfig{
 			ShowHeaders: true,
 			Interactive: false,
 			MaxRows:     0,
@@ -146,7 +145,7 @@ func convertToSessionDataForKill(sessions []*api.Session) []components.SessionDa
 			ID:          sess.ID,
 			Name:        sess.Name,
 			Status:      string(sess.Status),
-			Backend:     "claude", // Default backend for Claude sessions
+			Backend:     sess.Backend,
 			Created:     sess.CreatedAt,
 			LastActive:  sess.LastActive,
 			Messages:    len(sess.Messages),

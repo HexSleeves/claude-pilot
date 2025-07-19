@@ -92,18 +92,16 @@ Examples:
 		sessionData := convertToSessionData(sessions)
 
 		// Create and configure table for CLI output with enhanced features
-		table := components.NewTable(components.TableConfig{
-			Width:         120, // Reasonable width for CLI
-			ShowHeaders:   true,
-			Interactive:   false,
-			MaxRows:       0, // Show all rows
-			SortEnabled:   true,
-			FilterEnabled: true,
+		table := components.NewSessionTable(components.TableConfig{
+			ShowHeaders: true,
+			Interactive: false,
+			MaxRows:     0, // Show all rows
+			SortEnabled: true,
 		})
 
 		// Set the session data
 		table.SetSessionData(sessionData)
-		
+
 		// Apply CLI sort option using table's built-in sorting
 		if sortBy != "" {
 			direction := "asc"
@@ -113,10 +111,11 @@ Examples:
 			}
 			table.SetSort(sortBy, direction)
 		}
-		
+
 		// Apply CLI filter option using table's built-in filtering
 		if filter != "" && filter != "active" {
-			table.SetFilter(filter)
+			// TODO: Implement filtering
+			// table.SetFilter(filter)
 		}
 
 		// Display sessions table using shared component
@@ -154,7 +153,7 @@ func convertToSessionData(sessions []*api.Session) []components.SessionData {
 			ID:          sess.ID,
 			Name:        sess.Name,
 			Status:      string(sess.Status),
-			Backend:     "claude", // Default backend for Claude sessions
+			Backend:     sess.Backend,
 			Created:     sess.CreatedAt,
 			LastActive:  sess.LastActive,
 			Messages:    len(sess.Messages),

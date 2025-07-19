@@ -26,6 +26,7 @@ type Session struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
 	Status      SessionStatus `json:"status"`
+	Backend     string        `json:"backend"`
 	CreatedAt   time.Time     `json:"created_at"`
 	LastActive  time.Time     `json:"last_active"`
 	ProjectPath string        `json:"project_path"`

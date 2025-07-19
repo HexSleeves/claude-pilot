@@ -2,9 +2,9 @@ package styles
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
-	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 	evertrastable "github.com/evertras/bubble-table/table"
 )
@@ -14,9 +14,11 @@ func TruncateText(text string, maxLen int) string {
 	if len(text) <= maxLen {
 		return text
 	}
+
 	if maxLen <= 3 {
 		return text[:maxLen]
 	}
+
 	return text[:maxLen-3] + "..."
 }
 
@@ -77,32 +79,6 @@ func ResponsiveMargin(width int) (horizontal, vertical int) {
 		return 1, 0
 	default:
 		return 2, 1
-	}
-}
-
-// Get appropriate table column widths based on terminal size
-func GetTableColumnWidths(terminalWidth int, numColumns int) []int {
-	availableWidth := terminalWidth - (numColumns * 3) // Account for borders and padding
-	baseWidth := availableWidth / numColumns
-
-	switch {
-	case terminalWidth < BreakpointSmall:
-		// Compact layout for small terminals
-		return []int{baseWidth, baseWidth, baseWidth}[:numColumns]
-	case terminalWidth < BreakpointMedium:
-		// Balanced layout for medium terminals
-		if numColumns >= 3 {
-			return []int{baseWidth * 2, baseWidth, baseWidth}
-		}
-		return []int{baseWidth, baseWidth}[:numColumns]
-	default:
-		// Full layout for large terminals
-		if numColumns >= 4 {
-			return []int{baseWidth * 2, baseWidth, baseWidth, baseWidth}
-		} else if numColumns >= 3 {
-			return []int{baseWidth * 2, baseWidth, baseWidth}
-		}
-		return []int{baseWidth, baseWidth}[:numColumns]
 	}
 }
 
@@ -279,48 +255,7 @@ func WithBackground(text string, background lipgloss.Color) string {
 	return lipgloss.NewStyle().Background(background).Render(text)
 }
 
-// Bubbles Component Styling Functions
-// These functions provide styled configurations for Bubbles components
-// using the existing Claude orange theme
-
-// GetBubblesTableStyles returns a table.Styles configuration with Claude theme
-func GetBubblesTableStyles() table.Styles {
-	return table.Styles{
-		Header: lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Background(ClaudePrimary).
-			Bold(true).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-		Cell: lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Padding(0, 1).
-			Align(lipgloss.Left),
-		Selected: lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Background(SelectedColor).
-			Bold(true),
-	}
-}
-
-// ConfigureBubblesTextInputStyles applies styling to a textinput model
-func ConfigureBubblesTextInputStyles(ti textinput.Model) textinput.Model {
-	// Configure cursor style
-	ti.Cursor.Style = lipgloss.NewStyle().Foreground(ClaudePrimary)
-
-	// Configure text styles
-	ti.TextStyle = lipgloss.NewStyle().Foreground(TextPrimary)
-	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(TextMuted)
-
-	// Configure prompt style
-	ti.PromptStyle = lipgloss.NewStyle().Foreground(ClaudePrimary)
-
-	return ti
-}
-
 // Evertras Table Styling Functions
-// These functions provide styled configurations for evertras/bubble-table components
-// using the existing Claude orange theme
 
 // GetEvertrasTableStyles returns styling configuration for evertras table
 func GetEvertrasTableStyles() lipgloss.Style {
@@ -334,8 +269,6 @@ func GetEvertrasTableStyles() lipgloss.Style {
 // with support for interactive features. Individual styling is handled through column definitions
 // and row data formatting since evertras table uses a different styling approach
 func ConfigureEvertrasTable(t evertrastable.Model) evertrastable.Model {
-	// Apply base styling with borders and colors
-	// Note: Row-level styling (hover, selection) is handled through column styles and data formatting
 	return t.WithBaseStyle(GetEvertrasTableStyles())
 }
 
@@ -389,7 +322,7 @@ func GetEvertrasColumnStyles() EvertrasColumnStyles {
 			Foreground(InfoColor).
 			Bold(true).
 			Padding(0, 1).
-			Align(lipgloss.Right),
+			Align(lipgloss.Center),
 	}
 }
 
@@ -420,143 +353,89 @@ func GetEvertrasRowStyles() EvertrasRowStyles {
 	}
 }
 
-// EvertrasPaginationStyles holds styling configurations for pagination elements
-type EvertrasPaginationStyles struct {
-	Footer     lipgloss.Style
-	PageInfo   lipgloss.Style
-	Navigation lipgloss.Style
-	Disabled   lipgloss.Style
-}
+// ================================
+// Formatting functions
+// ================================
 
-// GetEvertrasPaginationStyles returns pagination footer styling configurations
-func GetEvertrasPaginationStyles() EvertrasPaginationStyles {
-	return EvertrasPaginationStyles{
-		Footer: lipgloss.NewStyle().
-			Foreground(TextMuted).
-			Background(BackgroundSecondary).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-		PageInfo: lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Bold(true),
-		Navigation: lipgloss.NewStyle().
-			Foreground(ClaudeSecondary).
-			Bold(true),
-		Disabled: lipgloss.NewStyle().
-			Foreground(DisabledColor),
+// Formatting functions
+
+// formatStatus provides status formatting with status indicators
+func FormatStatus(status string) string {
+	switch status {
+	case "active":
+		return "● " + status
+	case "inactive":
+		return "⏸ " + status
+	case "connected":
+		return "🔗 " + status
+	case "error", "failed":
+		return "✗ " + status
+	case "starting", "pending":
+		return "⏳ " + status
+	case "stopped":
+		return "⏹ " + status
+	default:
+		return "? " + status
 	}
 }
 
-// EvertrasSortStyles holds styling configurations for sort indicators
-type EvertrasSortStyles struct {
-	Indicator  lipgloss.Style
-	Ascending  lipgloss.Style
-	Descending lipgloss.Style
-	Neutral    lipgloss.Style
+// formatTime formats timestamps with consistent styling
+func FormatTime(t time.Time) string {
+	return TableCellTimestampStyle.Render(t.Format("2006-01-02 15:04"))
 }
 
-// GetEvertrasSortStyles returns sort indicator styling configurations
-func GetEvertrasSortStyles() EvertrasSortStyles {
-	return EvertrasSortStyles{
-		Indicator: lipgloss.NewStyle().
-			Foreground(ClaudePrimary).
-			Bold(true),
-		Ascending: lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Bold(true),
-		Descending: lipgloss.NewStyle().
-			Foreground(WarningColor).
-			Bold(true),
-		Neutral: lipgloss.NewStyle().
-			Foreground(TextMuted),
-	}
-}
+// formatTimeAgo formats relative time with semantic colors based on recency
+func FormatTimeAgo(t time.Time) string {
+	duration := time.Since(t)
 
-// ConfigureResponsiveEvertrasTable adjusts table dimensions and features based on terminal size
-// Disables certain features on very small terminals and adapts column widths for different screen sizes
-func ConfigureResponsiveEvertrasTable(model evertrastable.Model, width, height int) evertrastable.Model {
-	// Apply base configuration
-	configuredModel := ConfigureEvertrasTable(model)
-
-	// Adjust based on terminal size
 	switch {
-	case width < BreakpointSmall:
-		// Small terminal: minimal features, compact layout
-		configuredModel = configuredModel.
-			WithTargetWidth(width - 4).
-			WithMinimumHeight(height - 6)
-		// Disable pagination on very small screens
-		if height < 20 {
-			configuredModel = configuredModel.WithPageSize(0)
+	case duration < time.Minute:
+		return TableCellSuccessStyle.Render("just now")
+	case duration < time.Hour:
+		return TableCellInfoStyle.Render(fmt.Sprintf("%dm ago", int(duration.Minutes())))
+	case duration < 24*time.Hour:
+		return TableCellWarningStyle.Render(fmt.Sprintf("%dh ago", int(duration.Hours())))
+	case duration < 7*24*time.Hour:
+		return TableCellTimestampStyle.Render(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
+	default:
+		return TableCellStyle.Render(fmt.Sprintf("%dd ago", int(duration.Hours()/24)))
+	}
+}
+
+// formatProjectPath formats project paths with consistent styling and smart truncation
+func FormatProjectPath(path string, maxLen int) string {
+	if path == "" {
+		return TableCellStyle.Render("—")
+	}
+
+	// If it already fits, just render it
+	if len(path) <= maxLen {
+		return TableCellStyle.Render(path)
+	}
+
+	// Split on “/” and build up the tail from the end
+	parts := strings.Split(path, "/")
+	var tail string
+
+	// We reserve 4 chars for the ".../" prefix
+	for i := len(parts) - 1; i >= 1; i-- {
+		cand := parts[i]
+		if tail != "" {
+			cand = parts[i] + "/" + tail
 		}
 
-	case width < BreakpointMedium:
-		// Medium terminal: balanced features
-		configuredModel = configuredModel.
-			WithTargetWidth(width - 8).
-			WithMinimumHeight(height - 8)
+		if len(cand)+4 > maxLen {
+			// adding any earlier segment would only make it longer
+			break
+		}
 
-	default:
-		// Large terminal: full features
-		configuredModel = configuredModel.
-			WithTargetWidth(width - 12).
-			WithMinimumHeight(height - 10)
+		tail = cand
 	}
 
-	return configuredModel
-}
-
-// StyleSortIndicator renders sort arrows for column headers based on sort direction
-func StyleSortIndicator(column, direction string) string {
-	styles := GetEvertrasSortStyles()
-
-	switch direction {
-	case "asc":
-		return styles.Ascending.Render("↑")
-	case "desc":
-		return styles.Descending.Render("↓")
-	default:
-		return styles.Neutral.Render("•")
-	}
-}
-
-// StylePaginationInfo renders page information with consistent styling
-func StylePaginationInfo(current, total int) string {
-	styles := GetEvertrasPaginationStyles()
-
-	if total <= 1 {
-		return ""
+	if tail != "" {
+		return TableCellStyle.Render(".../" + tail)
 	}
 
-	info := fmt.Sprintf("Page %d of %d", current, total)
-	return styles.PageInfo.Render(info)
-}
-
-// StyleRowSelection handles row state styling for selection and hover states
-func StyleRowSelection(content string, isSelected, isHovered bool) string {
-	styles := GetEvertrasRowStyles()
-
-	switch {
-	case isSelected:
-		return styles.Selected.Render(content)
-	case isHovered:
-		return styles.Hover.Render(content)
-	default:
-		return styles.Normal.Render(content)
-	}
-}
-
-// StyleFilterIndicator shows active filter status with visual feedback
-func StyleFilterIndicator(filterText string) string {
-	if filterText == "" {
-		return ""
-	}
-
-	filterStyle := lipgloss.NewStyle().
-		Foreground(InfoColor).
-		Background(BackgroundSecondary).
-		Bold(true).
-		Padding(0, 1)
-
-	return filterStyle.Render(fmt.Sprintf("Filter: %s", filterText))
+	// Fallback if even the final segment is too long
+	return TableCellStyle.Render(TruncateText(path, maxLen))
 }
