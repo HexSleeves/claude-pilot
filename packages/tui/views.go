@@ -28,28 +28,6 @@ func renderTableView(m Model) string {
 		b.WriteString("\n\n")
 	}
 
-	// Filter input when in filter mode
-	if m.filterMode {
-		filterLabel := styles.BoldStyle.Render("Filter: ")
-		filterInput := styles.InputFocusedStyle.Render(m.tableFilter.View())
-		b.WriteString(filterLabel + filterInput)
-		b.WriteString("\n\n")
-	} else if m.tableFilter.Value() != "" {
-		// Show active filter indicator
-		filterIndicator := styles.StyleFilterIndicator(m.tableFilter.Value())
-		b.WriteString(filterIndicator)
-		b.WriteString("\n")
-	}
-
-	// Sort indicator
-	if m.tableSortColumn != "" {
-		sortIndicator := fmt.Sprintf("Sorted by %s %s",
-			m.tableSortColumn,
-			styles.StyleSortIndicator(m.tableSortColumn, m.tableSortDirection))
-		b.WriteString(styles.MutedTextStyle.Render(sortIndicator))
-		b.WriteString("\n")
-	}
-
 	// Selection information when multi-select is enabled
 	if len(m.tableSelectedRows) > 0 {
 		selectionInfo := fmt.Sprintf("%d row(s) selected", len(m.tableSelectedRows))
@@ -198,11 +176,10 @@ func renderHelpView(m Model) string {
 	// Help title
 	title := styles.TitleStyle.Render("Help - Keyboard Shortcuts")
 	b.WriteString(title)
-	b.WriteString("\n\n")
 
 	// Create help content using the keymap
 	h := help.New()
-	helpContent := h.View(m.keymap)
+	helpContent := h.Styles.ShortSeparator.Inline(true).Render(h.ShortSeparator) + h.View(m.keymap)
 
 	// Wrap in a styled box
 	helpBox := styles.InfoBoxStyle.Render(helpContent)

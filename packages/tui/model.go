@@ -68,14 +68,10 @@ type Model struct {
 	showHelp bool
 
 	// Advanced table interaction state
-	tableFilter        textinput.Model
-	filterMode         bool
-	tableSortColumn    string
-	tableSortDirection string
-	tablePageSize      int
-	tableCurrentPage   int
-	tableSelectedRows  []int
-	showTableHelp      bool
+	tablePageSize     int
+	tableCurrentPage  int
+	tableSelectedRows []int
+	showTableHelp     bool
 }
 
 const (
@@ -113,12 +109,6 @@ func NewModel(client *api.Client) Model {
 	pathInput.CharLimit = 200
 	pathInput.Width = 60
 
-	// Create table filter input
-	tableFilter := textinput.New()
-	tableFilter.Placeholder = "Filter sessions..."
-	tableFilter.CharLimit = 100
-	tableFilter.Width = 40
-
 	return Model{
 		client:           client,
 		currentView:      TableView,
@@ -132,14 +122,10 @@ func NewModel(client *api.Client) Model {
 		showHelp:         false,
 
 		// Initialize advanced table interaction state
-		tableFilter:        tableFilter,
-		filterMode:         false,
-		tableSortColumn:    "",
-		tableSortDirection: "asc",
-		tablePageSize:      10,
-		tableCurrentPage:   1,
-		tableSelectedRows:  []int{},
-		showTableHelp:      false,
+		tablePageSize:     10,
+		tableCurrentPage:  1,
+		tableSelectedRows: []int{},
+		showTableHelp:     false,
 
 		// Initialize evertras table with shared component columns and Claude theme styling
 		table: styles.ConfigureEvertrasTable(
@@ -280,32 +266,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Update filter input when in filter mode
-	if m.filterMode && m.currentView == TableView {
-		m.tableFilter, cmd = m.tableFilter.Update(msg)
-		if cmd != nil {
-			cmds = append(cmds, cmd)
-		}
-
-		// Handle filter input changes
-		if keyMsg, ok := msg.(tea.KeyMsg); ok {
-			switch keyMsg.String() {
-			case "enter":
-				// Apply filter and exit filter mode
-				m.filterMode = false
-				m.tableFilter.Blur()
-				cmd = m.handleTableFilter(m.tableFilter.Value())
-				if cmd != nil {
-					cmds = append(cmds, cmd)
-				}
-			case "esc":
-				// Cancel filter mode without applying
-				m.filterMode = false
-				m.tableFilter.Blur()
-			}
-		}
-	}
-
 	return m, tea.Batch(cmds...)
 }
 
@@ -327,31 +287,6 @@ func (m Model) View() string {
 	default:
 		return renderTableView(m)
 	}
-}
-
-// Helper methods for table state management
-
-// handleTableSort updates sort state and refreshes table
-func (m *Model) handleTableSort(column, direction string) tea.Cmd {
-	m.tableSortColumn = column
-	m.tableSortDirection = direction
-	m.refreshTableWithCurrentState()
-	return nil
-}
-
-// toggleSortDirection toggles sort direction for a column
-func (m *Model) toggleSortDirection(column string) string {
-	if m.tableSortColumn == column && m.tableSortDirection == "asc" {
-		return "desc"
-	}
-	return "asc"
-}
-
-// handleTableFilter updates filter and refreshes table
-func (m *Model) handleTableFilter(filterText string) tea.Cmd {
-	m.tableFilter.SetValue(filterText)
-	m.refreshTableWithCurrentState()
-	return nil
 }
 
 // handleTablePagination handles page navigation
@@ -425,7 +360,7 @@ func (m *Model) handleTableSelection(action string, rowIndex int) tea.Cmd {
 	return nil
 }
 
-// refreshTableWithCurrentState updates table with current sort, filter, and pagination settings
+// refreshTableWithCurrentState updates table with current sort, and pagination settings
 func (m *Model) refreshTableWithCurrentState() {
 	m.updateTableData()
 	m.syncTableState()
@@ -609,28 +544,6 @@ func (m *Model) handleTableViewKeys(msg tea.KeyMsg) tea.Cmd {
 			return loadSessionsCmd(m.client)
 		}
 
-	// Table sorting keys
-	case key.Matches(msg, m.keymap.SortByName):
-		return m.handleTableSort("name", m.toggleSortDirection("name"))
-	case key.Matches(msg, m.keymap.SortByStatus):
-		return m.handleTableSort("status", m.toggleSortDirection("status"))
-	case key.Matches(msg, m.keymap.SortByCreated):
-		return m.handleTableSort("created", m.toggleSortDirection("created"))
-	case key.Matches(msg, m.keymap.SortByLastActive):
-		return m.handleTableSort("last_active", m.toggleSortDirection("last_active"))
-	case key.Matches(msg, m.keymap.ToggleSortDirection):
-		if m.tableSortColumn != "" {
-			direction := "asc"
-			if m.tableSortDirection == "asc" {
-				direction = "desc"
-			}
-			return m.handleTableSort(m.tableSortColumn, direction)
-		}
-	case key.Matches(msg, m.keymap.ClearSort):
-		m.tableSortColumn = ""
-		m.tableSortDirection = "asc"
-		m.refreshTableWithCurrentState()
-
 	// Table pagination keys
 	case key.Matches(msg, m.keymap.NextPage):
 		return m.handleTablePagination("next")
@@ -650,23 +563,6 @@ func (m *Model) handleTableViewKeys(msg tea.KeyMsg) tea.Cmd {
 			m.tablePageSize -= 5
 			m.refreshTableWithCurrentState()
 		}
-
-	// Table filtering keys
-	case key.Matches(msg, m.keymap.ToggleFilter):
-		m.filterMode = !m.filterMode
-		if m.filterMode {
-			m.tableFilter.Focus()
-		} else {
-			m.tableFilter.Blur()
-		}
-	case key.Matches(msg, m.keymap.ClearFilter):
-		m.tableFilter.SetValue("")
-		m.filterMode = false
-		m.tableFilter.Blur()
-		return m.handleTableFilter("")
-	case key.Matches(msg, m.keymap.FocusFilter):
-		m.filterMode = true
-		m.tableFilter.Focus()
 
 	// Table selection keys
 	case key.Matches(msg, m.keymap.SelectAll):
@@ -772,26 +668,6 @@ func (m *Model) updateTableData() {
 			Messages:    len(session.Messages),
 			ProjectPath: session.ProjectPath,
 		})
-	}
-
-	// Apply filtering if active
-	if m.tableFilter.Value() != "" {
-		filteredData := []components.SessionData{}
-		filterText := strings.ToLower(m.tableFilter.Value())
-		for _, session := range sessionData {
-			if strings.Contains(strings.ToLower(session.Name), filterText) ||
-				strings.Contains(strings.ToLower(session.Status), filterText) ||
-				strings.Contains(strings.ToLower(session.ID), filterText) ||
-				strings.Contains(strings.ToLower(session.ProjectPath), filterText) {
-				filteredData = append(filteredData, session)
-			}
-		}
-		sessionData = filteredData
-	}
-
-	// Apply sorting if active
-	if m.tableSortColumn != "" {
-		sessionData = m.sortSessionData(sessionData, m.tableSortColumn, m.tableSortDirection)
 	}
 
 	// Apply pagination if enabled

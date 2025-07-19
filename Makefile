@@ -147,7 +147,7 @@ run-cli: build-claudepilot
 
 .PHONY: run-tui
 run-tui: build-tui
-	@cd $(TUI_DIR) && go run .
+	@cd $(TUI_DIR) && go run ./cmd/main.go
 
 # Help message
 .PHONY: help

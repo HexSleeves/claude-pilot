@@ -347,7 +347,6 @@ var (
 	InfoBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(InfoColor).
-			Background(BackgroundSecondary).
 			Padding(1, 2).
 			Margin(1, 0)
 
