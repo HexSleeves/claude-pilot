@@ -55,7 +55,7 @@ type SessionData struct {
 // Table provides a unified table component wrapping evertras/bubble-table
 // This is the primary table interface for both CLI and TUI components
 type SessionTable struct {
-	width  int
+	width int
 
 	config TableConfig
 	data   []SessionData
@@ -297,16 +297,21 @@ func GetEvertrasSessionRows(sessions []SessionData, width int) []table.Row {
 		projectPathWidth := min(width-10, 50)
 		projectPath := styles.FormatProjectPath(session.ProjectPath, projectPathWidth)
 
-		status := styles.FormatStatus(session.Status)
 		timeAgo := styles.FormatTimeAgo(session.LastActive)
 		messages := fmt.Sprintf("%d", session.Messages)
 		created := styles.FormatTime(session.Created)
+
+		statusStyle := styles.GetContextualColor(styles.ContextStatus, session.Status)
+		status := lipgloss.NewStyle().Foreground(statusStyle).Render(styles.FormatStatus(session.Status))
+
+		backendStyle := styles.GetContextualColor(styles.ContextBackend, session.Backend)
+		backend := lipgloss.NewStyle().Foreground(backendStyle).Render(session.Backend)
 
 		rows[i] = table.NewRow(table.RowData{
 			columnKeyID:         id,
 			columnKeyName:       name,
 			columnKeyStatus:     status,
-			columnKeyBackend:    session.Backend,
+			columnKeyBackend:    backend,
 			columnKeyCreated:    created,
 			columnKeyLastActive: timeAgo,
 			columnKeyMessages:   messages,

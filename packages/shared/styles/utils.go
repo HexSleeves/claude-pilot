@@ -9,6 +9,22 @@ import (
 	evertrastable "github.com/evertras/bubble-table/table"
 )
 
+type Context string
+
+const (
+	ContextStatus      Context = "status"
+	ContextAction      Context = "action"
+	ContextInteractive Context = "interactive"
+	ContextBackend     Context = "backend"
+)
+
+type SessionStatus string
+
+const (
+	SessionStatusActive   SessionStatus = "active"
+	SessionStatusInactive SessionStatus = "inactive"
+)
+
 // Text utility functions
 func TruncateText(text string, maxLen int) string {
 	if len(text) <= maxLen {
@@ -83,9 +99,9 @@ func ResponsiveMargin(width int) (horizontal, vertical int) {
 }
 
 // Theme-aware color selection based on context
-func GetContextualColor(context string, state string) lipgloss.Color {
+func GetContextualColor(context Context, state string) lipgloss.Color {
 	switch context {
-	case "status":
+	case ContextStatus:
 		switch state {
 		case "success", "active", "connected":
 			return SuccessColor
@@ -98,7 +114,8 @@ func GetContextualColor(context string, state string) lipgloss.Color {
 		default:
 			return TextSecondary
 		}
-	case "action":
+
+	case ContextAction:
 		switch state {
 		case "primary":
 			return ActionPrimary
@@ -113,7 +130,8 @@ func GetContextualColor(context string, state string) lipgloss.Color {
 		default:
 			return ActionNeutral
 		}
-	case "interactive":
+
+	case ContextInteractive:
 		switch state {
 		case "hover":
 			return HoverColor
@@ -128,6 +146,15 @@ func GetContextualColor(context string, state string) lipgloss.Color {
 		default:
 			return TextPrimary
 		}
+
+	case ContextBackend:
+		switch state {
+		case "tmux":
+			return TextPrimary
+		default:
+			return TextSecondary
+		}
+
 	default:
 		return TextPrimary
 	}
@@ -270,87 +297,6 @@ func GetEvertrasTableStyles() lipgloss.Style {
 // and row data formatting since evertras table uses a different styling approach
 func ConfigureEvertrasTable(t evertrastable.Model) evertrastable.Model {
 	return t.WithBaseStyle(GetEvertrasTableStyles())
-}
-
-// EvertrasColumnStyles holds styling configurations for different column types
-type EvertrasColumnStyles struct {
-	Header    lipgloss.Style
-	ID        lipgloss.Style
-	Name      lipgloss.Style
-	Status    lipgloss.Style
-	Backend   lipgloss.Style
-	Timestamp lipgloss.Style
-	Project   lipgloss.Style
-	Messages  lipgloss.Style
-}
-
-// GetEvertrasColumnStyles returns column-specific styles for different data types
-func GetEvertrasColumnStyles() EvertrasColumnStyles {
-	return EvertrasColumnStyles{
-		Header: lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Background(ClaudePrimary).
-			Bold(true).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-		ID: lipgloss.NewStyle().
-			Foreground(TextMuted).
-			Padding(0, 1).
-			Align(lipgloss.Left),
-		Name: lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Bold(true).
-			Padding(0, 1).
-			Align(lipgloss.Left),
-		Status: lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-		Backend: lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-		Timestamp: lipgloss.NewStyle().
-			Foreground(TextDim).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-		Project: lipgloss.NewStyle().
-			Foreground(TextMuted).
-			Padding(0, 1).
-			Align(lipgloss.Left),
-		Messages: lipgloss.NewStyle().
-			Foreground(InfoColor).
-			Bold(true).
-			Padding(0, 1).
-			Align(lipgloss.Center),
-	}
-}
-
-// EvertrasRowStyles holds styling configurations for different row states
-type EvertrasRowStyles struct {
-	Normal    lipgloss.Style
-	Selected  lipgloss.Style
-	Hover     lipgloss.Style
-	Alternate lipgloss.Style
-}
-
-// GetEvertrasRowStyles returns row state styles for normal, selected, hover, and alternate states
-func GetEvertrasRowStyles() EvertrasRowStyles {
-	return EvertrasRowStyles{
-		Normal: lipgloss.NewStyle().
-			Foreground(TextSecondary),
-		Selected: lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Background(SelectedColor).
-			Bold(true),
-		Hover: lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Background(HoverColor).
-			Bold(true),
-		Alternate: lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			Background(BackgroundSurface),
-	}
 }
 
 // ================================

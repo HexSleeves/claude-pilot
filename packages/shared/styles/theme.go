@@ -28,6 +28,19 @@ var (
 	ClaudeSecondaryDark  = lipgloss.Color("#4A90E2") // Darker blue for pressed states
 )
 
+// Semantic Colors - Status and feedback colors
+var (
+	// Status indicators
+	SuccessColor      = lipgloss.Color("#2ECC71") // Green for success states
+	SuccessColorLight = lipgloss.Color("#58D68D") // Light green for hover
+	WarningColor      = lipgloss.Color("#F39C12") // Orange for warnings (complements brand)
+	WarningColorLight = lipgloss.Color("#F6AD55") // Light orange for hover
+	ErrorColor        = lipgloss.Color("#E74C3C") // Red for errors
+	ErrorColorLight   = lipgloss.Color("#FC8181") // Light red for hover
+	InfoColor         = lipgloss.Color("#5DADE2") // Blue for informational messages
+	InfoColorLight    = lipgloss.Color("#63B3ED") // Light blue for hover
+)
+
 // Neutral Colors - Foundation palette for backgrounds and text
 var (
 	// Background colors
@@ -43,19 +56,6 @@ var (
 	TextMuted     = lipgloss.Color("#AEB6BF") // Muted text (low contrast)
 	TextDim       = lipgloss.Color("#85929E") // Lighter gray for better readability
 	TextDisabled  = lipgloss.Color("#718096") // Disabled text
-)
-
-// Semantic Colors - Status and feedback colors
-var (
-	// Status indicators
-	SuccessColor      = lipgloss.Color("#2ECC71") // Green for success states
-	SuccessColorLight = lipgloss.Color("#58D68D") // Light green for hover
-	WarningColor      = lipgloss.Color("#F39C12") // Orange for warnings (complements brand)
-	WarningColorLight = lipgloss.Color("#F6AD55") // Light orange for hover
-	ErrorColor        = lipgloss.Color("#E74C3C") // Red for errors
-	ErrorColorLight   = lipgloss.Color("#FC8181") // Light red for hover
-	InfoColor         = lipgloss.Color("#5DADE2") // Blue for informational messages
-	InfoColorLight    = lipgloss.Color("#63B3ED") // Light blue for hover
 )
 
 // Interactive State Colors - For buttons, links, and interactive elements
@@ -96,15 +96,6 @@ var (
 	ActionWarning   = WarningColor      // Warning actions
 	ActionDanger    = ErrorColor        // Dangerous actions
 	ActionNeutral   = BackgroundSurface // Neutral actions
-)
-
-// Legacy color aliases for backward compatibility
-var (
-	// Session status colors (legacy aliases)
-	StatusActiveColor    = SuccessColor // Green
-	StatusInactiveColor  = WarningColor // Yellow
-	StatusConnectedColor = InfoColor    // Blue
-	StatusErrorColor     = ErrorColor   // Red
 )
 
 // Typography styles
@@ -172,19 +163,19 @@ var (
 
 	// Session status styles
 	SessionStatusActiveStyle = lipgloss.NewStyle().
-					Foreground(StatusActiveColor).
+					Foreground(SuccessColor).
 					Bold(true)
 
 	SessionStatusInactiveStyle = lipgloss.NewStyle().
-					Foreground(StatusInactiveColor).
+					Foreground(WarningColor).
 					Bold(true)
 
 	SessionStatusConnectedStyle = lipgloss.NewStyle().
-					Foreground(StatusConnectedColor).
+					Foreground(InfoColor).
 					Bold(true)
 
 	SessionStatusErrorStyle = lipgloss.NewStyle().
-				Foreground(StatusErrorColor).
+				Foreground(ErrorColor).
 				Bold(true)
 )
 
@@ -575,3 +566,84 @@ var (
 			Foreground(ClaudePrimary).
 			Bold(true)
 )
+
+// EvertrasRowStyles holds styling configurations for different row states
+type EvertrasRowStyles struct {
+	Normal    lipgloss.Style
+	Selected  lipgloss.Style
+	Hover     lipgloss.Style
+	Alternate lipgloss.Style
+}
+
+// GetEvertrasRowStyles returns row state styles for normal, selected, hover, and alternate states
+func GetEvertrasRowStyles() EvertrasRowStyles {
+	return EvertrasRowStyles{
+		Normal: lipgloss.NewStyle().
+			Foreground(TextSecondary),
+		Selected: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(SelectedColor).
+			Bold(true),
+		Hover: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(HoverColor).
+			Bold(true),
+		Alternate: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Background(BackgroundSurface),
+	}
+}
+
+// EvertrasColumnStyles holds styling configurations for different column types
+type EvertrasColumnStyles struct {
+	Header    lipgloss.Style
+	ID        lipgloss.Style
+	Name      lipgloss.Style
+	Status    lipgloss.Style
+	Backend   lipgloss.Style
+	Timestamp lipgloss.Style
+	Project   lipgloss.Style
+	Messages  lipgloss.Style
+}
+
+// GetEvertrasColumnStyles returns column-specific styles for different data types
+func GetEvertrasColumnStyles() EvertrasColumnStyles {
+	return EvertrasColumnStyles{
+		Header: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Background(ClaudePrimary).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		ID: lipgloss.NewStyle().
+			Foreground(TextMuted).
+			Padding(0, 1).
+			Align(lipgloss.Left),
+		Name: lipgloss.NewStyle().
+			Foreground(TextPrimary).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Status: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Backend: lipgloss.NewStyle().
+			Foreground(TextSecondary).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Timestamp: lipgloss.NewStyle().
+			Foreground(TextDim).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+		Project: lipgloss.NewStyle().
+			Foreground(TextMuted).
+			Padding(0, 1).
+			Align(lipgloss.Left),
+		Messages: lipgloss.NewStyle().
+			Foreground(InfoColor).
+			Bold(true).
+			Padding(0, 1).
+			Align(lipgloss.Center),
+	}
+}

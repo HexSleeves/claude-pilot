@@ -61,20 +61,6 @@ Examples:
 			}
 		}
 
-		// Filter sessions if not showing all
-		if filter == "active" {
-			// Pre-allocate with estimated capacity (assume most sessions are active)
-			activeSessions := make([]*api.Session, 0, len(sessions))
-			for _, sess := range sessions {
-				if sess.Status == api.StatusActive || sess.Status == api.StatusConnected {
-					activeSessions = append(activeSessions, sess)
-				}
-			}
-			sessions = activeSessions
-		}
-
-		// Note: Sorting is now handled by the table component
-
 		// Display header with enhanced styling
 		fmt.Println(ui.Header("Claude Pilot Sessions"))
 		fmt.Printf("%s Backend: %s\n", ui.InfoMsg("Current"), ui.Highlight(ctx.Client.GetBackend()))
