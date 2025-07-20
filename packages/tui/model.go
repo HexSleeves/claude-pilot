@@ -4,6 +4,8 @@ import (
 	"claude-pilot/core/api"
 	"claude-pilot/shared/components"
 	"claude-pilot/shared/interfaces"
+	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -25,6 +27,8 @@ const (
 	Error
 	Help
 	KillConfirmation
+	FilterView
+	ExportView
 )
 
 // Model represents the main TUI model implementing bubbletea.Model interface
@@ -55,6 +59,14 @@ type Model struct {
 	// Kill confirmation state
 	sessionToKill *interfaces.Session
 
+	// Filter input
+	filterInput textinput.Model
+
+	// Export state
+	exportFormat      string // "csv" or "json"
+	exportFilename    textinput.Model
+	exportActiveInput int // 0=format, 1=filename
+
 	// Window dimensions
 	totalWidth  int
 	totalHeight int
@@ -71,6 +83,15 @@ type Model struct {
 	tableCurrentPage  int
 	tableSelectedRows []int
 	showTableHelp     bool
+
+	// Sorting state
+	sortColumn    string
+	sortDirection string // "asc" or "desc"
+
+	// Filter state
+	filterActive     bool
+	filterQuery      string
+	filteredSessions []*interfaces.Session
 }
 
 const (
@@ -108,6 +129,16 @@ func NewModel(client *api.Client) Model {
 	pathInput.CharLimit = 200
 	pathInput.Width = 60
 
+	filterInput := textinput.New()
+	filterInput.Placeholder = "Filter sessions (name, status, description...)"
+	filterInput.CharLimit = 100
+	filterInput.Width = 50
+
+	exportFilename := textinput.New()
+	exportFilename.Placeholder = "sessions-export"
+	exportFilename.CharLimit = 200
+	exportFilename.Width = 40
+
 	return Model{
 		client:           client,
 		currentView:      TableView,
@@ -115,6 +146,7 @@ func NewModel(client *api.Client) Model {
 		nameInput:        nameInput,
 		descriptionInput: descriptionInput,
 		pathInput:        pathInput,
+		filterInput:      filterInput,
 		activeInput:      nameInputIndex,
 		sessions:         []*interfaces.Session{},
 		isLoading:        false,
@@ -125,6 +157,20 @@ func NewModel(client *api.Client) Model {
 		tableCurrentPage:  1,
 		tableSelectedRows: []int{},
 		showTableHelp:     false,
+
+		// Initialize filter state
+		filterActive:     false,
+		filterQuery:      "",
+		filteredSessions: []*interfaces.Session{},
+
+		// Initialize export state
+		exportFormat:      "csv",
+		exportFilename:    exportFilename,
+		exportActiveInput: 0,
+
+		// Initialize sort state
+		sortColumn:    "",
+		sortDirection: "asc",
 
 		// Initialize evertras table with shared component columns and Claude theme styling
 		table: styles.ConfigureEvertrasTable(
@@ -170,6 +216,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.currentView == KillConfirmation {
 				m.currentView = TableView
 				m.sessionToKill = nil
+			} else if m.currentView == FilterView {
+				m.currentView = TableView
+				m.filterInput.Blur()
+				// Keep filter active - don't clear it on escape
+			} else if m.currentView == ExportView {
+				m.currentView = TableView
+				m.exportFilename.Blur()
 			}
 		}
 
@@ -181,6 +234,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = m.handleCreatePromptKeys(msg)
 		case KillConfirmation:
 			cmd = m.handleKillConfirmationKeys(msg)
+		case FilterView:
+			cmd = m.handleFilterViewKeys(msg)
+		case ExportView:
+			cmd = m.handleExportViewKeys(msg)
 		case Error:
 			if key.Matches(msg, m.keymap.Refresh) {
 				m.currentView = TableView
@@ -242,6 +299,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case viewStateMsg:
 		m.currentView = msg.state
+
+	case TableSortedMsg:
+		// Update status message to show current sort
+		direction := "ascending"
+		if msg.Direction == "desc" {
+			direction = "descending"
+		}
+		m.statusMessage = fmt.Sprintf("Sorted by %s (%s)", msg.Column, direction)
 	}
 
 	// Update table model
@@ -265,6 +330,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// Update filter input when in filter view
+	if m.currentView == FilterView {
+		m.filterInput, cmd = m.filterInput.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		// Apply filter in real-time as user types
+		m.filterQuery = m.filterInput.Value()
+		m.applyFilter()
+	}
+
+	// Update export input when in export view
+	if m.currentView == ExportView {
+		m.exportFilename, cmd = m.exportFilename.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -283,6 +367,10 @@ func (m Model) View() string {
 		return renderHelpView(m)
 	case KillConfirmation:
 		return renderKillConfirmationView(m)
+	case FilterView:
+		return renderFilterView(m)
+	case ExportView:
+		return renderExportView(m)
 	default:
 		return renderTableView(m)
 	}
@@ -453,6 +541,28 @@ func (m *Model) handleTableViewKeys(msg tea.KeyMsg) tea.Cmd {
 	// Toggle table help
 	case key.Matches(msg, m.keymap.Help):
 		m.showTableHelp = !m.showTableHelp
+
+	// Sorting
+	case key.Matches(msg, m.keymap.SortByName):
+		return m.toggleSort("name")
+	case key.Matches(msg, m.keymap.SortByStatus):
+		return m.toggleSort("status")
+	case key.Matches(msg, m.keymap.SortByCreated):
+		return m.toggleSort("created")
+	case key.Matches(msg, m.keymap.SortByLastActive):
+		return m.toggleSort("last_active")
+
+	// Filter
+	case key.Matches(msg, m.keymap.Filter):
+		m.currentView = FilterView
+		m.filterInput.Focus()
+		m.filterInput.SetValue(m.filterQuery) // Restore previous filter
+
+	// Export
+	case key.Matches(msg, m.keymap.Export):
+		m.currentView = ExportView
+		m.exportActiveInput = 0 // Start with format selection
+		m.exportFilename.Focus()
 	}
 
 	return nil
@@ -504,18 +614,98 @@ func (m *Model) handleKillConfirmationKeys(msg tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
+// handleFilterViewKeys handles keyboard input in filter view
+func (m *Model) handleFilterViewKeys(msg tea.KeyMsg) tea.Cmd {
+	switch {
+	case key.Matches(msg, m.keymap.Submit):
+		// Apply filter and return to table view
+		m.currentView = TableView
+		m.filterInput.Blur()
+		if m.filterQuery == "" {
+			m.filterActive = false
+			m.statusMessage = "Filter cleared"
+		} else {
+			m.statusMessage = fmt.Sprintf("Filtering: %s", m.filterQuery)
+		}
+		m.updateTableData()
+		return nil
+	}
+	return nil
+}
+
+// handleExportViewKeys handles keyboard input in export view
+func (m *Model) handleExportViewKeys(msg tea.KeyMsg) tea.Cmd {
+	switch {
+	case key.Matches(msg, m.keymap.Submit):
+		// Validate and execute export
+		filename := strings.TrimSpace(m.exportFilename.Value())
+		if filename == "" {
+			filename = "sessions-export"
+		}
+
+		// Add file extension if not present
+		if !strings.HasSuffix(filename, "."+m.exportFormat) {
+			filename += "." + m.exportFormat
+		}
+
+		// Get sessions to export (current or filtered)
+		sessionsToExport := m.sessions
+		if m.filterActive && m.filteredSessions != nil {
+			sessionsToExport = m.filteredSessions
+		}
+
+		// Convert to SessionData format for export
+		sessionData := make([]components.SessionData, 0, len(sessionsToExport))
+		for _, session := range sessionsToExport {
+			if session == nil {
+				continue
+			}
+			sessionData = append(sessionData, components.SessionData{
+				ID:          session.ID,
+				Name:        session.Name,
+				Status:      string(session.Status),
+				Backend:     session.Backend,
+				Created:     session.CreatedAt,
+				LastActive:  session.LastActive,
+				Messages:    len(session.Messages),
+				ProjectPath: session.ProjectPath,
+			})
+		}
+
+		// Return to table view and execute export
+		m.currentView = TableView
+		m.exportFilename.Blur()
+		return ExportTableDataCmd(m.exportFormat, filename, sessionData)
+
+	case key.Matches(msg, m.keymap.NextInput):
+		// Toggle between format and filename (currently only filename input)
+		return nil
+
+	case key.Matches(msg, m.keymap.PrevInput):
+		// Toggle between format and filename (currently only filename input)
+		return nil
+	}
+	return nil
+}
+
 // updateTableData updates the table with current session data
 // using the shared component's conversion methods with enhanced features
 func (m *Model) updateTableData() {
-	if len(m.sessions) == 0 {
+	// Determine which sessions to display based on filter state
+	sessionsToDisplay := m.sessions
+	if m.filterActive && m.filteredSessions != nil {
+		sessionsToDisplay = m.filteredSessions
+	}
+
+	if len(sessionsToDisplay) == 0 {
 		// Clear table data to free memory
 		m.table = m.table.WithRows([]table.Row{})
 		return
 	}
 
 	// Convert interfaces.Session to components.SessionData for shared component utility
-	sessionData := make([]components.SessionData, 0, len(m.sessions))
-	for _, session := range m.sessions {
+	sessionData := make([]components.SessionData, 0, len(sessionsToDisplay))
+	for _, session := range sessionsToDisplay {
 		if session == nil {
 			continue // Skip nil sessions
 		}
@@ -604,5 +794,102 @@ func (m *Model) focusActiveInput() {
 		m.descriptionInput.Focus()
 	case pathInputIndex:
 		m.pathInput.Focus()
+	}
+}
+
+// toggleSort toggles sorting by the specified column
+func (m *Model) toggleSort(column string) tea.Cmd {
+	// If clicking the same column, toggle direction
+	if m.sortColumn == column {
+		if m.sortDirection == "asc" {
+			m.sortDirection = "desc"
+		} else {
+			m.sortDirection = "asc"
+		}
+	} else {
+		// New column, default to ascending
+		m.sortColumn = column
+		m.sortDirection = "asc"
+	}
+
+	// Apply the sort immediately
+	m.applySorting()
+
+	// Return a command to indicate sorting is complete
+	return func() tea.Msg {
+		return TableSortedMsg{
+			Column:    m.sortColumn,
+			Direction: m.sortDirection,
+		}
+	}
+}
+
+// applySorting sorts the sessions based on current sort settings
+func (m *Model) applySorting() {
+	if m.sortColumn == "" || len(m.sessions) == 0 {
+		return
+	}
+
+	// Sort the sessions slice
+	sort.Slice(m.sessions, func(i, j int) bool {
+		var result bool
+
+		switch m.sortColumn {
+		case "name":
+			result = m.sessions[i].Name < m.sessions[j].Name
+		case "status":
+			result = m.sessions[i].Status < m.sessions[j].Status
+		case "created":
+			result = m.sessions[i].CreatedAt.Before(m.sessions[j].CreatedAt)
+		case "last_active":
+			// Handle zero LastActive (which means never active)
+			iZero := m.sessions[i].LastActive.IsZero()
+			jZero := m.sessions[j].LastActive.IsZero()
+
+			if iZero && jZero {
+				result = false
+			} else if iZero {
+				result = false
+			} else if jZero {
+				result = true
+			} else {
+				result = m.sessions[i].LastActive.Before(m.sessions[j].LastActive)
+			}
+		default:
+			return false
+		}
+
+		// Reverse for descending order
+		if m.sortDirection == "desc" {
+			result = !result
+		}
+
+		return result
+	})
+
+	// Update the table with sorted data
+	m.updateTableData()
+}
+
+// applyFilter filters sessions based on the current filter query
+func (m *Model) applyFilter() {
+	if m.filterQuery == "" {
+		m.filterActive = false
+		m.filteredSessions = m.sessions
+	} else {
+		m.filterActive = true
+		m.filteredSessions = []*interfaces.Session{}
+		query := strings.ToLower(m.filterQuery)
+
+		for _, session := range m.sessions {
+			// Search in multiple fields
+			if strings.Contains(strings.ToLower(session.Name), query) ||
+				strings.Contains(strings.ToLower(session.Description), query) ||
+				strings.Contains(strings.ToLower(string(session.Status)), query) ||
+				strings.Contains(strings.ToLower(session.ProjectPath), query) ||
+				strings.Contains(strings.ToLower(session.ID), query) {
+				m.filteredSessions = append(m.filteredSessions, session)
+			}
+		}
 	}
 }

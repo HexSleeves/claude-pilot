@@ -12,7 +12,8 @@
       "Bash(go list:*)",
       "Bash(go mod:*)",
       "Bash(go test:*)",
-      "WebFetch(domain:pkg.go.dev)"
+      "WebFetch(domain:pkg.go.dev)",
+      "Bash(go fmt:*)"
     ],
     "deny": []
   }

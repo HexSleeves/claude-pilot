@@ -1,0 +1,43 @@
+{
+  "extends": "./settings.json",
+  "overrides": {
+    "security": {
+      "audit_logging": true,
+      "permission_validation": true,
+      "secret_scanning": true,
+      "require_approval": ["deployment", "external_api"]
+    },
+    "quality_gates": {
+      "require_tests": true,
+      "require_documentation": true,
+      "require_type_checking": true,
+      "require_security_scan": true,
+      "require_performance_tests": true
+    },
+    "workflows": {
+      "auto_commit_formatting": false,
+      "auto_generate_docs": true,
+      "auto_run_tests": true,
+      "quality_check_on_save": true,
+      "require_review": true
+    },
+    "integrations": {
+      "external_tools": {
+        "linear": {
+          "enabled": true,
+          "auto_link_issues": true,
+          "require_issue_link": true
+        },
+        "notion": {
+          "enabled": true,
+          "auto_doc_sync": true
+        }
+      }
+    },
+    "staging": {
+      "deployment_checks": true,
+      "rollback_enabled": true,
+      "monitoring_enabled": true
+    }
+  }
+}

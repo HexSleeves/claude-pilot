@@ -17,10 +17,10 @@ var listCmd = &cobra.Command{
 Shows session ID, name, status, creation time, last activity, and message count.
 
 Examples:
-  claude-pilot list           # List all sessions
+  claude-pilot list           	# List all sessions
   claude-pilot list --sort=name # Sort by name instead of last activity
-	claude-pilot list --filter=active # Filter to only show active sessions
-	claude-pilot list --filter=inactive # Filter to only show inactive sessions`,
+	claude-pilot list --active 		# Show only active sessions
+	claude-pilot list --inactive 	# Show only inactive sessions`,
 	Aliases: []string{"ls"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Initialize common command context
@@ -31,26 +31,25 @@ Examples:
 
 		// Get flags
 		sortBy, _ := cmd.Flags().GetString("sort")
-		filter, _ := cmd.Flags().GetString("filter")
+		active, _ := cmd.Flags().GetBool("active")
+		inactive, _ := cmd.Flags().GetBool("inactive")
 
 		var sessions []*api.Session
 
 		// Apply filters
-		if filter != "" {
+		if active || inactive {
+			filter := "active"
+			if inactive {
+				filter = "inactive"
+			}
+
 			sessions, err = ctx.Client.ListFilteredSessions(filter)
 			if err != nil {
 				HandleError(err, "list filtered sessions")
 			}
 
 			if len(sessions) == 0 {
-				fmt.Println(ui.Dim("No sessions found. Try another filter or create a new session."))
-				fmt.Println()
-				fmt.Println(ui.InfoMsg("Try another filter:"))
-				fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot list --filter=active"))
-				fmt.Println()
-				fmt.Println(ui.InfoMsg("Create a new session:"))
-				fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
-				fmt.Println()
+				NoSessionsFoundMessageForFilter()
 				return
 			}
 		} else {
@@ -95,13 +94,10 @@ Examples:
 				sortBy = "last_active"
 				direction = "desc" // Most recent first for activity
 			}
-			table.SetSort(sortBy, direction)
-		}
-
-		// Apply CLI filter option using table's built-in filtering
-		if filter != "" && filter != "active" {
-			// TODO: Implement filtering
-			// table.SetFilter(filter)
+			err := table.SetSort(sortBy, direction)
+			if err != nil {
+				HandleError(err, "set sort")
+			}
 		}
 
 		// Display sessions table using shared component
@@ -120,6 +116,7 @@ Examples:
 		}
 
 		fmt.Println(ui.SessionSummary(len(sessions), activeCount, inactiveCount))
+		ui.DisplaySessionSummary(len(sessions), activeCount, inactiveCount, false)
 
 		// Show helpful commands with enhanced styling
 		fmt.Println(ui.AvailableCommands(
@@ -154,6 +151,7 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 
 	// Add flags
+	listCmd.Flags().BoolP("active", "a", false, "Show only active sessions")
+
 	listCmd.Flags().StringP("sort", "s", "activity", "Sort by: name, created, status, activity")
-	listCmd.Flags().StringP("filter", "f", "", "Filter by: active, inactive")
 }

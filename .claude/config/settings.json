@@ -1,0 +1,64 @@
+{
+  "framework": {
+    "name": "claude-modular",
+    "version": "1.0.0",
+    "description": "Modular Claude Code Framework Template"
+  },
+  "defaults": {
+    "max_tokens_per_session": 50000,
+    "context_window_warning": 40000,
+    "auto_clear_threshold": 45000,
+    "progressive_disclosure": true,
+    "xml_structured_commands": true
+  },
+  "security": {
+    "require_env_vars": true,
+    "audit_logging": true,
+    "permission_validation": true,
+    "secret_scanning": true
+  },
+  "quality_gates": {
+    "require_tests": true,
+    "require_documentation": true,
+    "require_type_checking": true,
+    "require_security_scan": true
+  },
+  "workflows": {
+    "auto_commit_formatting": false,
+    "auto_generate_docs": true,
+    "auto_run_tests": true,
+    "quality_check_on_save": true
+  },
+  "integrations": {
+    "mcp_servers": {
+      "memory": {
+        "enabled": true,
+        "auto_context_save": true
+      },
+      "git": {
+        "enabled": true,
+        "auto_commit_templates": true
+      },
+      "filesystem": {
+        "enabled": true,
+        "watch_patterns": ["*.md", "*.json", "*.js", "*.ts", "*.py", "*.go"]
+      }
+    },
+    "external_tools": {
+      "linear": {
+        "enabled": false,
+        "auto_link_issues": true
+      },
+      "notion": {
+        "enabled": false,
+        "auto_doc_sync": true
+      }
+    }
+  },
+  "token_optimization": {
+    "lazy_loading": true,
+    "context_compression": true,
+    "modular_instructions": true,
+    "smart_context_switching": true
+  }
+}

@@ -338,3 +338,136 @@ func renderKillConfirmationView(m Model) string {
 
 	return b.String()
 }
+
+// renderFilterView renders the filter input dialog
+func renderFilterView(m Model) string {
+	var b strings.Builder
+
+	// Header
+	header := renderHeader(m)
+	b.WriteString(header)
+	b.WriteString("\n\n")
+
+	// Filter dialog content
+	title := styles.TitleStyle.Render("Filter Sessions")
+
+	// Show number of matches if filter is active
+	var matchInfo string
+	if m.filterActive && m.filteredSessions != nil {
+		matchCount := len(m.filteredSessions)
+		totalCount := len(m.sessions)
+		matchInfo = fmt.Sprintf("Showing %d of %d sessions", matchCount, totalCount)
+	} else {
+		matchInfo = fmt.Sprintf("Search across %d sessions", len(m.sessions))
+	}
+
+	matchText := styles.MutedTextStyle.Render(matchInfo)
+
+	// Filter input
+	inputLabel := styles.BoldStyle.Render("Filter:")
+	filterInput := styles.InputFocusedStyle.Render(m.filterInput.View())
+
+	// Help text
+	helpText := "Search in: name, description, status, project path, session ID"
+	helpLine := styles.MutedTextStyle.Render(helpText)
+
+	// Instructions
+	instructionsText := fmt.Sprintf("%s to apply • %s to cancel • Start typing to filter",
+		styles.KeyStyle.Render("Enter"),
+		styles.KeyStyle.Render("Esc"))
+	instructions := styles.InfoStyle.Render(instructionsText)
+
+	// Center the dialog content
+	dialogContent := lipgloss.JoinVertical(lipgloss.Left,
+		title,
+		"",
+		matchText,
+		"",
+		inputLabel,
+		filterInput,
+		"",
+		helpLine,
+		"",
+		instructions,
+	)
+
+	// Create a bordered box around the dialog
+	dialog := styles.DialogBoxStyle.Render(dialogContent)
+
+	// Center the dialog on screen
+	b.WriteString(lipgloss.Place(m.totalWidth, m.totalHeight-4,
+		lipgloss.Center, lipgloss.Center, dialog))
+
+	return b.String()
+}
+
+// renderExportView renders the export configuration dialog
+func renderExportView(m Model) string {
+	var b strings.Builder
+
+	// Header
+	header := renderHeader(m)
+	b.WriteString(header)
+	b.WriteString("\n\n")
+
+	// Export dialog content
+	title := styles.TitleStyle.Render("Export Sessions")
+
+	// Show what will be exported
+	var exportInfo string
+	if m.filterActive && m.filteredSessions != nil {
+		exportInfo = fmt.Sprintf("Exporting %d filtered sessions (of %d total)",
+			len(m.filteredSessions), len(m.sessions))
+	} else {
+		exportInfo = fmt.Sprintf("Exporting all %d sessions", len(m.sessions))
+	}
+
+	exportText := styles.MutedTextStyle.Render(exportInfo)
+
+	// Format selection
+	formatLabel := styles.BoldStyle.Render("Format:")
+	var formatDisplay string
+	if m.exportFormat == "csv" {
+		formatDisplay = styles.SuccessStyle.Render("● CSV") + " " + styles.MutedTextStyle.Render("○ JSON")
+	} else {
+		formatDisplay = styles.MutedTextStyle.Render("○ CSV") + " " + styles.SuccessStyle.Render("● JSON")
+	}
+
+	// Filename input
+	filenameLabel := styles.BoldStyle.Render("Filename:")
+	filenameInput := styles.InputFocusedStyle.Render(m.exportFilename.View())
+	extensionHint := styles.MutedTextStyle.Render("(." + m.exportFormat + " will be added automatically)")
+
+	// Instructions
+	instructionsText := fmt.Sprintf("%s to export • %s to cancel • %s/%s to toggle format",
+		styles.KeyStyle.Render("Enter"),
+		styles.KeyStyle.Render("Esc"),
+		styles.KeyStyle.Render("Tab"),
+		styles.KeyStyle.Render("Shift+Tab"))
+	instructions := styles.InfoStyle.Render(instructionsText)
+
+	// Center the dialog content
+	dialogContent := lipgloss.JoinVertical(lipgloss.Left,
+		title,
+		"",
+		exportText,
+		"",
+		formatLabel,
+		formatDisplay,
+		"",
+		filenameLabel,
+		filenameInput,
+		extensionHint,
+		"",
+		instructions,
+	)
+
+	// Create a bordered box around the dialog
+	dialog := styles.DialogBoxStyle.Render(dialogContent)
+
+	// Center the dialog on screen
+	b.WriteString(lipgloss.Place(m.totalWidth, m.totalHeight-4,
+		lipgloss.Center, lipgloss.Center, dialog))
+
+	return b.String()
+}

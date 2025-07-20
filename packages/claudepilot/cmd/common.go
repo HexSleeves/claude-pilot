@@ -72,3 +72,17 @@ func GetProjectPath(projectPath string) string {
 	}
 	return projectPath
 }
+
+func NoSessionsFoundMessageForFilter() {
+	fmt.Println(ui.Dim("No sessions found. Try another filter or create a new session."))
+	fmt.Println()
+	fmt.Println(ui.InfoMsg("Show active sessions:"))
+	fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot list --active"))
+	fmt.Println()
+	fmt.Println(ui.InfoMsg("Show inactive sessions:"))
+	fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot list --inactive"))
+	fmt.Println()
+	fmt.Println(ui.InfoMsg("Create a new session:"))
+	fmt.Printf("  %s %s\n", ui.Arrow(), ui.Highlight("claude-pilot create [session-name]"))
+	fmt.Println()
+}

@@ -42,6 +42,16 @@ type KeyMap struct {
 	ToggleRowNumbers  key.Binding
 	ToggleCompactView key.Binding
 	RefreshTable      key.Binding
+
+	// Table sorting
+	SortByName       key.Binding
+	SortByStatus     key.Binding
+	SortByCreated    key.Binding
+	SortByLastActive key.Binding
+
+	// Table filtering and export
+	Filter key.Binding
+	Export key.Binding
 }
 
 // DefaultKeyMap returns the default key mappings for the TUI.
@@ -153,6 +163,34 @@ func DefaultKeyMap() KeyMap {
 		RefreshTable: key.NewBinding(
 			key.WithKeys("ctrl+r"),
 			key.WithHelp("ctrl+r", "refresh table"),
+		),
+
+		// Table sorting
+		SortByName: key.NewBinding(
+			key.WithKeys("s", "n"),
+			key.WithHelp("s+n", "sort by name"),
+		),
+		SortByStatus: key.NewBinding(
+			key.WithKeys("s", "s"),
+			key.WithHelp("s+s", "sort by status"),
+		),
+		SortByCreated: key.NewBinding(
+			key.WithKeys("s", "c"),
+			key.WithHelp("s+c", "sort by created"),
+		),
+		SortByLastActive: key.NewBinding(
+			key.WithKeys("s", "a"),
+			key.WithHelp("s+a", "sort by last active"),
+		),
+
+		// Table filtering and export
+		Filter: key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "filter sessions"),
+		),
+		Export: key.NewBinding(
+			key.WithKeys("e"),
+			key.WithHelp("e", "export sessions"),
 		),
 	}
 }

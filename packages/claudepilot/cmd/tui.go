@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
-	"claude-pilot/internal/ui"
 	"claude-pilot/tui"
 
 	"github.com/spf13/cobra"
@@ -38,18 +35,11 @@ Examples:
 			HandleError(err, "initialize command")
 		}
 
-		// Show launch message
-		fmt.Println(ui.InfoMsg("Launching Claude Pilot TUI..."))
-		fmt.Println(ui.InfoMsg("Press 'q' or 'Ctrl+C' to exit the TUI"))
-		fmt.Println()
-
 		// Launch the TUI directly using the shared client
 		if err := tui.RunTui(ctx.Client); err != nil {
 			HandleError(err, "run TUI")
 		}
 
-		// Show exit message
-		fmt.Println(ui.InfoMsg("TUI session ended"))
 	},
 }
 

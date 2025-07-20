@@ -2,7 +2,68 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Claude Pilot is a CLI tool for managing multiple Claude Code sessions with terminal multiplexer (tmux) support, built with a modular monorepo architecture.
+## Project Overview
+
+**Project Name:** [Your Project Name]
+**Technology Stack:** [List main technologies - e.g., React, Node.js, PostgreSQL]
+**Architecture:** [Brief description - e.g., Microservices, Monolithic, JAMstack]
+
+## Core Development Principles
+
+### 1. Code Quality Standards
+
+- **Immutable Rule:** All code must pass linting and type checking before commit
+- **Testing Required:** Minimum 80% test coverage for new features
+- **Documentation:** All public APIs must be documented
+- **Security:** Never commit secrets, always use environment variables
+
+### 2. Modular Command Structure
+
+This project uses the Claude Code modular command system for consistent workflows:
+
+- Commands are organized in `.claude/commands/` by category
+- Each command follows XML-structured format for clarity
+- Use `/[category]:[command]` syntax for execution
+- Commands are environment-aware and security-focused
+
+### 3. Emergency Procedures
+
+- **Build Failures:** Run `/dev:debug-session` for systematic troubleshooting
+- **Test Failures:** Use `/test:coverage-analysis` to identify issues
+- **Deployment Issues:** Execute `/deploy:rollback-procedure` for emergency rollback
+- **Security Concerns:** Immediately run security scans and notify team
+
+## Command Categories
+
+### Project Management
+
+- `/project:create-feature` - Full feature development with tests and docs
+- `/project:scaffold-component` - Component creation with boilerplate
+- `/project:setup-environment` - Development environment initialization
+
+### Development Workflow
+
+- `/dev:code-review` - Structured code review with quality checks
+- `/dev:refactor-analysis` - Code improvement recommendations
+- `/dev:debug-session` - Systematic debugging and problem solving
+
+### Testing
+
+- `/test:generate-tests` - Comprehensive test suite generation
+- `/test:coverage-analysis` - Test coverage assessment and improvement
+- `/test:integration-tests` - Integration test creation and execution
+
+### Deployment
+
+- `/deploy:prepare-release` - Release preparation with quality gates
+- `/deploy:deploy-staging` - Staging deployment with validation
+- `/deploy:rollback-procedure` - Emergency rollback execution
+
+### Documentation
+
+- `/docs:api-docs` - API documentation generation
+- `/docs:update-readme` - README maintenance and updates
+- `/docs:architecture-review` - Architecture documentation and review
 
 ## Architecture
 
@@ -89,60 +150,34 @@ make clean          # Clean artifacts and session data
 - Style output using Lipgloss with centralized theme definitions
 - Maintain immutable model updates; avoid mutating shared state
 
-## Configuration
+## Quality Gates
 
-### File Locations
+### Pre-commit Requirements
 
-- Config: `~/.config/claude-pilot/claude-pilot.yaml`
-- Sessions: `~/.config/claude-pilot/sessions/`
-- Template: `templates/claude-pilot.yaml`
+- [ ] All tests pass
+- [ ] Linting passes
+- [ ] Type checking passes
+- [ ] Security scan clean
+- [ ] Code coverage maintained
 
-### Environment Variables
+## Token Management
 
-- `CLAUDE_PILOT_*` - Configuration overrides
-- `LOG_LEVEL` - Logging level (debug, info, warn, error)
+### Context Optimization
 
-### Backend Support
+- Use progressive disclosure for large codebases
+- Load commands just-in-time based on current task
+- Clear context when switching between major tasks
+- Monitor token usage and optimize accordingly
 
-- **tmux** - Current backend with session prefix support
-- **zellij** - Planned future backend with layout file support
-- Auto-detection with tmux as current default
+### Memory Management
 
-## Session Management
+- Leverage MCP memory server for session continuity
+- Store architectural decisions in external documentation
+- Use modular instructions to reduce token overhead
+- Implement context compression for repeated patterns
 
-### Session States
+### Debug Commands
 
-- `active` - Running and available
-- `inactive` - Stopped but metadata exists
-- `connected` - User currently attached
-- `error` - Error state
-
-### CLI Commands
-
-- `create` - Create session with optional description
-- `list` - List sessions (use `--all` for detailed view)
-- `attach` - Attach to existing session
-- `kill` - Terminate specific session
-- `kill-all` - Terminate all sessions
-
-## Testing & Quality
-
-### Testing Commands
-
-```bash
-make test           # Standard test suite
-make test-race     # Race condition detection
-```
-
-### Code Quality
-
-- Static analysis with Datadog rulesets (go-best-practices, go-security)
-- golangci-lint for comprehensive linting
-- Cross-platform build verification
-
-## Error Handling
-
-- Wrap errors using `%w` with context (`fmt.Errorf`)
-- Use structured logging with configurable levels
-- Proper error propagation through command chain
-- Graceful handling of multiplexer backend failures
+- Use `/dev:debug-session` for systematic debugging
+- Check logs: `npm run logs` or `yarn logs`
+- Monitor performance: `npm run monitor` or `yarn monitor`

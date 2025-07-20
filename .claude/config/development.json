@@ -1,0 +1,32 @@
+{
+  "extends": "./settings.json",
+  "overrides": {
+    "defaults": {
+      "max_tokens_per_session": 100000,
+      "context_window_warning": 80000,
+      "auto_clear_threshold": 90000
+    },
+    "security": {
+      "audit_logging": false,
+      "permission_validation": false
+    },
+    "quality_gates": {
+      "require_tests": false,
+      "require_documentation": false,
+      "require_type_checking": false,
+      "require_security_scan": false
+    },
+    "workflows": {
+      "auto_commit_formatting": true,
+      "auto_generate_docs": false,
+      "auto_run_tests": false,
+      "quality_check_on_save": false
+    },
+    "debug": {
+      "verbose_logging": true,
+      "show_token_usage": true,
+      "show_context_boundaries": true,
+      "enable_experimental_features": true
+    }
+  }
+}

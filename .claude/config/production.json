@@ -1,0 +1,48 @@
+{
+  "extends": "./settings.json",
+  "overrides": {
+    "security": {
+      "audit_logging": true,
+      "permission_validation": true,
+      "secret_scanning": true,
+      "require_approval": [
+        "deployment",
+        "external_api",
+        "database",
+        "infrastructure"
+      ],
+      "multi_factor_required": true
+    },
+    "quality_gates": {
+      "require_tests": true,
+      "require_documentation": true,
+      "require_type_checking": true,
+      "require_security_scan": true,
+      "require_performance_tests": true,
+      "require_load_tests": true,
+      "require_code_review": true
+    },
+    "workflows": {
+      "auto_commit_formatting": false,
+      "auto_generate_docs": false,
+      "auto_run_tests": false,
+      "quality_check_on_save": true,
+      "require_review": true,
+      "require_sign_off": true
+    },
+    "production": {
+      "deployment_window": "business_hours",
+      "rollback_enabled": true,
+      "monitoring_enabled": true,
+      "alerting_enabled": true,
+      "backup_required": true,
+      "canary_deployment": true
+    },
+    "restrictions": {
+      "no_direct_commits": true,
+      "require_pr": true,
+      "require_approvals": 2,
+      "block_force_push": true
+    }
+  }
+}
