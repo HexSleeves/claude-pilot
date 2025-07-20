@@ -107,9 +107,31 @@ Claude Pilot provides a simple and powerful set of commands to manage your sessi
 **`create [session-name]`**
 Creates a new Claude session. If no name is provided, a random one will be generated.
 
+You can also attach to existing sessions as new panes or windows/tabs:
+
 ```bash
+# Create a standalone session
 claude-pilot create my-go-project
+
+# Create session with description and project path
+claude-pilot create --desc "React app" --project ./src
+
+# Attach to existing session as a new pane (default: vertical split)
+claude-pilot create debug --attach-to my-go-project --as-pane
+
+# Attach as new pane with horizontal split
+claude-pilot create debug --attach-to my-go-project --as-pane --split h
+
+# Attach as new window/tab
+claude-pilot create testing --attach-to my-go-project --as-window
 ```
+
+**Attachment Options:**
+
+- `--attach-to <session-name>`: Target session to attach to
+- `--as-pane`: Create as new pane in existing session
+- `--as-window`: Create as new window/tab in existing session
+- `--split <direction>`: Split direction for panes (`h` for horizontal, `v` for vertical)
 
 **`list`**
 Lists all active and inactive sessions in a clean, tabular format.
@@ -208,8 +230,8 @@ We have an exciting roadmap ahead! Here are some of the features we're planning 
 
 - **Phase 2: Advanced Features**
   - [x] `kill-all` command implementation
+  - [x] `create` enhancement (add panes/windows to existing sessions)
   - [ ] Zellij backend support
-  - [ ] `attach` enhancement (add panels / tabs to existing sessions)
   - [ ] Session templates and presets
   - [ ] Session search and filtering
   - [ ] Export/import session configurations

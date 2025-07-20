@@ -109,14 +109,28 @@ func (c *Client) GetBackend() string {
 
 // CreateSessionRequest contains parameters for creating a new session
 type CreateSessionRequest struct {
-	Name        string
-	Description string
-	ProjectPath string
+	Name           string
+	Description    string
+	ProjectPath    string
+	AttachTo       string                    // Target session to attach to
+	AttachmentType interfaces.AttachmentType // How to attach (pane, window, or standalone)
+	SplitDirection interfaces.SplitDirection // Direction for pane splits
 }
 
 // CreateSession creates a new session with the specified parameters
 func (c *Client) CreateSession(req CreateSessionRequest) (*interfaces.Session, error) {
-	return c.service.CreateSession(req.Name, req.Description, req.ProjectPath)
+	// Convert API request to service request
+	serviceReq := interfaces.CreateSessionRequest{
+		Name:           req.Name,
+		Description:    req.Description,
+		WorkingDir:     req.ProjectPath,
+		Command:        "claude",
+		AttachTo:       req.AttachTo,
+		AttachmentType: req.AttachmentType,
+		SplitDirection: req.SplitDirection,
+	}
+	
+	return c.service.CreateSessionAdvanced(serviceReq)
 }
 
 // ListSessions returns all sessions

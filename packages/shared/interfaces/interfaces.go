@@ -34,12 +34,32 @@ type Session struct {
 	Messages    []Message     `json:"messages"`
 }
 
+// AttachmentType represents how to attach to an existing session
+type AttachmentType string
+
+const (
+	AttachmentNone   AttachmentType = ""       // Create standalone session
+	AttachmentPane   AttachmentType = "pane"   // Create as new pane
+	AttachmentWindow AttachmentType = "window" // Create as new window/tab
+)
+
+// SplitDirection represents the direction for pane splits
+type SplitDirection string
+
+const (
+	SplitVertical   SplitDirection = "v" // Split vertically (left/right)
+	SplitHorizontal SplitDirection = "h" // Split horizontally (top/bottom)
+)
+
 // CreateSessionRequest contains parameters for creating a new session
 type CreateSessionRequest struct {
-	Name        string
-	Description string
-	WorkingDir  string
-	Command     string // Command to run in the session (default: "claude")
+	Name           string
+	Description    string
+	WorkingDir     string
+	Command        string         // Command to run in the session (default: "claude")
+	AttachTo       string         // Target session name to attach to
+	AttachmentType AttachmentType // How to attach (pane, window, or standalone)
+	SplitDirection SplitDirection // Direction for pane splits (v/h)
 }
 
 // MultiplexerSession represents a session managed by a terminal multiplexer
@@ -112,6 +132,9 @@ type SessionRepository interface {
 type SessionService interface {
 	// CreateSession creates a new session with both metadata and multiplexer session
 	CreateSession(name, description, projectPath string) (*Session, error)
+	
+	// CreateSessionAdvanced creates a new session with advanced attachment options
+	CreateSessionAdvanced(req CreateSessionRequest) (*Session, error)
 
 	// GetSession retrieves a session by ID or name
 	GetSession(identifier string) (*Session, error)

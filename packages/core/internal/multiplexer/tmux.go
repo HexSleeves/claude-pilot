@@ -147,9 +147,21 @@ func (tm *TmuxMultiplexer) IsAvailable() bool {
 	return true
 }
 
-// CreateSession creates a new tmux session
+// CreateSession creates a new tmux session, or attaches to existing session as pane/window
 func (tm *TmuxMultiplexer) CreateSession(req interfaces.CreateSessionRequest) (interfaces.MultiplexerSession, error) {
 	start := time.Now()
+	
+	// Handle attachment to existing session
+	if req.AttachTo != "" && req.AttachmentType != interfaces.AttachmentNone {
+		return tm.createAttachedSession(req)
+	}
+	
+	// Create standalone session (original behavior)
+	return tm.createStandaloneSession(req, start)
+}
+
+// createStandaloneSession creates a new standalone tmux session
+func (tm *TmuxMultiplexer) createStandaloneSession(req interfaces.CreateSessionRequest, start time.Time) (interfaces.MultiplexerSession, error) {
 	tmuxName := fmt.Sprintf("%s-%s", tm.sessionPrefix, req.Name)
 
 	tm.logger.Debug("Creating tmux session",
@@ -215,6 +227,123 @@ func (tm *TmuxMultiplexer) CreateSession(req interfaces.CreateSessionRequest) (i
 		"command", command)
 
 	return session, nil
+}
+
+// createAttachedSession creates a new pane or window in an existing session
+func (tm *TmuxMultiplexer) createAttachedSession(req interfaces.CreateSessionRequest) (interfaces.MultiplexerSession, error) {
+	targetTmuxName := fmt.Sprintf("%s-%s", tm.sessionPrefix, req.AttachTo)
+	
+	tm.logger.Debug("Creating attached session",
+		"name", req.Name,
+		"attach_to", req.AttachTo,
+		"target_tmux_name", targetTmuxName,
+		"attachment_type", req.AttachmentType,
+		"split_direction", req.SplitDirection,
+		"command", req.Command,
+		"working_dir", req.WorkingDir)
+
+	// Verify target session exists
+	if !tm.HasSession(req.AttachTo) {
+		return nil, fmt.Errorf("target session '%s' does not exist", req.AttachTo)
+	}
+
+	// Determine command to run (default to "claude")
+	command := req.Command
+	if command == "" {
+		command = "claude"
+	}
+
+	var cmd *exec.Cmd
+	var err error
+
+	switch req.AttachmentType {
+	case interfaces.AttachmentPane:
+		cmd, err = tm.buildSplitPaneCommand(targetTmuxName, req.WorkingDir, req.SplitDirection, command)
+	case interfaces.AttachmentWindow:
+		cmd, err = tm.buildNewWindowCommand(targetTmuxName, req.WorkingDir, req.Name, command)
+	default:
+		return nil, fmt.Errorf("unsupported attachment type: %s", req.AttachmentType)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to build tmux command: %w", err)
+	}
+
+	tm.logger.DebugCommand(tm.tmuxPath, cmd.Args[1:], req.WorkingDir)
+
+	if err := cmd.Run(); err != nil {
+		tm.logger.Error("Failed to create attached session",
+			"name", req.Name,
+			"attach_to", req.AttachTo,
+			"attachment_type", req.AttachmentType,
+			"command", strings.Join(cmd.Args, " "),
+			"error", err)
+		return nil, fmt.Errorf("failed to create attached session: %w", err)
+	}
+
+	// Create a virtual session object representing the attachment
+	// Note: This doesn't create a separate tmux session, but represents the pane/window
+	attachedSession := &TmuxSession{
+		id:          fmt.Sprintf("%s-%s-attached", targetTmuxName, req.Name),
+		name:        fmt.Sprintf("%s-attached-to-%s", req.Name, req.AttachTo),
+		tmuxName:    targetTmuxName, // Points to the parent session
+		status:      interfaces.StatusActive,
+		createdAt:   time.Now(),
+		workingDir:  req.WorkingDir,
+		description: fmt.Sprintf("%s (attached as %s to %s)", req.Description, req.AttachmentType, req.AttachTo),
+		isAttached:  false,
+		isRunning:   true,
+	}
+
+	tm.logger.Info("Attached session created successfully",
+		"name", req.Name,
+		"attach_to", req.AttachTo,
+		"attachment_type", req.AttachmentType,
+		"command", command)
+
+	return attachedSession, nil
+}
+
+// buildSplitPaneCommand builds the tmux command for creating a new pane
+func (tm *TmuxMultiplexer) buildSplitPaneCommand(targetSession, workingDir string, splitDir interfaces.SplitDirection, command string) (*exec.Cmd, error) {
+	args := []string{"split-window", "-t", targetSession}
+	
+	// Add split direction
+	if splitDir == interfaces.SplitHorizontal {
+		args = append(args, "-v") // tmux -v means horizontal split (top/bottom)
+	} else {
+		args = append(args, "-h") // tmux -h means vertical split (left/right)
+	}
+	
+	// Add working directory if specified
+	if workingDir != "" {
+		args = append(args, "-c", workingDir)
+	}
+	
+	// Add command
+	args = append(args, command)
+	
+	return exec.Command(tm.tmuxPath, args...), nil
+}
+
+// buildNewWindowCommand builds the tmux command for creating a new window
+func (tm *TmuxMultiplexer) buildNewWindowCommand(targetSession, workingDir, windowName, command string) (*exec.Cmd, error) {
+	args := []string{"new-window", "-t", targetSession}
+	
+	// Add window name if provided
+	if windowName != "" {
+		args = append(args, "-n", windowName)
+	}
+	
+	// Add working directory if specified
+	if workingDir != "" {
+		args = append(args, "-c", workingDir)
+	}
+	
+	// Add command
+	args = append(args, command)
+	
+	return exec.Command(tm.tmuxPath, args...), nil
 }
 
 // GetSession retrieves session information by name

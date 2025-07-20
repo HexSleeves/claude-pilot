@@ -41,34 +41,57 @@ func NewSessionServiceWithLogger(repository interfaces.SessionRepository, multip
 
 // CreateSession creates a new session with both metadata and multiplexer session
 func (s *SessionService) CreateSession(name, description, projectPath string) (*interfaces.Session, error) {
+	// Use the advanced method with default parameters
+	req := interfaces.CreateSessionRequest{
+		Name:           name,
+		Description:    description,
+		WorkingDir:     projectPath,
+		Command:        "claude",
+		AttachTo:       "",
+		AttachmentType: interfaces.AttachmentNone,
+		SplitDirection: interfaces.SplitVertical,
+	}
+	return s.CreateSessionAdvanced(req)
+}
+
+// CreateSessionAdvanced creates a new session with advanced attachment options
+func (s *SessionService) CreateSessionAdvanced(req interfaces.CreateSessionRequest) (*interfaces.Session, error) {
 	start := time.Now()
 
-	if name == "" {
-		name = fmt.Sprintf("session-%s", time.Now().Format("20060102-150405"))
+	if req.Name == "" {
+		req.Name = fmt.Sprintf("session-%s", time.Now().Format("20060102-150405"))
 	}
 
 	s.logger.Debug("Creating session",
-		"name", name,
-		"description", description,
-		"project_path", projectPath)
+		"name", req.Name,
+		"description", req.Description,
+		"project_path", req.WorkingDir,
+		"attach_to", req.AttachTo,
+		"attachment_type", req.AttachmentType,
+		"split_direction", req.SplitDirection)
+
+	// For attached sessions, we don't create separate metadata since they are part of existing sessions
+	if req.AttachTo != "" && req.AttachmentType != interfaces.AttachmentNone {
+		return s.createAttachedSession(req, start)
+	}
 
 	// Check if session with same name already exists
-	if s.repository.Exists(name) {
+	if s.repository.Exists(req.Name) {
 		s.logger.Warn("Session creation failed: name already exists",
-			"name", name)
-		return nil, fmt.Errorf("session with name '%s' already exists", name)
+			"name", req.Name)
+		return nil, fmt.Errorf("session with name '%s' already exists", req.Name)
 	}
 
 	// Create session metadata
 	session := &interfaces.Session{
 		ID:          uuid.New().String(),
-		Name:        name,
+		Name:        req.Name,
 		Backend:     s.multiplexer.GetName(),
 		Status:      interfaces.StatusActive,
 		CreatedAt:   time.Now(),
 		LastActive:  time.Now(),
-		ProjectPath: projectPath,
-		Description: description,
+		ProjectPath: req.WorkingDir,
+		Description: req.Description,
 		Messages:    []interfaces.Message{},
 	}
 
@@ -76,22 +99,19 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 	if err := s.repository.Save(session); err != nil {
 		s.logger.Error("Failed to save session metadata",
 			"session_id", session.ID,
-			"name", name,
+			"name", req.Name,
 			"error", err)
 		return nil, fmt.Errorf("failed to save session metadata: %w", err)
 	}
 
-	// Create the multiplexer session
-	req := interfaces.CreateSessionRequest{
-		Name:        name,
-		Description: description,
-		WorkingDir:  projectPath,
-		Command:     "claude",
+	// Set default command if not provided
+	if req.Command == "" {
+		req.Command = "claude"
 	}
 
 	s.logger.Debug("Creating multiplexer session",
 		"session_id", session.ID,
-		"name", name,
+		"name", req.Name,
 		"command", req.Command,
 		"working_dir", req.WorkingDir)
 
@@ -99,7 +119,7 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 	if err != nil {
 		s.logger.Error("Failed to create multiplexer session",
 			"session_id", session.ID,
-			"name", name,
+			"name", req.Name,
 			"error", err)
 
 		// If multiplexer session creation fails, mark session as inactive but keep metadata
@@ -107,7 +127,7 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 		if err := s.repository.Save(session); err != nil {
 			s.logger.Error("Failed to update session status",
 				"session_id", session.ID,
-				"name", name,
+				"name", req.Name,
 				"error", err)
 		}
 
@@ -119,7 +139,7 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 	if err := s.repository.Save(session); err != nil {
 		s.logger.Error("Failed to update session status",
 			"session_id", session.ID,
-			"name", name,
+			"name", req.Name,
 			"error", err)
 		return session, fmt.Errorf("session created but failed to update status: %w", err)
 	}
@@ -129,21 +149,81 @@ func (s *SessionService) CreateSession(name, description, projectPath string) (*
 		// Index save failure is not critical, just log it
 		s.logger.Warn("Failed to save name index after session creation",
 			"session_id", session.ID,
-			"name", name,
+			"name", req.Name,
 			"error", err)
 	}
 
 	s.logger.Performance("CreateSession", start,
 		slog.String("session_id", session.ID),
-		slog.String("name", name),
-		slog.String("project_path", projectPath))
+		slog.String("name", req.Name),
+		slog.String("project_path", req.WorkingDir))
 
 	s.logger.Info("Session created successfully",
 		"session_id", session.ID,
-		"name", name,
+		"name", req.Name,
 		"status", string(session.Status))
 
 	return session, nil
+}
+
+// createAttachedSession creates a session attached to an existing session as pane or window
+func (s *SessionService) createAttachedSession(req interfaces.CreateSessionRequest, start time.Time) (*interfaces.Session, error) {
+	s.logger.Debug("Creating attached session",
+		"name", req.Name,
+		"attach_to", req.AttachTo,
+		"attachment_type", req.AttachmentType)
+
+	// Verify target session exists
+	targetSession, err := s.GetSession(req.AttachTo)
+	if err != nil {
+		s.logger.Error("Target session not found",
+			"attach_to", req.AttachTo,
+			"error", err)
+		return nil, fmt.Errorf("target session '%s' not found: %w", req.AttachTo, err)
+	}
+
+	// Set default command if not provided
+	if req.Command == "" {
+		req.Command = "claude"
+	}
+
+	// Create the attached multiplexer session (pane or window)
+	_, err = s.multiplexer.CreateSession(req)
+	if err != nil {
+		s.logger.Error("Failed to create attached session",
+			"name", req.Name,
+			"attach_to", req.AttachTo,
+			"attachment_type", req.AttachmentType,
+			"error", err)
+		return nil, fmt.Errorf("failed to create attached session: %w", err)
+	}
+
+	// Create a virtual session object representing the attachment
+	// This doesn't get saved to repository since it's part of the target session
+	attachedSession := &interfaces.Session{
+		ID:          uuid.New().String(),
+		Name:        fmt.Sprintf("%s-attached-to-%s", req.Name, req.AttachTo),
+		Backend:     s.multiplexer.GetName(),
+		Status:      interfaces.StatusActive,
+		CreatedAt:   time.Now(),
+		LastActive:  time.Now(),
+		ProjectPath: req.WorkingDir,
+		Description: fmt.Sprintf("%s (attached as %s to %s)", req.Description, req.AttachmentType, req.AttachTo),
+		Messages:    []interfaces.Message{},
+	}
+
+	s.logger.Performance("CreateAttachedSession", start,
+		slog.String("name", req.Name),
+		slog.String("attach_to", req.AttachTo),
+		slog.String("attachment_type", string(req.AttachmentType)))
+
+	s.logger.Info("Attached session created successfully",
+		"name", req.Name,
+		"attach_to", req.AttachTo,
+		"attachment_type", req.AttachmentType,
+		"target_session_id", targetSession.ID)
+
+	return attachedSession, nil
 }
 
 // GetSession retrieves a session by ID or name
