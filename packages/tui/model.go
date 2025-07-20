@@ -89,9 +89,9 @@ type Model struct {
 	sortDirection string // "asc" or "desc"
 
 	// Filter state
-	filterActive     bool
-	filterQuery      string
-	filteredSessions []*interfaces.Session
+	filterActive bool
+	filterQuery  string
+	// filteredSessions []*interfaces.Session
 }
 
 const (
@@ -141,7 +141,7 @@ func NewModel(client *api.Client) Model {
 
 	return Model{
 		client:           client,
-		currentView:      TableView,
+		currentView:      Loading,
 		keymap:           DefaultKeyMap(),
 		nameInput:        nameInput,
 		descriptionInput: descriptionInput,
@@ -159,9 +159,8 @@ func NewModel(client *api.Client) Model {
 		showTableHelp:     false,
 
 		// Initialize filter state
-		filterActive:     false,
-		filterQuery:      "",
-		filteredSessions: []*interfaces.Session{},
+		filterActive: false,
+		filterQuery:  "",
 
 		// Initialize export state
 		exportFormat:      "csv",
@@ -338,7 +337,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Apply filter in real-time as user types
 		m.filterQuery = m.filterInput.Value()
-		m.applyFilter()
+		m.table = m.table.WithFilterInput(m.filterInput)
 	}
 
 	// Update export input when in export view
@@ -648,15 +647,9 @@ func (m *Model) handleExportViewKeys(msg tea.KeyMsg) tea.Cmd {
 			filename += "." + m.exportFormat
 		}
 
-		// Get sessions to export (current or filtered)
-		sessionsToExport := m.sessions
-		if m.filterActive && m.filteredSessions != nil {
-			sessionsToExport = m.filteredSessions
-		}
-
 		// Convert to SessionData format for export
-		sessionData := make([]components.SessionData, 0, len(sessionsToExport))
-		for _, session := range sessionsToExport {
+		sessionData := make([]components.SessionData, 0, len(m.sessions))
+		for _, session := range m.sessions {
 			if session == nil {
 				continue
 			}
@@ -691,21 +684,15 @@ func (m *Model) handleExportViewKeys(msg tea.KeyMsg) tea.Cmd {
 // updateTableData updates the table with current session data
 // using the shared component's conversion methods with enhanced features
 func (m *Model) updateTableData() {
-	// Determine which sessions to display based on filter state
-	sessionsToDisplay := m.sessions
-	if m.filterActive && m.filteredSessions != nil {
-		sessionsToDisplay = m.filteredSessions
-	}
-
-	if len(sessionsToDisplay) == 0 {
+	if len(m.sessions) == 0 {
 		// Clear table data to free memory
 		m.table = m.table.WithRows([]table.Row{})
 		return
 	}
 
 	// Convert interfaces.Session to components.SessionData for shared component utility
-	sessionData := make([]components.SessionData, 0, len(sessionsToDisplay))
-	for _, session := range sessionsToDisplay {
+	sessionData := make([]components.SessionData, 0, len(m.sessions))
+	for _, session := range m.sessions {
 		if session == nil {
 			continue // Skip nil sessions
 		}
@@ -872,24 +859,24 @@ func (m *Model) applySorting() {
 }
 
 // applyFilter filters sessions based on the current filter query
-func (m *Model) applyFilter() {
-	if m.filterQuery == "" {
-		m.filterActive = false
-		m.filteredSessions = m.sessions
-	} else {
-		m.filterActive = true
-		m.filteredSessions = []*interfaces.Session{}
-		query := strings.ToLower(m.filterQuery)
+// func (m *Model) applyFilter() {
+// 	if m.filterQuery == "" {
+// 		m.filterActive = false
+// 		m.filteredSessions = m.sessions
+// 	} else {
+// 		m.filterActive = true
+// 		m.filteredSessions = []*interfaces.Session{}
+// 		query := strings.ToLower(m.filterQuery)
 
-		for _, session := range m.sessions {
-			// Search in multiple fields
-			if strings.Contains(strings.ToLower(session.Name), query) ||
-				strings.Contains(strings.ToLower(session.Description), query) ||
-				strings.Contains(strings.ToLower(string(session.Status)), query) ||
-				strings.Contains(strings.ToLower(session.ProjectPath), query) ||
-				strings.Contains(strings.ToLower(session.ID), query) {
-				m.filteredSessions = append(m.filteredSessions, session)
-			}
-		}
-	}
-}
+// 		for _, session := range m.sessions {
+// 			// Search in multiple fields
+// 			if strings.Contains(strings.ToLower(session.Name), query) ||
+// 				strings.Contains(strings.ToLower(session.Description), query) ||
+// 				strings.Contains(strings.ToLower(string(session.Status)), query) ||
+// 				strings.Contains(strings.ToLower(session.ProjectPath), query) ||
+// 				strings.Contains(strings.ToLower(session.ID), query) {
+// 				m.filteredSessions = append(m.filteredSessions, session)
+// 			}
+// 		}
+// 	}
+// }

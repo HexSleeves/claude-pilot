@@ -19,7 +19,8 @@ func renderTableView(m Model) string {
 	// Header
 	header := renderHeader(m)
 	b.WriteString(header)
-	b.WriteString("\n\n")
+	b.WriteString("\n")
+	// b.WriteString("\n\n")
 
 	// Status message if present
 	if m.statusMessage != "" {
@@ -353,8 +354,8 @@ func renderFilterView(m Model) string {
 
 	// Show number of matches if filter is active
 	var matchInfo string
-	if m.filterActive && m.filteredSessions != nil {
-		matchCount := len(m.filteredSessions)
+	if m.filterActive {
+		matchCount := len(m.sessions)
 		totalCount := len(m.sessions)
 		matchInfo = fmt.Sprintf("Showing %d of %d sessions", matchCount, totalCount)
 	} else {
@@ -415,9 +416,9 @@ func renderExportView(m Model) string {
 
 	// Show what will be exported
 	var exportInfo string
-	if m.filterActive && m.filteredSessions != nil {
+	if m.filterActive {
 		exportInfo = fmt.Sprintf("Exporting %d filtered sessions (of %d total)",
-			len(m.filteredSessions), len(m.sessions))
+			len(m.sessions), len(m.sessions))
 	} else {
 		exportInfo = fmt.Sprintf("Exporting all %d sessions", len(m.sessions))
 	}

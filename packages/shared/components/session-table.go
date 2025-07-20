@@ -274,7 +274,7 @@ func GetEvertrasTableColumns() []table.Column {
 		table.NewFlexColumn(columnKeyName, "Name", 2).WithStyle(columnStyles.Name),
 		table.NewFlexColumn(columnKeyStatus, "Status", 1).WithStyle(columnStyles.Status),
 		table.NewFlexColumn(columnKeyBackend, "Backend", 1).WithStyle(columnStyles.Backend),
-		table.NewFlexColumn(columnKeyCreated, "Created", 1).WithStyle(columnStyles.Timestamp),
+		table.NewFlexColumn(columnKeyCreated, "Created", 2).WithStyle(columnStyles.Timestamp),
 		table.NewFlexColumn(columnKeyLastActive, "Last Active", 1).WithStyle(columnStyles.Timestamp),
 		table.NewFlexColumn(columnKeyProject, "Project", 3).WithStyle(columnStyles.Project),
 		table.NewFlexColumn(columnKeyMessages, "Messages", 1).WithStyle(columnStyles.Messages),
