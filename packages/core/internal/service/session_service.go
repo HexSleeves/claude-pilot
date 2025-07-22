@@ -92,7 +92,6 @@ func (s *SessionService) CreateSessionAdvanced(req interfaces.CreateSessionReque
 		LastActive:  time.Now(),
 		ProjectPath: req.WorkingDir,
 		Description: req.Description,
-		Messages:    []interfaces.Message{},
 	}
 
 	// Save session metadata first
@@ -209,7 +208,6 @@ func (s *SessionService) createAttachedSession(req interfaces.CreateSessionReque
 		LastActive:  time.Now(),
 		ProjectPath: req.WorkingDir,
 		Description: fmt.Sprintf("%s (attached as %s to %s)", req.Description, req.AttachmentType, req.AttachTo),
-		Messages:    []interfaces.Message{},
 	}
 
 	s.logger.Performance("CreateAttachedSession", start,
@@ -256,7 +254,7 @@ func (s *SessionService) ListSessions() ([]*interfaces.Session, error) {
 	s.logger.Debug("Retrieved sessions from repository", "count", len(sessions))
 
 	// Batch update status for all sessions
-	s.batchUpdateSessionStatus(sessions)
+	s.batchUpdateSession(sessions)
 
 	s.logger.Performance("ListSessions", start, slog.Int("session_count", len(sessions)))
 
@@ -402,26 +400,6 @@ func (s *SessionService) AttachToSession(identifier string) error {
 	return nil
 }
 
-// AddMessage adds a message to a session's conversation history
-func (s *SessionService) AddMessage(sessionID, role, content string) error {
-	session, err := s.GetSession(sessionID)
-	if err != nil {
-		return err
-	}
-
-	message := interfaces.Message{
-		ID:        uuid.New().String(),
-		Role:      role,
-		Content:   content,
-		Timestamp: time.Now(),
-	}
-
-	session.Messages = append(session.Messages, message)
-	session.LastActive = time.Now()
-
-	return s.repository.Save(session)
-}
-
 // IsSessionRunning checks if the session's multiplexer is active
 func (s *SessionService) IsSessionRunning(identifier string) bool {
 	session, err := s.GetSession(identifier)
@@ -452,7 +430,7 @@ func (s *SessionService) updateSessionStatus(session *interfaces.Session) *inter
 }
 
 // batchUpdateSessionStatus efficiently updates status for multiple sessions
-func (s *SessionService) batchUpdateSessionStatus(sessions []*interfaces.Session) {
+func (s *SessionService) batchUpdateSession(sessions []*interfaces.Session) {
 	// Get all multiplexer sessions once
 	muxSessions, err := s.multiplexer.ListSessions()
 	if err != nil {
@@ -479,9 +457,16 @@ func (s *SessionService) batchUpdateSessionStatus(sessions []*interfaces.Session
 			} else {
 				session.Status = interfaces.StatusActive
 			}
+
+			// Update the session with the multiplexer session
+			session.Panes, err = s.multiplexer.GetSessionPaneCount(session.Name)
+			if err != nil {
+				s.logger.Error("Failed to get session pane count", "error", err)
+			}
 		} else {
 			// Session not found in multiplexer
 			session.Status = interfaces.StatusInactive
+			session.Panes = 0
 		}
 	}
 }
@@ -515,4 +500,15 @@ func (s *SessionService) GetMultiplexer() interfaces.TerminalMultiplexer {
 // GetRepository returns the underlying repository
 func (s *SessionService) GetRepository() interfaces.SessionRepository {
 	return s.repository
+}
+
+// GetSessionPaneCount returns the number of panes in a session
+func (s *SessionService) GetSessionPaneCount(identifier string) (int, error) {
+	session, err := s.GetSession(identifier)
+	if err != nil {
+		return 0, err
+	}
+
+	// Get pane count from multiplexer
+	return s.multiplexer.GetSessionPaneCount(session.Name)
 }

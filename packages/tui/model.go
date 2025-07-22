@@ -660,7 +660,6 @@ func (m *Model) handleExportViewKeys(msg tea.KeyMsg) tea.Cmd {
 				Backend:     session.Backend,
 				Created:     session.CreatedAt,
 				LastActive:  session.LastActive,
-				Messages:    len(session.Messages),
 				ProjectPath: session.ProjectPath,
 			})
 		}
@@ -704,8 +703,8 @@ func (m *Model) updateTableData() {
 			Backend:     session.Backend,
 			Created:     session.CreatedAt,
 			LastActive:  session.LastActive,
-			Messages:    len(session.Messages),
 			ProjectPath: session.ProjectPath,
+			Panes:       session.Panes,
 		})
 	}
 

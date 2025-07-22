@@ -536,7 +536,7 @@ func exportToCSV(file *os.File, data []components.SessionData) error {
 	defer writer.Flush()
 
 	// Write header
-	header := []string{"ID", "Name", "Status", "Backend", "Created", "Last Active", "Project", "Messages"}
+	header := []string{"ID", "Name", "Status", "Backend", "Created", "Last Active", "Project", "Panes"}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %w", err)
 	}
@@ -551,7 +551,7 @@ func exportToCSV(file *os.File, data []components.SessionData) error {
 			session.Created.Format(time.RFC3339),
 			session.LastActive.Format(time.RFC3339),
 			session.ProjectPath,
-			fmt.Sprintf("%d", session.Messages),
+			fmt.Sprintf("%d", session.Panes),
 		}
 		if err := writer.Write(record); err != nil {
 			return fmt.Errorf("failed to write CSV record: %w", err)

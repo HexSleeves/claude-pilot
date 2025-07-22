@@ -7,7 +7,6 @@ require (
 	claude-pilot/shared v0.0.0-00010101000000-000000000000
 	claude-pilot/tui v0.0.0-00010101000000-000000000000
 	github.com/charmbracelet/fang v0.3.0
-	github.com/fatih/color v1.18.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 )
@@ -23,8 +22,8 @@ require (
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1 // indirect
 	github.com/charmbracelet/x/ansi v0.9.3 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250714123521-bc8a1995e079 // indirect
-	github.com/charmbracelet/x/exp/color v0.0.0-20250714123521-bc8a1995e079 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250720010745-3615766e35a0 // indirect
+	github.com/charmbracelet/x/exp/color v0.0.0-20250720010745-3615766e35a0 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/evertras/bubble-table v0.17.2 // indirect
@@ -33,7 +32,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect

@@ -31,7 +31,7 @@ type Session struct {
 	LastActive  time.Time     `json:"last_active"`
 	ProjectPath string        `json:"project_path"`
 	Description string        `json:"description"`
-	Messages    []Message     `json:"messages"`
+	Panes       int           `json:"panes"`
 }
 
 // AttachmentType represents how to attach to an existing session
@@ -102,6 +102,9 @@ type TerminalMultiplexer interface {
 
 	// HasSession checks if a session exists
 	HasSession(name string) bool
+
+	// GetSessionPaneCount returns the number of panes in a session
+	GetSessionPaneCount(name string) (int, error)
 }
 
 // SessionRepository handles persistence of session metadata
@@ -132,7 +135,7 @@ type SessionRepository interface {
 type SessionService interface {
 	// CreateSession creates a new session with both metadata and multiplexer session
 	CreateSession(name, description, projectPath string) (*Session, error)
-	
+
 	// CreateSessionAdvanced creates a new session with advanced attachment options
 	CreateSessionAdvanced(req CreateSessionRequest) (*Session, error)
 
@@ -154,12 +157,12 @@ type SessionService interface {
 	// AttachToSession connects to an existing session
 	AttachToSession(identifier string) error
 
-	// AddMessage adds a message to a session's conversation history
-	AddMessage(sessionID, role, content string) error
-
 	// IsSessionRunning checks if the session's multiplexer is active
 	IsSessionRunning(identifier string) bool
 
 	// KillAllSessions terminates all sessions
 	KillAllSessions() error
+
+	// GetSessionPaneCount returns the number of panes in a session
+	GetSessionPaneCount(identifier string) (int, error)
 }

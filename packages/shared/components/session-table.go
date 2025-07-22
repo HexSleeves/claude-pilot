@@ -22,7 +22,7 @@ const (
 	columnKeyCreated    = "created"
 	columnKeyLastActive = "last_active"
 	columnKeyProject    = "project"
-	columnKeyMessages   = "messages"
+	columnKeyPanes      = "panes"
 )
 
 // TableConfig holds configuration for table rendering
@@ -48,8 +48,8 @@ type SessionData struct {
 	Backend     string
 	Created     time.Time
 	LastActive  time.Time
-	Messages    int
 	ProjectPath string
+	Panes       int
 }
 
 // Table provides a unified table component wrapping evertras/bubble-table
@@ -261,7 +261,7 @@ func (t *SessionTable) SortByColumn(columnKey string, ascending bool) {
 
 // validateSortColumn validates if the given column is valid for sorting
 func (t *SessionTable) validateSortColumn(column string) bool {
-	validColumns := []string{"id", "name", "status", "backend", "created", "last_active", "project", "messages"}
+	validColumns := []string{"id", "name", "status", "backend", "created", "last_active", "project", "panes"}
 	return slices.Contains(validColumns, column)
 }
 
@@ -277,7 +277,7 @@ func GetEvertrasTableColumns() []table.Column {
 		table.NewFlexColumn(columnKeyCreated, "Created", 2).WithStyle(columnStyles.Timestamp),
 		table.NewFlexColumn(columnKeyLastActive, "Last Active", 1).WithStyle(columnStyles.Timestamp),
 		table.NewFlexColumn(columnKeyProject, "Project", 3).WithStyle(columnStyles.Project),
-		table.NewFlexColumn(columnKeyMessages, "Messages", 1).WithStyle(columnStyles.Messages),
+		table.NewFlexColumn(columnKeyPanes, "Panes", 1).WithStyle(columnStyles.Panes),
 	}
 }
 
@@ -298,7 +298,7 @@ func GetEvertrasSessionRows(sessions []SessionData, width int) []table.Row {
 		projectPath := styles.FormatProjectPath(session.ProjectPath, projectPathWidth)
 
 		timeAgo := styles.FormatTimeAgo(session.LastActive)
-		messages := fmt.Sprintf("%d", session.Messages)
+		panes := fmt.Sprintf("%d", session.Panes)
 		created := styles.FormatTime(session.Created)
 
 		statusStyle := styles.GetContextualColor(styles.ContextStatus, session.Status)
@@ -314,8 +314,8 @@ func GetEvertrasSessionRows(sessions []SessionData, width int) []table.Row {
 			columnKeyBackend:    backend,
 			columnKeyCreated:    created,
 			columnKeyLastActive: timeAgo,
-			columnKeyMessages:   messages,
 			columnKeyProject:    projectPath,
+			columnKeyPanes:      panes,
 		})
 	}
 

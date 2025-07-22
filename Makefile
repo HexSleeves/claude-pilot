@@ -44,6 +44,12 @@ deps-tui:
 	@echo "Installing dependencies for tui..."
 	@cd $(TUI_DIR) && go mod tidy && go mod download
 
+.PHONY: update-deps
+update-deps:
+	@echo "Updating dependencies for claudepilot..."
+	@cd $(CLAUDEPILOT_DIR) && go get -u ./... && go mod tidy
+	@echo "Updating dependencies for tui..."
+	@cd $(TUI_DIR) && go get -u ./... && go mod tidy
 # Run tests for both
 .PHONY: test
 test: test-claudepilot test-tui

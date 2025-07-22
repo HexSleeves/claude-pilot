@@ -150,12 +150,12 @@ func (tm *TmuxMultiplexer) IsAvailable() bool {
 // CreateSession creates a new tmux session, or attaches to existing session as pane/window
 func (tm *TmuxMultiplexer) CreateSession(req interfaces.CreateSessionRequest) (interfaces.MultiplexerSession, error) {
 	start := time.Now()
-	
+
 	// Handle attachment to existing session
 	if req.AttachTo != "" && req.AttachmentType != interfaces.AttachmentNone {
 		return tm.createAttachedSession(req)
 	}
-	
+
 	// Create standalone session (original behavior)
 	return tm.createStandaloneSession(req, start)
 }
@@ -232,7 +232,7 @@ func (tm *TmuxMultiplexer) createStandaloneSession(req interfaces.CreateSessionR
 // createAttachedSession creates a new pane or window in an existing session
 func (tm *TmuxMultiplexer) createAttachedSession(req interfaces.CreateSessionRequest) (interfaces.MultiplexerSession, error) {
 	targetTmuxName := fmt.Sprintf("%s-%s", tm.sessionPrefix, req.AttachTo)
-	
+
 	tm.logger.Debug("Creating attached session",
 		"name", req.Name,
 		"attach_to", req.AttachTo,
@@ -307,42 +307,42 @@ func (tm *TmuxMultiplexer) createAttachedSession(req interfaces.CreateSessionReq
 // buildSplitPaneCommand builds the tmux command for creating a new pane
 func (tm *TmuxMultiplexer) buildSplitPaneCommand(targetSession, workingDir string, splitDir interfaces.SplitDirection, command string) (*exec.Cmd, error) {
 	args := []string{"split-window", "-t", targetSession}
-	
+
 	// Add split direction
 	if splitDir == interfaces.SplitHorizontal {
 		args = append(args, "-v") // tmux -v means horizontal split (top/bottom)
 	} else {
 		args = append(args, "-h") // tmux -h means vertical split (left/right)
 	}
-	
+
 	// Add working directory if specified
 	if workingDir != "" {
 		args = append(args, "-c", workingDir)
 	}
-	
+
 	// Add command
 	args = append(args, command)
-	
+
 	return exec.Command(tm.tmuxPath, args...), nil
 }
 
 // buildNewWindowCommand builds the tmux command for creating a new window
 func (tm *TmuxMultiplexer) buildNewWindowCommand(targetSession, workingDir, windowName, command string) (*exec.Cmd, error) {
 	args := []string{"new-window", "-t", targetSession}
-	
+
 	// Add window name if provided
 	if windowName != "" {
 		args = append(args, "-n", windowName)
 	}
-	
+
 	// Add working directory if specified
 	if workingDir != "" {
 		args = append(args, "-c", workingDir)
 	}
-	
+
 	// Add command
 	args = append(args, command)
-	
+
 	return exec.Command(tm.tmuxPath, args...), nil
 }
 
@@ -531,4 +531,39 @@ func (tm *TmuxMultiplexer) KillAllSessions() error {
 	}
 
 	return nil
+}
+
+// GetSessionPaneCount returns the number of panes in a tmux session
+func (tm *TmuxMultiplexer) GetSessionPaneCount(name string) (int, error) {
+	tmuxName := fmt.Sprintf("%s-%s", tm.sessionPrefix, name)
+
+	// Check if session exists first
+	if !tm.HasSession(name) {
+		return 0, fmt.Errorf("session '%s' not found", name)
+	}
+
+	// Get pane count using tmux list-panes command
+	cmd := exec.Command(tm.tmuxPath, "list-panes", "-t", tmuxName, "-F", "#{pane_id}")
+	output, err := cmd.Output()
+	if err != nil {
+		tm.logger.Error("Failed to get pane count for session",
+			"name", name,
+			"tmux_name", tmuxName,
+			"error", err)
+		return 0, fmt.Errorf("failed to get pane count: %w", err)
+	}
+
+	// Count the number of lines (each line represents a pane)
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return 0, nil
+	}
+
+	paneCount := len(lines)
+	tm.logger.Debug("Retrieved pane count for session",
+		"name", name,
+		"tmux_name", tmuxName,
+		"pane_count", paneCount)
+
+	return paneCount, nil
 }

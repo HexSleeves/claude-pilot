@@ -19,13 +19,7 @@ func DisplaySessionDetails(sess *api.Session, backend string) {
 	if sess.Description != "" {
 		fmt.Printf("%-15s %s\n", Bold("Description:"), sess.Description)
 	}
-}
-
-// DisplaySessionDetailsWithMessages shows session details including message count
-// This is used in kill.go where message count is displayed
-func DisplaySessionDetailsWithMessages(sess *api.Session, backend string) {
-	DisplaySessionDetails(sess, backend)
-	fmt.Printf("%-15s %d\n", Bold("Messages:"), len(sess.Messages))
+	fmt.Printf("%-15s %d\n", Bold("Panes:"), sess.Panes)
 }
 
 // DisplayAvailableSessions shows available sessions in error scenarios

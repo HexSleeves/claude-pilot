@@ -603,7 +603,7 @@ type EvertrasColumnStyles struct {
 	Backend   lipgloss.Style
 	Timestamp lipgloss.Style
 	Project   lipgloss.Style
-	Messages  lipgloss.Style
+	Panes     lipgloss.Style
 }
 
 // GetEvertrasColumnStyles returns column-specific styles for different data types
@@ -640,7 +640,7 @@ func GetEvertrasColumnStyles() EvertrasColumnStyles {
 			Foreground(TextMuted).
 			Padding(0, 1).
 			Align(lipgloss.Left),
-		Messages: lipgloss.NewStyle().
+		Panes: lipgloss.NewStyle().
 			Foreground(InfoColor).
 			Bold(true).
 			Padding(0, 1).

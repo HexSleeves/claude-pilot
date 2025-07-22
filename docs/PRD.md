@@ -187,7 +187,7 @@ type Session struct {
     LastActive  time.Time     `json:"last_active"`
     ProjectPath string        `json:"project_path"`
     Description string        `json:"description"`
-    Messages    []Message     `json:"messages"`
+    Panes       int           `json:"panes"`
 }
 ```
 

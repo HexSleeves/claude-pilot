@@ -14,7 +14,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all active Claude sessions",
 	Long: `List all active Claude coding sessions with their details.
-Shows session ID, name, status, creation time, last activity, and message count.
+Shows session ID, name, status, creation time, last activity, message count, and pane count.
 
 Examples:
   claude-pilot list           	# List all sessions
@@ -74,7 +74,7 @@ Examples:
 		}
 
 		// Convert API sessions to shared table format
-		sessionData := convertToSessionData(sessions)
+		sessionData := convertToSessionData(sessions, ctx.Client)
 
 		// Create and configure table for CLI output with enhanced features
 		table := components.NewSessionTable(components.TableConfig{
@@ -128,10 +128,19 @@ Examples:
 }
 
 // convertToSessionData converts API sessions to the shared table SessionData format
-func convertToSessionData(sessions []*api.Session) []components.SessionData {
+func convertToSessionData(sessions []*api.Session, client *api.Client) []components.SessionData {
 	sessionData := make([]components.SessionData, len(sessions))
 
 	for i, sess := range sessions {
+		// Get pane count for active sessions
+		paneCount := 0
+		if sess.Status == api.StatusActive || sess.Status == api.StatusConnected {
+			if count, err := client.GetSessionPaneCount(sess.Name); err == nil {
+				paneCount = count
+			}
+			// If error getting pane count, just use 0 (don't fail the entire list)
+		}
+
 		sessionData[i] = components.SessionData{
 			ID:          sess.ID,
 			Name:        sess.Name,
@@ -139,8 +148,8 @@ func convertToSessionData(sessions []*api.Session) []components.SessionData {
 			Backend:     sess.Backend,
 			Created:     sess.CreatedAt,
 			LastActive:  sess.LastActive,
-			Messages:    len(sess.Messages),
 			ProjectPath: sess.ProjectPath,
+			Panes:       paneCount,
 		}
 	}
 
@@ -153,5 +162,5 @@ func init() {
 	// Add flags
 	listCmd.Flags().BoolP("active", "a", false, "Show only active sessions")
 
-	listCmd.Flags().StringP("sort", "s", "activity", "Sort by: name, created, status, activity")
+	listCmd.Flags().StringP("sort", "s", "activity", "Sort by: name, created, status, activity, panes")
 }

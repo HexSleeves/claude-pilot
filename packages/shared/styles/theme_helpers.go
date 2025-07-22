@@ -39,7 +39,7 @@ func Header(text string) string {
 }
 
 func Success(text string) string {
-	return SuccessStyle.Render("✓ " + text)
+	return SuccessStyle.Render("✔ " + text)
 }
 
 func Error(text string) string {

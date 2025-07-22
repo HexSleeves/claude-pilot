@@ -129,7 +129,7 @@ func (c *Client) CreateSession(req CreateSessionRequest) (*interfaces.Session, e
 		AttachmentType: req.AttachmentType,
 		SplitDirection: req.SplitDirection,
 	}
-	
+
 	return c.service.CreateSessionAdvanced(serviceReq)
 }
 
@@ -163,14 +163,14 @@ func (c *Client) KillAllSessions() error {
 	return c.service.KillAllSessions()
 }
 
-// AddMessage adds a message to a session's conversation history
-func (c *Client) AddMessage(sessionID, role, content string) error {
-	return c.service.AddMessage(sessionID, role, content)
-}
-
 // IsSessionRunning checks if a session's multiplexer is active
 func (c *Client) IsSessionRunning(identifier string) bool {
 	return c.service.IsSessionRunning(identifier)
+}
+
+// GetSessionPaneCount returns the number of panes in a session
+func (c *Client) GetSessionPaneCount(identifier string) (int, error) {
+	return c.service.GetSessionPaneCount(identifier)
 }
 
 // Session represents a session with all its data (re-exported for convenience)

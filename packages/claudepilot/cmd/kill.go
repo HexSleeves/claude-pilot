@@ -112,7 +112,7 @@ Examples:
 			if err := ctx.Client.KillSession(sess.ID); err != nil {
 				errors = append(errors, fmt.Sprintf("Failed to kill session %s: %v", sess.Name, err))
 			} else {
-				fmt.Printf("%s Session %s killed successfully\n", ui.SuccessMsg("✓"), ui.Highlight(sess.Name))
+				fmt.Printf("%s Session %s killed successfully\n", ui.SuccessMsg(""), ui.Highlight(sess.Name))
 			}
 		}
 
@@ -148,8 +148,8 @@ func convertToSessionDataForKill(sessions []*api.Session) []components.SessionDa
 			Backend:     sess.Backend,
 			Created:     sess.CreatedAt,
 			LastActive:  sess.LastActive,
-			Messages:    len(sess.Messages),
 			ProjectPath: sess.ProjectPath,
+			Panes:       sess.Panes,
 		}
 	}
 
