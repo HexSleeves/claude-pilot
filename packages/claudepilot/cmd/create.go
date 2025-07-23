@@ -26,7 +26,7 @@ Examples:
   claude-pilot create --project ./src              # Create session with project path
   claude-pilot create --attach-to main --as-pane   # Create as new pane in 'main' session
   claude-pilot create --attach-to main --as-window # Create as new window in 'main' session
-  claude-pilot create debug --attach-to main --as-pane --split-h  # Create horizontal pane split
+  claude-pilot create debug --attach-to main --as-pane --split h  # Create horizontal pane split
   `,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
