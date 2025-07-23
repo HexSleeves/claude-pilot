@@ -309,11 +309,11 @@ func (tm *TmuxMultiplexer) buildSplitPaneCommand(targetSession, workingDir strin
 	args := []string{"split-window", "-t", targetSession}
 
 	// Add split direction
-	if splitDir == interfaces.SplitHorizontal {
-		args = append(args, "-v") // tmux -v means horizontal split (top/bottom)
-	} else {
-		args = append(args, "-h") // tmux -h means vertical split (left/right)
-	}
+        if splitDir == interfaces.SplitHorizontal {
+                args = append(args, "-v") // tmux -v means horizontal split (left/right)
+        } else {
+                args = append(args, "-h") // tmux -h means vertical split (top/bottom)
+        }
 
 	// Add working directory if specified
 	if workingDir != "" {
