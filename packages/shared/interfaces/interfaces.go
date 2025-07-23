@@ -47,8 +47,8 @@ const (
 type SplitDirection string
 
 const (
-	SplitVertical   SplitDirection = "v" // Split vertically (left/right)
-	SplitHorizontal SplitDirection = "h" // Split horizontally (top/bottom)
+        SplitVertical   SplitDirection = "v" // Split vertically (top/bottom)
+        SplitHorizontal SplitDirection = "h" // Split horizontally (left/right)
 )
 
 // CreateSessionRequest contains parameters for creating a new session
