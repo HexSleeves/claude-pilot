@@ -149,13 +149,13 @@ func (cm *ConfigManager) Load() (*Config, error) {
 	cm.setDefaults()
 
 	// Try to read config file
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found, create a default one
-			var configPath string
-			if cm.configFile != "" {
-				configPath = cm.configFile
-			} else {
+       if err := viper.ReadInConfig(); err != nil {
+               if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+                       // Config file not found, create a default one
+                       var configPath string
+                       if cm.configFile != "" {
+                               configPath = cm.configFile
+                       } else {
 				homeDir, err := os.UserHomeDir()
 				if err != nil {
 					return cm.config, nil // Use defaults if we can't determine config dir
@@ -163,19 +163,23 @@ func (cm *ConfigManager) Load() (*Config, error) {
 				configPath = filepath.Join(homeDir, ".config", "claude-pilot", "claude-pilot.yaml")
 			}
 
-			if err := cm.createDefaultConfigFileAt(configPath); err != nil {
-				// If we can't create the config file, just use defaults without error
-				// This ensures the application works even if filesystem is read-only
-				return cm.config, nil
-			}
-			// Try to read the newly created config file
-			if err := viper.ReadInConfig(); err != nil {
-				// If we still can't read it, just use defaults
-				return cm.config, nil
-			}
-		}
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
+                       if err := cm.createDefaultConfigFileAt(configPath); err != nil {
+                               // If we can't create the config file, just use defaults without error
+                               // This ensures the application works even if filesystem is read-only
+                               return cm.config, nil
+                       }
+                       // Try to read the newly created config file
+                       if err := viper.ReadInConfig(); err != nil {
+                               // If we still can't read it, just use defaults
+                               return cm.config, nil
+                       }
+                       // Successfully created and loaded default config
+                       err = nil
+               }
+               if err != nil {
+                       return nil, fmt.Errorf("failed to read config file: %w", err)
+               }
+       }
 
 	// Unmarshal config
 	if err := viper.Unmarshal(cm.config); err != nil {
@@ -349,6 +353,10 @@ ui:
 tmux:
   # Prefix for tmux session names (optional)
   session_prefix: claude-
+  # Default tmux layout
+  default_layout: main-horizontal
+  # Display tmux status bar
+  status_bar: true
 `
 
 	// Write the default config file
