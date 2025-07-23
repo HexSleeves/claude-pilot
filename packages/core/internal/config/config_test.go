@@ -102,7 +102,7 @@ func TestBackendConfig(t *testing.T) {
 	}
 
 	// Test valid backends
-	validBackends := []string{"tmux"}
+        validBackends := []string{"tmux", "auto"}
 	found := slices.Contains(validBackends, config.Backend)
 	if !found {
 		t.Errorf("Default backend '%s' should be one of: %v", config.Backend, validBackends)

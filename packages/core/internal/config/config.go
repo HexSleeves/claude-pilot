@@ -75,8 +75,8 @@ type LoggingConfig struct {
 // DefaultConfig returns a configuration with sensible defaults
 func DefaultConfig() *Config {
 	homeDir, _ := os.UserHomeDir()
-	return &Config{
-		Backend:      "tmux", // Auto-detect available backend
+        return &Config{
+                Backend:      "auto", // Auto-detect available backend
 		BackendPath:  "",     // Use system PATH
 		SessionsDir:  filepath.Join(homeDir, ".config", "claude-pilot", "sessions"),
 		DefaultShell: "claude",
@@ -310,8 +310,8 @@ func (cm *ConfigManager) createDefaultConfigFileAt(configFilePath string) error 
 #
 # For more information, visit: https://github.com/HexSleeves/claude-pilot
 
-# Backend selection: tmux
-backend: tmux
+# Backend selection: auto
+backend: auto
 
 # Directory where session metadata is stored
 # Will be created automatically if it doesn't exist
