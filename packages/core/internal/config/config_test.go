@@ -1,6 +1,9 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
+
 	"slices"
 	"testing"
 )
@@ -36,8 +39,12 @@ func TestConfigManagerCreation(t *testing.T) {
 		t.Error("NewConfigManager should not return nil")
 	}
 
-	// Test with custom config path
-	customPath := "/tmp/test-config.yaml"
+	// Test with custom config path inside a temporary directory
+	tempDir := t.TempDir()
+	customPath := filepath.Join(tempDir, "test-config.yaml")
+	if err := os.WriteFile(customPath, []byte{}, 0644); err != nil {
+		t.Fatalf("failed to create temp config file: %v", err)
+	}
 	cm = NewConfigManager(customPath)
 	if cm == nil {
 		t.Error("NewConfigManager should not return nil with custom path")
