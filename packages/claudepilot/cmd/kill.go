@@ -175,12 +175,18 @@ Examples:
 		// Show progress for multiple sessions in TTY mode
 		showProgress := len(sessions) > 1 && ctx.TTYDetector.ShowSpinner() && ctx.OutputWriter.GetFormat() == cli.OutputFormatHuman
 		if showProgress {
-			ctx.OutputWriter.WriteString(fmt.Sprintf("Killing %d sessions...\n", len(sessions)))
+			err := ctx.OutputWriter.WriteString(fmt.Sprintf("Killing %d sessions...\n", len(sessions)))
+			if err != nil {
+				return err
+			}
 		}
 
 		for i, sess := range sessions {
 			if showProgress {
-				ctx.OutputWriter.WriteString(fmt.Sprintf("\rProgress: %d/%d", i+1, len(sessions)))
+				err := ctx.OutputWriter.WriteString(fmt.Sprintf("\rProgress: %d/%d", i+1, len(sessions)))
+				if err != nil {
+					return err
+				}
 			}
 
 			sessionData := cli.SessionData{
@@ -205,7 +211,10 @@ Examples:
 
 		// Clear progress line
 		if showProgress {
-			ctx.OutputWriter.WriteString("\r\033[K")
+			err := ctx.OutputWriter.WriteString("\r\033[K")
+			if err != nil {
+				return err
+			}
 		}
 
 		// Handle different output formats

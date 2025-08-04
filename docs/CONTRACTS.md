@@ -394,7 +394,7 @@ Error hints provide actionable remediation guidance:
 
 **Examples:**
 
-```
+```bash
 Error: Session 'xyz' not found
 Hint: Use 'claude-pilot list' to see available sessions.
 

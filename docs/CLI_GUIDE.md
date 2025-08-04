@@ -246,7 +246,7 @@ All global flags are automatically forwarded to the TUI mode:
 
 Default format with colors, styling, and helpful messages.
 
-```
+```bash
 Session Details
 ID:          abc123
 Name:        my-session
@@ -259,7 +259,7 @@ Project:     /home/user/project
 
 Structured table format suitable for terminals.
 
-```
+```bash
 ┌─────────┬────────────┬────────┬─────────┬─────────────────────┐
 │ ID      │ Name       │ Status │ Project │ Created             │
 ├─────────┼────────────┼────────┼─────────┼─────────────────────┤
@@ -303,7 +303,7 @@ Newline-delimited JSON for streaming and processing.
 
 Minimal output with essential information only.
 
-```
+```bash
 abc123
 ```
 
@@ -327,7 +327,7 @@ abc123
 
 **Human Format:**
 
-```
+```bash
 Error: Session 'non-existent' not found
 Category: not_found
 Code: session_not_found
@@ -359,13 +359,13 @@ Hint: Use 'claude-pilot list' to see available sessions.
 - `NO_COLOR=1` - Disable colors (standard)
 - `FORCE_COLOR=1` - Force colors on
 
-### Configuration
+### Config
 
 - `CLAUDE_PILOT_CONFIG` - Configuration file path
 - `CLAUDE_PILOT_VERBOSE=1` - Enable verbose logging
 - `CLAUDE_PILOT_DEBUG=1` - Enable debug logging
 
-### Example Usage
+#### Examples
 
 ```bash
 # Force non-interactive mode

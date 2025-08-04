@@ -76,7 +76,10 @@ Examples:
 							suggestions = append(suggestions, fmt.Sprintf("claude-pilot details --id %s", session.Name))
 						}
 					}
-					WriteHelpfulMessage(ctx, fmt.Sprintf("Session '%s' not found.", sessionID), suggestions)
+					err := WriteHelpfulMessage(ctx, fmt.Sprintf("Session '%s' not found.", sessionID), suggestions)
+					if err != nil {
+						return err
+					}
 				}
 
 				// Create structured error for exit code 3
