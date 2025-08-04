@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "message": "Killed 1/1 sessions successfully",
+  "data": {
+    "successful": [
+      {
+        "id": "a1b2c3d4-5678-9012-3456-789abcdef123",
+        "name": "my-project",
+        "status": "killed"
+      }
+    ],
+    "failed": []
+  },
+  "errors": [],
+  "metadata": {
+    "operation": "kill",
+    "timestamp": "2025-08-04T12:45:30.123456-05:00",
+    "total_count": "1",
+    "successful_count": "1",
+    "failed_count": "0"
+  }
+}

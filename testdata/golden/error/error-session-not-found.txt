@@ -1,0 +1,5 @@
+Session 'nonexistent-session' not found. Available sessions:
+
+  → claude-pilot list
+  → claude-pilot details --id my-project
+  → claude-pilot details --id debug-session

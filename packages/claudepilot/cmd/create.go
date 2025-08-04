@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"claude-pilot/core/api"
+	"claude-pilot/internal/cli"
 	"claude-pilot/internal/ui"
 	"claude-pilot/shared/interfaces"
 
@@ -27,19 +30,24 @@ Examples:
   claude-pilot create --attach-to main --as-pane   # Create as new pane in 'main' session
   claude-pilot create --attach-to main --as-window # Create as new window in 'main' session
   claude-pilot create debug --attach-to main --as-pane --split h  # Create horizontal pane split
+  claude-pilot create --id my-session-123          # Create session with specific ID
   `,
 	Args: cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize common command context
 		ctx, err := InitializeCommand()
 		if err != nil {
-			HandleError(err, "initialize command")
+			return fmt.Errorf("failed to initialize command: %w", err)
 		}
 
 		// Get command-specific parameters
 		var sessionName string
 		if len(args) > 0 {
 			sessionName = args[0]
+			// Show deprecation warning for positional session name
+			if err := CreateDeprecationWarning(ctx, "positional session name", "--id flag"); err != nil {
+				return err
+			}
 		}
 
 		// Get flags
@@ -49,10 +57,23 @@ Examples:
 		asPane, _ := cmd.Flags().GetBool("as-pane")
 		asWindow, _ := cmd.Flags().GetBool("as-window")
 		splitDirection, _ := cmd.Flags().GetString("split")
+		idFlag, _ := cmd.Flags().GetString("id")
+
+		// Prefer --id flag over positional argument
+		if idFlag != "" {
+			if sessionName != "" {
+				return cli.NewValidationError(
+					"cannot specify both session name as positional argument and --id flag",
+					"use either 'claude-pilot create session-name' or 'claude-pilot create --id session-name'",
+				)
+			}
+			sessionName = idFlag
+		}
 
 		// Validate attachment flags
 		if err := validateAttachmentFlags(attachTo, asPane, asWindow); err != nil {
-			HandleError(err, "validate attachment flags")
+			return cli.WrapError(err, cli.ErrorCodeInvalidFlagValue, cli.ErrorCategoryValidation,
+				"Check the command usage with --help for proper flag combinations.")
 		}
 
 		// Determine attachment type
@@ -77,7 +98,10 @@ Examples:
 			case "v", "vertical":
 				splitDir = interfaces.SplitVertical
 			default:
-				HandleError(fmt.Errorf("invalid split direction '%s', use 'h' or 'v'", splitDirection), "parse split direction")
+				return cli.NewValidationError(
+					fmt.Sprintf("invalid split direction '%s'", splitDirection),
+					"use 'h' (horizontal) or 'v' (vertical) for split direction",
+				)
 			}
 		} else {
 			splitDir = interfaces.SplitVertical // Default to vertical split
@@ -87,7 +111,14 @@ Examples:
 		projectPath = GetProjectPath(projectPath)
 
 		// Create the session
-		sess, err := ctx.Client.CreateSession(api.CreateSessionRequest{
+		var sessionResult *interfaces.Session
+
+		// Show progress spinner for TTY users
+		if ctx.TTYDetector.ShowSpinner() {
+			fmt.Fprintln(os.Stderr, "Creating session...")
+		}
+
+		sessionResult, err = ctx.Client.CreateSession(api.CreateSessionRequest{
 			Name:           sessionName,
 			Description:    description,
 			ProjectPath:    projectPath,
@@ -95,24 +126,64 @@ Examples:
 			AttachmentType: attachmentType,
 			SplitDirection: splitDir,
 		})
-		if err != nil {
-			HandleError(err, "create session")
+
+		// Clear progress spinner
+		if ctx.TTYDetector.ShowSpinner() {
+			fmt.Fprintf(os.Stderr, "\r\033[K") // Clear line
 		}
 
-		// Enhanced success message
-		fmt.Println(ui.SuccessMsg(fmt.Sprintf("Created session '%s'", sess.Name)))
-		fmt.Println()
+		if err != nil {
+			return err
+		}
 
-		// Show enhanced session details
-		details := ui.SessionDetailsFormatted(sess, ctx.Client.GetBackend())
-		fmt.Println(details)
-		fmt.Println()
+		// Handle different output formats
+		switch ctx.OutputWriter.GetFormat() {
+		case cli.OutputFormatQuiet:
+			// In quiet mode, output only the session ID
+			return ctx.OutputWriter.WriteString(sessionResult.ID + "\n")
 
-		// Show enhanced next steps
-		fmt.Println(ui.NextSteps(
-			fmt.Sprintf("claude-pilot attach %s", sess.Name),
-			"claude-pilot list",
-		))
+		case cli.OutputFormatJSON, cli.OutputFormatNDJSON:
+			// Convert session to OutputWriter format
+			sessionData := cli.SessionData{
+				ID:          sessionResult.ID,
+				Name:        sessionResult.Name,
+				Description: sessionResult.Description,
+				Project:     sessionResult.ProjectPath,
+				Status:      string(sessionResult.Status),
+				CreatedAt:   sessionResult.CreatedAt,
+				UpdatedAt:   sessionResult.LastActive,
+				PaneCount:   sessionResult.Panes,
+			}
+
+			metadata := map[string]string{
+				"backend":   ctx.Client.GetBackend(),
+				"operation": "create",
+				"timestamp": time.Now().Format(time.RFC3339),
+			}
+
+			return ctx.OutputWriter.WriteSession(sessionData, metadata)
+
+		default:
+			// Human-readable output with success message and next steps
+			err := ctx.OutputWriter.WriteString(ui.SuccessMsg(fmt.Sprintf("Created session '%s'", sessionResult.Name)) + "\n\n")
+			if err != nil {
+				return err
+			}
+
+			// Show enhanced session details
+			details := ui.SessionDetailsFormatted(sessionResult, ctx.Client.GetBackend())
+			err = ctx.OutputWriter.WriteString(details + "\n\n")
+			if err != nil {
+				return err
+			}
+
+			// Show enhanced next steps
+			nextSteps := ui.NextSteps(
+				fmt.Sprintf("claude-pilot attach %s", sessionResult.Name),
+				"claude-pilot list",
+			)
+			return ctx.OutputWriter.WriteString(nextSteps + "\n")
+		}
 	},
 }
 
@@ -135,6 +206,7 @@ func init() {
 	// Add flags
 	createCmd.Flags().StringP("description", "d", "", "Description for the session")
 	createCmd.Flags().StringP("project", "p", "", "Project path for the session (defaults to current directory)")
+	createCmd.Flags().String("id", "", "Session ID/name (alternative to positional argument)")
 
 	// Attachment flags
 	createCmd.Flags().StringP("attach-to", "a", "", "Attach to existing session (session name)")

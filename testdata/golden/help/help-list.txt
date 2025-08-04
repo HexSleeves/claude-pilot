@@ -1,0 +1,29 @@
+List all active Claude coding sessions with their details.                                                            
+  Shows session ID, name, status, creation time, last activity, message count, and pane count.                          
+                                                                                                                        
+  Examples:                                                                                                             
+    claude-pilot list               # List all sessions                                                                 
+    claude-pilot list --sort=name # Sort by name instead of last activity                                               
+      claude-pilot list --active         # Show only active sessions                                                    
+      claude-pilot list --inactive     # Show only inactive sessions                                                    
+      claude-pilot list --output=json # Output in JSON format                                                           
+      claude-pilot list --quiet       # Output only session IDs                                                         
+         
+  USAGE  
+         
+    claude-pilot list [--flags]  
+         
+  FLAGS  
+         
+    -a --active   Show only active sessions
+    --config      Config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)
+    --debug       Enable debug logging (overrides --verbose)
+    -h --help     Help for list
+    --id          Filter sessions by ID or name
+    --inactive    Show only inactive sessions
+    --no-color    Disable ANSI colors in output
+    -o --output   Output format (human|table|json|ndjson|quiet) (human)
+    -s --sort     Sort by: name, created, status, activity, panes (activity)
+    --trace       Enable trace logging (overrides --debug and --verbose)
+    -v --verbose  Verbose output
+    --yes         Accept defaults for prompts (non-interactive mode)

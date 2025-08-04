@@ -1,0 +1,20 @@
+✗ Failed to kill some sessions:
+  ✗ Session 'protected-session' could not be terminated: permission denied
+  ✗ Session 'stuck-session' could not be terminated: backend error
+
+✓ Successfully killed 1 out of 3 sessions
+
+ℹ Remaining sessions:
+
+Error getting terminal size: operation not supported on socket
+Claude Pilot Sessions
+Backend: tmux
+
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ID               ┃      Name       ┃ Status  ┃ Backend ┃     Created     ┃Last Act…┃Project                  ┃ Panes  ┃
+┣━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━╋━━━━━━━━━╋━━━━━━━━━╋━━━━━━━━━━━━━━━━━╋━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┫
+│a1b2c3d4-5678-90…│protected-sessio…│● active │  tmux   │ 2025-08-04 10:0…│ 1h ago  │ .../Projects/important  │   2    │
+│b2c3d4e5-9876-54…│  stuck-session  │○ inactive│  tmux   │ 2025-08-04 09:3…│ 2h ago  │ .../Projects/debug-app  │   1    │
+└─────────────────┘─────────────────┘─────────┘─────────┘─────────────────┘─────────┘─────────────────────────┘────────┘
+
+Total: 2 sessions (1 active, 1 inactive)

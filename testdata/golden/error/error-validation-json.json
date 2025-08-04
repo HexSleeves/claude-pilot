@@ -1,0 +1,19 @@
+{
+  "success": false,
+  "message": "Invalid session name 'my/invalid/session!name'",
+  "data": null,
+  "errors": [
+    {
+      "code": "INVALID_INPUT",
+      "message": "Invalid session name 'my/invalid/session!name'",
+      "category": "VALIDATION",
+      "details": "Session names must contain only alphanumeric characters, hyphens, and underscores"
+    }
+  ],
+  "metadata": {
+    "operation": "create_session",
+    "timestamp": "2025-08-04T12:30:15.123456-05:00",
+    "field": "session_name",
+    "provided_value": "my/invalid/session!name"
+  }
+}

@@ -64,6 +64,12 @@ test-tui:
 	@echo "Running tests for tui..."
 	@cd $(TUI_DIR) && go test -v ./...
 
+# Run golden contract tests
+.PHONY: test-golden
+test-golden: build-claudepilot
+	@echo "Running golden file contract tests..."
+	@cd $(CLAUDEPILOT_DIR) && go test -v -run "Test.*Contract" ./...
+
 # Run CLI tests with race detection
 .PHONY: test-race
 test-race:
@@ -165,6 +171,7 @@ help:
 	@echo "  deps              - Install dependencies for all packages"
 	@echo "  clean             - Clean build artifacts"
 	@echo "  test              - Run tests for both packages"
+	@echo "  test-golden       - Run golden file contract tests"
 	@echo "  test-race         - Run CLI tests with race detection"
 	@echo "  fmt               - Format code for both packages"
 	@echo "  lint              - Lint code for both packages"

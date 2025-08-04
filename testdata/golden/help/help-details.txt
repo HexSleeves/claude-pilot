@@ -1,0 +1,21 @@
+  Show details for a specific Claude coding session.                                                                    
+                                                                                                                        
+  Examples:                                                                                                             
+    claude-pilot details --id my-project    # Show details for session with ID "my-project"                             
+    claude-pilot details --id abc123        # Show details for session with ID "abc123"                                 
+         
+  USAGE  
+         
+    claude-pilot details --id <session-id> [--flags]  
+         
+  FLAGS  
+         
+    --config      Config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)
+    --debug       Enable debug logging (overrides --verbose)
+    -h --help     Help for details
+    --id          Session ID or name to show details for (required)
+    --no-color    Disable ANSI colors in output
+    -o --output   Output format (human|table|json|ndjson|quiet) (human)
+    --trace       Enable trace logging (overrides --debug and --verbose)
+    -v --verbose  Verbose output
+    --yes         Accept defaults for prompts (non-interactive mode)

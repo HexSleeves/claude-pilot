@@ -1,0 +1,3 @@
+✓ Successfully killed 3 session(s)
+
+All Claude sessions have been terminated.

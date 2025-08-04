@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/claudepilot/claude-pilot/schemas/error.json",
+  "title": "Error Response Schema",
+  "description": "JSON schema for error responses from Claude Pilot CLI",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "error"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Schema version for backward compatibility",
+      "enum": ["v1"],
+      "examples": ["v1"]
+    },
+    "kind": {
+      "type": "string",
+      "description": "Response type identifier",
+      "const": "Error",
+      "examples": ["Error"]
+    },
+    "error": {
+      "type": "object",
+      "description": "Error information object",
+      "required": [
+        "code",
+        "category",
+        "message",
+        "timestamp"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Machine-readable error code for programmatic handling",
+          "pattern": "^[A-Z_][A-Z0-9_]*$",
+          "examples": [
+            "SESSION_NOT_FOUND",
+            "INVALID_SESSION_NAME",
+            "TMUX_CONNECTION_FAILED",
+            "PERMISSION_DENIED"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "description": "Error category for grouping related errors",
+          "enum": [
+            "validation",
+            "not_found",
+            "permission",
+            "network",
+            "system",
+            "configuration",
+            "internal"
+          ],
+          "examples": ["validation", "not_found", "system"]
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message",
+          "minLength": 1,
+          "maxLength": 1000,
+          "examples": [
+            "Session with ID '550e8400-e29b-41d4-a716-446655440000' not found",
+            "Invalid session name: must contain only alphanumeric characters and hyphens",
+            "Failed to connect to tmux server"
+          ]
+        },
+        "hint": {
+          "type": "string",
+          "description": "Optional helpful hint for resolving the error",
+          "maxLength": 500,
+          "examples": [
+            "Use 'claude-pilot list' to see available sessions",
+            "Session names must be 1-255 characters and contain only letters, numbers, and hyphens",
+            "Ensure tmux is installed and running"
+          ]
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional additional error details as key-value pairs",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "examples": [
+            {
+              "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+              "operation": "attach",
+              "tmuxSocket": "/tmp/tmux-1000/default"
+            }
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the error occurred",
+          "examples": ["2025-01-15T10:30:00Z"]
+        },
+        "requestId": {
+          "type": "string",
+          "description": "Optional request identifier for tracking and debugging",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "examples": ["req-123", "op-456"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schemaVersion": "v1",
+      "kind": "Error",
+      "error": {
+        "code": "SESSION_NOT_FOUND",
+        "category": "not_found",
+        "message": "Session with ID '550e8400-e29b-41d4-a716-446655440000' not found",
+        "hint": "Use 'claude-pilot list' to see available sessions",
+        "details": {
+          "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+          "operation": "attach"
+        },
+        "timestamp": "2025-01-15T10:30:00Z",
+        "requestId": "req-123"
+      }
+    },
+    {
+      "schemaVersion": "v1",
+      "kind": "Error",
+      "error": {
+        "code": "INVALID_SESSION_NAME",
+        "category": "validation",
+        "message": "Invalid session name: must contain only alphanumeric characters and hyphens",
+        "hint": "Session names must be 1-255 characters and contain only letters, numbers, and hyphens",
+        "timestamp": "2025-01-15T10:30:00Z"
+      }
+    }
+  ]
+}

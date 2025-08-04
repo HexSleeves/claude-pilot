@@ -1,0 +1,11 @@
+{
+  "id": "a1b2c3d4-5678-9012-3456-789abcdef123",
+  "name": "my-project",
+  "project": "/Users/user/Projects/my-project",
+  "status": "active",
+  "createdAt": "2025-08-04T10:30:15.123456-05:00",
+  "updatedAt": "2025-08-04T12:45:22.987654-05:00",
+  "paneCount": 1,
+  "description": "Development session for React app",
+  "backend": "tmux"
+}

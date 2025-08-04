@@ -1,0 +1,6 @@
+No active sessions found.
+
+Try creating a new session to get started:
+
+  → claude-pilot create [session-name]
+  → claude-pilot create --help
