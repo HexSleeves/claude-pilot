@@ -77,7 +77,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	// Create service with logger
 	sessionService := service.NewSessionServiceWithLogger(repository, mux, log)
 
-	log.Info("Client initialized successfully",
+	log.Debug("Client initialized successfully",
 		"backend", config.Backend,
 		"sessions_dir", config.SessionsDir,
 		"ui_mode", config.UI.Mode,

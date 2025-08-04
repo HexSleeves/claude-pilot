@@ -85,15 +85,15 @@ func (h *HumanHandler) WithGroup(name string) slog.Handler {
 func getLevelIcon(level slog.Level) string {
 	switch level {
 	case slog.LevelDebug:
-		return "🔍"
+		return "⚙" // Gear symbol for debug
 	case slog.LevelInfo:
-		return "ℹ️"
+		return "ℹ" // Info symbol
 	case slog.LevelWarn:
-		return "⚠️"
+		return "⚠" // Warning symbol
 	case slog.LevelError:
-		return "❌"
+		return "✗" // Cross symbol for error
 	default:
-		return "📝"
+		return "•" // Bullet for default
 	}
 }
 
@@ -323,7 +323,7 @@ func (l *Logger) Performance(operation string, start time.Time, attrs ...slog.At
 		slog.Int64("duration_ms", duration.Milliseconds()),
 	}, attrs...)
 
-	l.Logger.LogAttrs(context.Background(), slog.LevelInfo, "Performance metric", allAttrs...)
+	l.Logger.LogAttrs(context.Background(), slog.LevelDebug, "Performance metric", allAttrs...)
 }
 
 // DebugCommand logs command execution details (only in verbose mode)

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"claude-pilot/tui"
 
 	"github.com/spf13/cobra"
@@ -17,29 +19,52 @@ with features like:
 - Browse and filter sessions with an interactive table
 - Create new sessions with guided forms
 - Attach to sessions directly from the interface
-- Kill sessions with confirmation dialogs
+- Kill sessions with confirmation dialogs  
 - Real-time session status updates
 - Keyboard shortcuts for efficient navigation
 
 The TUI uses the same backend as the CLI commands but provides a more visual
 and interactive experience for session management.
 
+Global flags are automatically forwarded to the TUI for consistent behavior:
+- Configuration settings (--config) are respected
+- Color settings (--no-color) affect TUI initialization
+- Debug/trace flags control TUI logging verbosity
+- Output format settings are applied to any CLI-style output
+
 Examples:
-  claude-pilot tui                    # Launch the TUI
-  claude-pilot tui --help             # Show TUI help`,
+  claude-pilot tui                           # Launch the TUI
+  claude-pilot tui --config ~/my-config.yaml # Launch TUI with custom config
+  claude-pilot tui --no-color                # Launch TUI with colors disabled
+  claude-pilot tui --debug                   # Launch TUI with debug logging
+  claude-pilot tui --trace                   # Launch TUI with trace logging
+  claude-pilot tui --help                    # Show TUI help`,
 	Aliases: []string{"ui", "interactive", "terminal"},
-	Run: func(cmd *cobra.Command, args []string) {
-		// Initialize common command context
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Initialize common command context with flag forwarding
 		ctx, err := InitializeCommand()
 		if err != nil {
-			HandleError(err, "initialize command")
+			return fmt.Errorf("failed to initialize TUI command: %w", err)
 		}
 
-		// Launch the TUI directly using the shared client
+		// Validate TUI prerequisites before launching
+		if ctx.Client == nil {
+			return fmt.Errorf("TUI requires a valid API client")
+		}
+
+		// Color settings are already handled through the command context
+		// and will be passed to the TUI through the API client configuration.
+		// The --no-color flag is automatically forwarded via the global config.
+
+		// Launch the TUI with the configured client
+		// The client already contains all global flag settings and configuration
 		if err := tui.RunTui(ctx.Client); err != nil {
-			HandleError(err, "run TUI")
+			// Use new error taxonomy for TUI failures
+			HandleErrorWithContext(ctx, fmt.Errorf("TUI initialization failed: %w", err))
+			return nil // HandleErrorWithContext will exit
 		}
 
+		return nil
 	},
 }
 

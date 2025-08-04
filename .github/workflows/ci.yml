@@ -1,0 +1,187 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - "feature/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - "**"
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.22.x"
+  # Ensure non-interactive go gets modules consistently
+  GONOSUMDB: "github.com/*"
+  GOPRIVATE: ""
+  GOPATH: ${{ github.workspace }}/go
+
+jobs:
+  build-test-lint:
+    name: Lint, Test, Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Show Go env
+        run: |
+          go env
+          go version
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+        if: false # Install via action in a separate step; we will run lints per module below
+
+      - name: Install govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Verify modules tidy
+        run: |
+          set -euo pipefail
+          # Iterate known modules; fail if mod/sum changes after tidy
+          modules=(
+            "packages/core"
+            "packages/shared"
+            "packages/claudepilot"
+            "packages/tui"
+          )
+          for m in "${modules[@]}"; do
+            echo "::group::go mod tidy check in $m"
+            pushd "$m" >/dev/null
+            before_mod="$(cat go.mod)"
+            before_sum="$(cat go.sum || true)"
+            go mod tidy
+            after_mod="$(cat go.mod)"
+            after_sum="$(cat go.sum || true)"
+            if [ "$before_mod" != "$after_mod" ] || [ "$before_sum" != "$after_sum" ]; then
+              echo "go mod tidy produced changes in $m. Please commit go.mod/go.sum updates."
+              git --no-pager diff
+              exit 1
+            fi
+            popd >/dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Run formatting (check only)
+        run: |
+          set -euo pipefail
+          errs=0
+          check_fmt () {
+            local dir="$1"
+            echo "::group::gofmt check in $dir"
+            out="$(gofmt -l . | grep -E '\.go$' || true)"
+            if [ -n "$out" ]; then
+              echo "The following files in $dir are not gofmt-formatted:"
+              echo "$out"
+              errs=1
+            fi
+            echo "::endgroup::"
+          }
+          # Check formatting per module dirs
+          for m in packages/core packages/shared packages/claudepilot packages/tui; do
+            (cd "$m" && check_fmt "$m")
+          done
+          if [ $errs -ne 0 ]; then
+            echo "Run 'make fmt' locally and commit the changes."
+            exit 1
+          fi
+
+      - name: Lint (golangci-lint) per module
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: packages/core
+          args: --timeout=5m
+      - name: Lint shared
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: packages/shared
+          args: --timeout=5m
+      - name: Lint claudepilot
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: packages/claudepilot
+          args: --timeout=5m
+      - name: Lint tui
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: packages/tui
+          args: --timeout=5m
+
+      - name: Run tests with race detector per module
+        run: |
+          set -euo pipefail
+          for m in packages/core packages/shared packages/claudepilot packages/tui; do
+            echo "::group::go test -race in $m"
+            (cd "$m" && go test -race -v ./...)
+            echo "::endgroup::"
+          done
+
+      - name: Security scan (govulncheck) per module
+        run: |
+          set -euo pipefail
+          for m in packages/core packages/shared packages/claudepilot packages/tui; do
+            echo "::group::govulncheck $m"
+            (cd "$m" && govulncheck ./...)
+            echo "::endgroup::"
+          done
+
+  build-matrix:
+    name: Build binaries (sanity)
+    runs-on: ubuntu-latest
+    needs: build-test-lint
+    strategy:
+      matrix:
+        module: [packages/claudepilot, packages/tui]
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Build ${{ matrix.module }} for ${{ matrix.goos }}/${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          export GOOS=${{ matrix.goos }}
+          export GOARCH=${{ matrix.goarch }}
+          outdir="build/${{ matrix.module }}/$GOOS-$GOARCH"
+          mkdir -p "$outdir"
+          case "${{ matrix.module }}" in
+            packages/claudepilot)
+              (cd packages/claudepilot && go build -o "../.."/"$outdir"/claude-pilot .)
+              ;;
+            packages/tui)
+              (cd packages/tui/cmd && go build -o "../../../$outdir/claude-pilot-tui" .)
+              ;;
+          esac
+          ls -la "$outdir"
