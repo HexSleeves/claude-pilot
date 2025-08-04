@@ -1,0 +1,55 @@
+  ╭────────────────────────────────────────────────────────────╮                                                        
+  │                                                            │                                                        
+  │                      Claude Pilot 🚀                       │                                                        
+  │   A powerful CLI tool for managing multiple Claude code    │                                                        
+  │                          sessions                          │                                                        
+  │                                                            │                                                        
+  ╰────────────────────────────────────────────────────────────╯                                                        
+                                                                                                                        
+                                                                                                                        
+  Available Commands:                                                                                                   
+                                                                                                                        
+    create Create a new Claude session                                                                                  
+    list List all active sessions                                                                                       
+    attach Attach to a specific session                                                                                 
+    kill Terminate a session                                                                                            
+    kill-all Terminate all sessions                                                                                     
+    tui Launch interactive terminal UI                                                                                  
+                                                                                                                        
+  Global Flags:                                                                                                         
+    -o, --output string    Output format (human|table|json|ndjson|quiet) (default "human")                              
+        --debug           Enable debug logging (overrides --verbose)                                                    
+        --trace           Enable trace logging (overrides --debug and --verbose)                                        
+        --no-color        Disable ANSI colors in output                                                                 
+        --yes             Accept defaults for prompts (non-interactive mode)                                            
+    -v, --verbose         Verbose output                                                                                
+        --config string   Config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)                         
+                                                                                                                        
+  Use "claude-pilot [command] --help" for more information about a command.                                             
+         
+  USAGE  
+         
+    claude-pilot [command] [--flags]  
+            
+  COMMANDS  
+            
+    attach [session-name-or-id] [--flags]  Attach to a Claude session for interactive communication
+    completion [command]                   Generate the autocompletion script for the specified shell
+    create [session-name] [--flags]        Create a new Claude session
+    details --id <session-id> [--flags]    Show details for a specific Claude session
+    help [command]                         Help about any command
+    kill [session-name] [--flags]          Kill a Claude session
+    list [--flags]                         List all active Claude sessions
+    tui                                    Launch interactive terminal UI for managing Claude sessions
+         
+  FLAGS  
+         
+    --config                               Config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)
+    --debug                                Enable debug logging (overrides --verbose)
+    -h --help                              Help for claude-pilot
+    --no-color                             Disable ANSI colors in output
+    -o --output                            Output format (human|table|json|ndjson|quiet) (human)
+    --trace                                Enable trace logging (overrides --debug and --verbose)
+    -v --verbose                           Verbose output
+    --version                              Version for claude-pilot
+    --yes                                  Accept defaults for prompts (non-interactive mode)

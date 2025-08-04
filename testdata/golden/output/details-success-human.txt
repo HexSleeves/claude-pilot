@@ -1,0 +1,11 @@
+ID:             a1b2c3d4-5678-9012-3456-789abcdef123
+Name:           my-project
+Status:         ● active
+Backend:        tmux
+Created:        2025-08-04 10:30:15
+Project:        /Users/user/Projects/my-project
+Description:    Development session for React app
+
+ℹ Next steps:
+  → claude-pilot attach my-project
+  → claude-pilot list

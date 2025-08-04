@@ -1,187 +1,401 @@
-name: CI
+name: Claude Pilot CLI - Continuous Integration
 
 on:
   push:
-    branches:
-      - main
-      - master
-      - develop
-      - "feature/**"
-      - "fix/**"
+    branches: [ main, develop ]
   pull_request:
-    branches:
-      - "**"
-
-permissions:
-  contents: read
+    branches: [ main, develop ]
 
 env:
-  GO_VERSION: "1.22.x"
-  # Ensure non-interactive go gets modules consistently
-  GONOSUMDB: "github.com/*"
-  GOPRIVATE: ""
-  GOPATH: ${{ github.workspace }}/go
+  GO_VERSION: '1.24.5'
 
 jobs:
-  build-test-lint:
-    name: Lint, Test, Security Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: true
-
-      - name: Show Go env
-        run: |
-          go env
-          go version
-
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-        if: false # Install via action in a separate step; we will run lints per module below
-
-      - name: Install govulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-
-      - name: Verify modules tidy
-        run: |
-          set -euo pipefail
-          # Iterate known modules; fail if mod/sum changes after tidy
-          modules=(
-            "packages/core"
-            "packages/shared"
-            "packages/claudepilot"
-            "packages/tui"
-          )
-          for m in "${modules[@]}"; do
-            echo "::group::go mod tidy check in $m"
-            pushd "$m" >/dev/null
-            before_mod="$(cat go.mod)"
-            before_sum="$(cat go.sum || true)"
-            go mod tidy
-            after_mod="$(cat go.mod)"
-            after_sum="$(cat go.sum || true)"
-            if [ "$before_mod" != "$after_mod" ] || [ "$before_sum" != "$after_sum" ]; then
-              echo "go mod tidy produced changes in $m. Please commit go.mod/go.sum updates."
-              git --no-pager diff
-              exit 1
-            fi
-            popd >/dev/null
-            echo "::endgroup::"
-          done
-
-      - name: Run formatting (check only)
-        run: |
-          set -euo pipefail
-          errs=0
-          check_fmt () {
-            local dir="$1"
-            echo "::group::gofmt check in $dir"
-            out="$(gofmt -l . | grep -E '\.go$' || true)"
-            if [ -n "$out" ]; then
-              echo "The following files in $dir are not gofmt-formatted:"
-              echo "$out"
-              errs=1
-            fi
-            echo "::endgroup::"
-          }
-          # Check formatting per module dirs
-          for m in packages/core packages/shared packages/claudepilot packages/tui; do
-            (cd "$m" && check_fmt "$m")
-          done
-          if [ $errs -ne 0 ]; then
-            echo "Run 'make fmt' locally and commit the changes."
-            exit 1
-          fi
-
-      - name: Lint (golangci-lint) per module
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: packages/core
-          args: --timeout=5m
-      - name: Lint shared
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: packages/shared
-          args: --timeout=5m
-      - name: Lint claudepilot
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: packages/claudepilot
-          args: --timeout=5m
-      - name: Lint tui
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: packages/tui
-          args: --timeout=5m
-
-      - name: Run tests with race detector per module
-        run: |
-          set -euo pipefail
-          for m in packages/core packages/shared packages/claudepilot packages/tui; do
-            echo "::group::go test -race in $m"
-            (cd "$m" && go test -race -v ./...)
-            echo "::endgroup::"
-          done
-
-      - name: Security scan (govulncheck) per module
-        run: |
-          set -euo pipefail
-          for m in packages/core packages/shared packages/claudepilot packages/tui; do
-            echo "::group::govulncheck $m"
-            (cd "$m" && govulncheck ./...)
-            echo "::endgroup::"
-          done
-
+  # Build Matrix - Test across different OS and Go versions
   build-matrix:
-    name: Build binaries (sanity)
-    runs-on: ubuntu-latest
-    needs: build-test-lint
+    name: Build & Test Matrix
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        module: [packages/claudepilot, packages/tui]
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-      fail-fast: false
+        os: [ubuntu-latest, macos-latest]
+        go-version: ['1.24.5', '1.23.x']
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go-version }}-
+          
+    - name: Download dependencies
+      run: go mod download
+      
+    - name: Build application
+      run: make build
+      
+    - name: Run unit tests
+      run: make test
+      
+    - name: Run race condition tests
+      run: make test-race
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: true
+  # Code Quality - Formatting, linting, and static analysis
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+          
+    - name: Check code formatting
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Code is not formatted. Run 'make fmt' to fix:"
+          gofmt -s -l .
+          exit 1
+        fi
+        
+    - name: Install golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        args: --timeout=5m
+        
+    - name: Run static analysis
+      run: |
+        go vet ./...
+        
+    - name: Check for vulnerabilities
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
 
-      - name: Build ${{ matrix.module }} for ${{ matrix.goos }}/${{ matrix.goarch }}
-        run: |
-          set -euo pipefail
-          export GOOS=${{ matrix.goos }}
-          export GOARCH=${{ matrix.goarch }}
-          outdir="build/${{ matrix.module }}/$GOOS-$GOARCH"
-          mkdir -p "$outdir"
-          case "${{ matrix.module }}" in
-            packages/claudepilot)
-              (cd packages/claudepilot && go build -o "../.."/"$outdir"/claude-pilot .)
-              ;;
-            packages/tui)
-              (cd packages/tui/cmd && go build -o "../../../$outdir/claude-pilot-tui" .)
-              ;;
-          esac
-          ls -la "$outdir"
+  # CLI Contract Tests - Validate CLI output stability
+  cli-contracts:
+    name: CLI Contract Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Build CLI
+      run: make build
+      
+    - name: Validate help output consistency
+      run: |
+        # Test root help
+        ./bin/claude-pilot --help > /tmp/help-root.txt
+        if ! diff -u testdata/golden/help/help-root.txt /tmp/help-root.txt; then
+          echo "Root help output has changed. Update golden file if intentional."
+          exit 1
+        fi
+        
+        # Test individual command help
+        for cmd in create list details attach kill tui; do
+          ./bin/claude-pilot $cmd --help > /tmp/help-$cmd.txt
+          if ! diff -u testdata/golden/help/help-$cmd.txt /tmp/help-$cmd.txt; then
+            echo "$cmd help output has changed. Update golden file if intentional."
+            exit 1
+          fi
+        done
+        
+    - name: Validate JSON schema compliance
+      run: |
+        # Install schema validator
+        npm install -g ajv-cli
+        
+        # Test list command JSON output
+        echo '[]' | ./bin/claude-pilot list --output=json > /tmp/list-output.json
+        ajv validate -s docs/schemas/session-list.json -d /tmp/list-output.json
+        
+        # Test error output schema
+        (./bin/claude-pilot details --id non-existent-session --output=json || true) > /tmp/error-output.json
+        ajv validate -s docs/schemas/error.json -d /tmp/error-output.json
+        
+    - name: Test flag collision detection
+      run: |
+        # Ensure no conflicting short flags across commands
+        ./scripts/check-flag-collisions.sh
+        
+    - name: Test exit code mapping
+      run: |
+        # Test success exit code
+        echo '[]' | ./bin/claude-pilot list --quiet
+        if [ $? -ne 0 ]; then
+          echo "Expected exit code 0 for successful list command"
+          exit 1
+        fi
+        
+        # Test not found exit code
+        ./bin/claude-pilot details --id non-existent-session --quiet || EXIT_CODE=$?
+        if [ "$EXIT_CODE" -ne 3 ]; then
+          echo "Expected exit code 3 for session not found, got $EXIT_CODE"
+          exit 1
+        fi
+
+    - name: Upload contract test artifacts
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: contract-test-diffs
+        path: /tmp/*.txt
+
+  # Performance Budget Tests
+  performance-budget:
+    name: Performance Budget
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Build CLI
+      run: make build
+      
+    - name: Test help command response time budget
+      run: |
+        # Help command should respond within 100ms
+        START=$(date +%s%N)
+        ./bin/claude-pilot --help > /dev/null
+        END=$(date +%s%N)
+        DURATION=$((($END - $START) / 1000000))
+        
+        echo "Help command took ${DURATION}ms"
+        if [ $DURATION -gt 100 ]; then
+          echo "Help command exceeded 100ms budget: ${DURATION}ms"
+          exit 1
+        fi
+        
+    - name: Test version command response time budget
+      run: |
+        # Version command should respond within 50ms
+        START=$(date +%s%N)
+        ./bin/claude-pilot version > /dev/null 2>&1 || true
+        END=$(date +%s%N)
+        DURATION=$((($END - $START) / 1000000))
+        
+        echo "Version command took ${DURATION}ms"
+        if [ $DURATION -gt 50 ]; then
+          echo "Version command exceeded 50ms budget: ${DURATION}ms"
+          exit 1
+        fi
+
+  # Shell Compatibility Tests
+  shell-compatibility:
+    name: Shell Compatibility
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Install shells
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y zsh fish
+        
+    - name: Build CLI
+      run: make build
+      
+    - name: Test bash compatibility
+      shell: bash
+      run: |
+        export PATH="$PWD/bin:$PATH"
+        claude-pilot --help | head -1
+        
+    - name: Test zsh compatibility  
+      shell: zsh -l {0}
+      run: |
+        export PATH="$PWD/bin:$PATH"
+        claude-pilot --help | head -1
+        
+    - name: Test fish compatibility
+      shell: fish {0}
+      run: |
+        set -x PATH $PWD/bin $PATH
+        claude-pilot --help | head -1
+
+  # TTY Behavior Tests
+  tty-behavior:
+    name: TTY Behavior Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Build CLI
+      run: make build
+      
+    - name: Test TTY detection
+      run: |
+        # Test with TTY forced on
+        FORCE_TTY=1 ./bin/claude-pilot list --output=human > /tmp/tty-on.txt
+        
+        # Test with TTY forced off
+        NO_TTY=1 ./bin/claude-pilot list --output=human > /tmp/tty-off.txt
+        
+        # Outputs should be different (TTY version has colors)
+        if cmp -s /tmp/tty-on.txt /tmp/tty-off.txt; then
+          echo "TTY detection not working - outputs are identical"
+          exit 1
+        fi
+        
+    - name: Test non-interactive behavior
+      run: |
+        # Attach command should fail gracefully in non-TTY
+        echo "test" | NO_TTY=1 ./bin/claude-pilot attach --id non-existent --quiet || EXIT_CODE=$?
+        if [ "$EXIT_CODE" -ne 8 ]; then  # Unsupported operation
+          echo "Expected exit code 8 for unsupported TTY operation, got $EXIT_CODE"
+          exit 1
+        fi
+
+  # Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Gosec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: ./...
+        
+    - name: Check for hardcoded secrets
+      run: |
+        # Basic secret scanning
+        if grep -r -i "password\|secret\|key\|token" --include="*.go" . | grep -v "testdata" | grep -v "example"; then
+          echo "Potential hardcoded secrets found"
+          exit 1
+        fi
+
+  # Documentation Tests
+  documentation:
+    name: Documentation Tests  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check documentation completeness
+      run: |
+        # Check that all commands have help documentation
+        missing_docs=()
+        for cmd in create list details attach kill tui; do
+          if ! grep -q "$cmd" docs/CLI_GUIDE.md 2>/dev/null; then
+            missing_docs+=("$cmd")
+          fi
+        done
+        
+        if [ ${#missing_docs[@]} -gt 0 ]; then
+          echo "Missing documentation for commands: ${missing_docs[*]}"
+          exit 1
+        fi
+        
+    - name: Validate JSON schemas
+      run: |
+        # Install schema validator
+        npm install -g ajv-cli
+        
+        # Validate all schema files
+        for schema in docs/schemas/*.json; do
+          echo "Validating $schema"
+          ajv compile -s "$schema"
+        done
+
+# Create helper script for flag collision detection
+  create-scripts:
+    name: Create Helper Scripts
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Create flag collision check script
+      run: |
+        mkdir -p scripts
+        cat > scripts/check-flag-collisions.sh << 'EOF'
+        #!/bin/bash
+        set -e
+        
+        echo "Checking for flag collisions across commands..."
+        
+        # Extract all short flags from help output
+        ./bin/claude-pilot --help > /tmp/all-help.txt
+        for cmd in create list details attach kill tui; do
+          ./bin/claude-pilot $cmd --help >> /tmp/all-help.txt
+        done
+        
+        # Find duplicate short flags
+        SHORT_FLAGS=$(grep -o "\-[a-zA-Z]" /tmp/all-help.txt | sort)
+        DUPLICATES=$(echo "$SHORT_FLAGS" | uniq -d)
+        
+        if [ -n "$DUPLICATES" ]; then
+          echo "Flag collisions detected:"
+          echo "$DUPLICATES"
+          exit 1
+        fi
+        
+        echo "No flag collisions found."
+        EOF
+        
+        chmod +x scripts/check-flag-collisions.sh
+        
+    - name: Upload scripts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ci-scripts
+        path: scripts/

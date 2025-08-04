@@ -1,0 +1,37 @@
+  Create a new Claude coding session with an optional name.                                                             
+  If no name is provided, a timestamp-based name will be generated.                                                     
+                                                                                                                        
+  You can also attach to existing sessions as new panes or windows/tabs.                                                
+                                                                                                                        
+  Examples:                                                                                                             
+    claude-pilot create                              # Create session with auto-generated name                          
+    claude-pilot create my-project                   # Create session named "my-project"                                
+    claude-pilot create --desc "React app"           # Create session with description                                  
+    claude-pilot create --project ./src              # Create session with project path                                 
+    claude-pilot create --attach-to main --as-pane   # Create as new pane in 'main' session                             
+    claude-pilot create --attach-to main --as-window # Create as new window in 'main' session                           
+    claude-pilot create debug --attach-to main --as-pane --split h  # Create horizontal pane split                      
+    claude-pilot create --id my-session-123          # Create session with specific ID                                  
+                                                                                                                        
+         
+  USAGE  
+         
+    claude-pilot create [session-name] [--flags]  
+         
+  FLAGS  
+         
+    --as-pane         Create as new pane in existing session
+    --as-window       Create as new window/tab in existing session
+    -a --attach-to    Attach to existing session (session name)
+    --config          Config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)
+    --debug           Enable debug logging (overrides --verbose)
+    -d --description  Description for the session
+    -h --help         Help for create
+    --id              Session ID/name (alternative to positional argument)
+    --no-color        Disable ANSI colors in output
+    -o --output       Output format (human|table|json|ndjson|quiet) (human)
+    -p --project      Project path for the session (defaults to current directory)
+    --split           Split direction for panes: 'h' (horizontal) or 'v' (vertical) (v)
+    --trace           Enable trace logging (overrides --debug and --verbose)
+    -v --verbose      Verbose output
+    --yes             Accept defaults for prompts (non-interactive mode)

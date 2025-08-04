@@ -1,0 +1,11 @@
+Error: Invalid session name 'my/invalid/session!name'
+
+Session names must:
+  • Contain only alphanumeric characters, hyphens, and underscores
+  • Start with a letter or number
+  • Be between 1 and 50 characters long
+
+Examples:
+  claude-pilot create my-project
+  claude-pilot create session_123
+  claude-pilot create MyApp-v2

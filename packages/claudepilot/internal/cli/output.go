@@ -192,6 +192,7 @@ func (w *outputWriter) WriteString(s string) error {
 		// Strip ANSI color codes if color is disabled
 		s = stripANSI(s)
 	}
+
 	_, err := fmt.Fprint(w.writer, s)
 	return err
 }

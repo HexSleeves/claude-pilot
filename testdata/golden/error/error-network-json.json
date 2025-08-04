@@ -1,0 +1,19 @@
+{
+  "success": false,
+  "message": "Failed to connect to backend service",
+  "data": null,
+  "errors": [
+    {
+      "code": "CONNECTION_FAILED",
+      "message": "Failed to connect to backend service",
+      "category": "NETWORK",
+      "details": "The multiplexer backend (tmux) is not available or not responding"
+    }
+  ],
+  "metadata": {
+    "operation": "connect_backend",
+    "timestamp": "2025-08-04T12:30:15.123456-05:00",
+    "backend": "tmux",
+    "retry_count": "3"
+  }
+}

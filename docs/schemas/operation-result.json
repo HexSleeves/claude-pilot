@@ -1,0 +1,232 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/claudepilot/claude-pilot/schemas/operation-result.json",
+  "title": "Operation Result Response Schema",
+  "description": "JSON schema for command operation result responses from Claude Pilot CLI",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "result"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Schema version for backward compatibility",
+      "enum": ["v1"],
+      "examples": ["v1"]
+    },
+    "kind": {
+      "type": "string",
+      "description": "Response type identifier",
+      "const": "OperationResult",
+      "examples": ["OperationResult"]
+    },
+    "result": {
+      "type": "object",
+      "description": "Operation result information",
+      "required": [
+        "success",
+        "message"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the operation completed successfully",
+          "examples": [true, false]
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable result message",
+          "minLength": 1,
+          "maxLength": 1000,
+          "examples": [
+            "Session 'my-dev-session' created successfully",
+            "Failed to create session: invalid name",
+            "Session 'test-session' terminated",
+            "Operation completed with warnings"
+          ]
+        },
+        "data": {
+          "description": "Optional additional data returned by the operation",
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Structured data object",
+              "additionalProperties": true
+            },
+            {
+              "type": "array",
+              "description": "Array of data items",
+              "items": true
+            },
+            {
+              "type": "string",
+              "description": "Simple string data"
+            },
+            {
+              "type": "number",
+              "description": "Numeric data"
+            },
+            {
+              "type": "boolean",
+              "description": "Boolean data"
+            },
+            {
+              "type": "null",
+              "description": "No additional data"
+            }
+          ],
+          "examples": [
+            {
+              "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+              "tmuxSession": "my-dev-session"
+            },
+            ["session1", "session2", "session3"],
+            "operation-id-123",
+            42,
+            true,
+            null
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "description": "Array of errors that occurred during the operation",
+          "items": {
+            "type": "object",
+            "description": "Error information object",
+            "required": [
+              "code",
+              "category",
+              "message",
+              "timestamp"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Machine-readable error code",
+                "pattern": "^[A-Z_][A-Z0-9_]*$",
+                "examples": ["SESSION_NOT_FOUND", "VALIDATION_ERROR"]
+              },
+              "category": {
+                "type": "string",
+                "description": "Error category",
+                "enum": [
+                  "validation",
+                  "not_found",
+                  "permission",
+                  "network",
+                  "system",
+                  "configuration",
+                  "internal"
+                ],
+                "examples": ["validation", "not_found"]
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message",
+                "minLength": 1,
+                "maxLength": 1000,
+                "examples": ["Session name is required"]
+              },
+              "hint": {
+                "type": "string",
+                "description": "Optional helpful hint for resolving the error",
+                "maxLength": 500,
+                "examples": ["Provide a valid session name with --name flag"]
+              },
+              "details": {
+                "type": "object",
+                "description": "Optional additional error details",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "examples": [
+                  {
+                    "field": "name",
+                    "value": ""
+                  }
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp when the error occurred",
+                "examples": ["2025-01-15T10:30:00Z"]
+              },
+              "requestId": {
+                "type": "string",
+                "description": "Optional request identifier",
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "examples": ["req-123"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Optional metadata associated with the operation result",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "examples": [
+            {
+              "requestId": "req-123",
+              "operation": "create",
+              "duration": "250ms",
+              "version": "1.0.0"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schemaVersion": "v1",
+      "kind": "OperationResult",
+      "result": {
+        "success": true,
+        "message": "Session 'my-dev-session' created successfully",
+        "data": {
+          "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+          "tmuxSession": "my-dev-session"
+        },
+        "metadata": {
+          "requestId": "req-123",
+          "operation": "create",
+          "duration": "250ms"
+        }
+      }
+    },
+    {
+      "schemaVersion": "v1",
+      "kind": "OperationResult",
+      "result": {
+        "success": false,
+        "message": "Failed to create session",
+        "errors": [
+          {
+            "code": "INVALID_SESSION_NAME",
+            "category": "validation",
+            "message": "Session name must not be empty",
+            "hint": "Provide a valid session name with --name flag",
+            "details": {
+              "field": "name",
+              "value": ""
+            },
+            "timestamp": "2025-01-15T10:30:00Z",
+            "requestId": "req-123"
+          }
+        ],
+        "metadata": {
+          "requestId": "req-123",
+          "operation": "create"
+        }
+      }
+    }
+  ]
+}

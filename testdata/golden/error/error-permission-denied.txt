@@ -1,0 +1,13 @@
+Error: Permission denied
+
+You don't have permission to perform this operation.
+
+This might be due to:
+  • Insufficient file system permissions
+  • Protected session owned by another user
+  • Missing tmux server permissions
+
+Try:
+  • Running with appropriate permissions
+  • Checking file ownership and permissions
+  • Ensuring you have access to the tmux socket

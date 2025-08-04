@@ -1,0 +1,11 @@
+Error: Failed to connect to backend service
+
+The multiplexer backend (tmux) is not available or not responding.
+
+Troubleshooting steps:
+  1. Check if tmux is installed: tmux -V
+  2. Verify tmux server is running: tmux list-sessions
+  3. Check system resources and permissions
+  4. Try restarting the backend service
+
+If the problem persists, check the logs with --debug flag.

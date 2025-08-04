@@ -1,0 +1,19 @@
+{
+  "success": false,
+  "message": "Permission denied",
+  "data": null,
+  "errors": [
+    {
+      "code": "PERMISSION_DENIED",
+      "message": "Permission denied",
+      "category": "AUTHORIZATION",
+      "details": "You don't have permission to perform this operation"
+    }
+  ],
+  "metadata": {
+    "operation": "kill_session",
+    "timestamp": "2025-08-04T12:30:15.123456-05:00",
+    "resource_type": "Session",
+    "resource_id": "protected-session"
+  }
+}

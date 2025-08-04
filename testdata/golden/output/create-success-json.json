@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "message": "Session created successfully",
+  "data": {
+    "id": "a1b2c3d4-5678-9012-3456-789abcdef123",
+    "name": "my-project",
+    "project": "/Users/user/Projects/my-project",
+    "status": "active",
+    "createdAt": "2025-08-04T10:30:15.123456-05:00",
+    "updatedAt": "2025-08-04T10:30:15.123456-05:00",
+    "paneCount": 1
+  },
+  "errors": [],
+  "metadata": {
+    "operation": "create",
+    "timestamp": "2025-08-04T10:30:15.123456-05:00",
+    "backend": "tmux"
+  }
+}

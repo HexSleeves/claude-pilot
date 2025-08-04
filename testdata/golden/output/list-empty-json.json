@@ -1,0 +1,12 @@
+{
+  "count": 0,
+  "items": [],
+  "kind": "SessionList",
+  "metadata": {
+    "backend": "tmux",
+    "sortBy": "last_active",
+    "sortDirection": "desc",
+    "total": "0"
+  },
+  "schemaVersion": "v1"
+}

@@ -50,7 +50,7 @@ func (td *TTYDetector) IsInteractive() bool {
 	// Check if stdin and stdout are terminals
 	stdinFd := int(os.Stdin.Fd())
 	stdoutFd := int(os.Stdout.Fd())
-	
+
 	return term.IsTerminal(stdinFd) && term.IsTerminal(stdoutFd)
 }
 
@@ -62,7 +62,7 @@ func (td *TTYDetector) IsStdinTTY() bool {
 	if forceTTY := os.Getenv("FORCE_TTY"); forceTTY == "1" || forceTTY == "true" {
 		return true
 	}
-	
+
 	return term.IsTerminal(int(os.Stdin.Fd()))
 }
 
@@ -74,7 +74,7 @@ func (td *TTYDetector) IsStdoutTTY() bool {
 	if forceTTY := os.Getenv("FORCE_TTY"); forceTTY == "1" || forceTTY == "true" {
 		return true
 	}
-	
+
 	return term.IsTerminal(int(os.Stdout.Fd()))
 }
 
@@ -84,35 +84,35 @@ func (td *TTYDetector) GetTerminalSize() (width, height int, err error) {
 		// Default to 80x24 for non-TTY environments
 		return 80, 24, nil
 	}
-	
+
 	width, height, err = term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		// Fallback to default size
 		return 80, 24, nil
 	}
-	
+
 	return width, height, nil
 }
 
 // ConfirmationOptions holds options for confirmation prompts
 type ConfirmationOptions struct {
-	Message       string
-	DefaultValue  bool
-	Timeout       time.Duration
-	YesResponses  []string
-	NoResponses   []string
-	AutoYes       bool // Set by --yes flag
+	Message      string
+	DefaultValue bool
+	Timeout      time.Duration
+	YesResponses []string
+	NoResponses  []string
+	AutoYes      bool // Set by --yes flag
 }
 
 // DefaultConfirmationOptions returns default confirmation options
 func DefaultConfirmationOptions() *ConfirmationOptions {
 	return &ConfirmationOptions{
-		Message:       "Do you want to continue?",
-		DefaultValue:  false,
-		Timeout:       30 * time.Second,
-		YesResponses:  []string{"y", "yes", "true", "1"},
-		NoResponses:   []string{"n", "no", "false", "0"},
-		AutoYes:       false,
+		Message:      "Do you want to continue?",
+		DefaultValue: false,
+		Timeout:      30 * time.Second,
+		YesResponses: []string{"y", "yes", "true", "1"},
+		NoResponses:  []string{"n", "no", "false", "0"},
+		AutoYes:      false,
 	}
 }
 
@@ -120,6 +120,13 @@ func DefaultConfirmationOptions() *ConfirmationOptions {
 func (td *TTYDetector) ConfirmWithTimeout(options *ConfirmationOptions) (bool, error) {
 	if options == nil {
 		options = DefaultConfirmationOptions()
+	}
+
+	if options.YesResponses == nil {
+		options.YesResponses = []string{"y", "yes", "true", "1"}
+	}
+	if options.NoResponses == nil {
+		options.NoResponses = []string{"n", "no", "false", "0"}
 	}
 
 	// If --yes flag is set, automatically confirm
@@ -141,9 +148,9 @@ func (td *TTYDetector) ConfirmWithTimeout(options *ConfirmationOptions) (bool, e
 	if options.DefaultValue {
 		defaultText = "Y"
 	}
-	prompt := fmt.Sprintf("%s [y/N] (default: %s, timeout: %v): ", 
+	prompt := fmt.Sprintf("%s [y/N] (default: %s, timeout: %v): ",
 		options.Message, defaultText, options.Timeout)
-	
+
 	fmt.Fprint(td.stdout, prompt)
 
 	// Channel to receive user input
@@ -176,7 +183,7 @@ func (td *TTYDetector) ConfirmWithTimeout(options *ConfirmationOptions) (bool, e
 // parseConfirmationResponse parses the user's response
 func (td *TTYDetector) parseConfirmationResponse(response string, options *ConfirmationOptions) bool {
 	response = strings.ToLower(strings.TrimSpace(response))
-	
+
 	// Empty response uses default
 	if response == "" {
 		return options.DefaultValue
@@ -240,12 +247,12 @@ func (td *TTYDetector) PromptForPassword(prompt string) (string, error) {
 	}
 
 	fmt.Fprint(td.stdout, prompt)
-	
+
 	password, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
 	}
-	
+
 	fmt.Fprintln(td.stdout) // Add newline after password input
 	return string(password), nil
 }
@@ -370,7 +377,7 @@ func ShowSpinner() bool {
 	return defaultTTYDetector.ShowSpinner()
 }
 
-// GetColorSupport is a package-level convenience function  
+// GetColorSupport is a package-level convenience function
 func GetColorSupport() bool {
 	return defaultTTYDetector.GetColorSupport()
 }

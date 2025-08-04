@@ -1,0 +1,28 @@
+  Kill (terminate) a Claude coding session.                                                                             
+  Supports killing specific sessions by ID/name or all sessions at once.                                                
+                                                                                                                        
+  Examples:                                                                                                             
+    claude-pilot kill my-session           # Kill specific session (deprecated)                                         
+    claude-pilot kill --id my-session      # Kill specific session by ID                                                
+    claude-pilot kill --all                # Kill all sessions                                                          
+    claude-pilot kill --all --yes          # Kill all sessions without confirmation                                     
+    claude-pilot kill --id my-session --force  # Force kill without confirmation                                        
+    claude-pilot kill --output=json        # Output results in JSON format                                              
+         
+  USAGE  
+         
+    claude-pilot kill [session-name] [--flags]  
+         
+  FLAGS  
+         
+    -a --all      Kill all sessions
+    --config      Config file (default is $HOME/.config/claude-pilot/claude-pilot.yaml)
+    --debug       Enable debug logging (overrides --verbose)
+    -f --force    Force kill without confirmation
+    -h --help     Help for kill
+    --id          Session ID/name to kill (alternative to positional argument)
+    --no-color    Disable ANSI colors in output
+    -o --output   Output format (human|table|json|ndjson|quiet) (human)
+    --trace       Enable trace logging (overrides --debug and --verbose)
+    -v --verbose  Verbose output
+    --yes         Accept defaults for prompts (non-interactive mode)

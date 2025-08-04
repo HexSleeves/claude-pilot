@@ -1,0 +1,18 @@
+{
+  "success": false,
+  "message": "Session 'nonexistent-session' not found",
+  "data": null,
+  "errors": [
+    {
+      "code": "SESSION_NOT_FOUND",
+      "message": "Session 'nonexistent-session' not found",
+      "category": "NOT_FOUND"
+    }
+  ],
+  "metadata": {
+    "operation": "get_session",
+    "timestamp": "2025-08-04T12:30:15.123456-05:00",
+    "resource_type": "Session",
+    "resource_id": "nonexistent-session"
+  }
+}

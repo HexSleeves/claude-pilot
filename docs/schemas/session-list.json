@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/claudepilot/claude-pilot/schemas/session-list.json",
+  "title": "Session List Response Schema",
+  "description": "JSON schema for session list responses from Claude Pilot CLI",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "items",
+    "count"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Schema version for backward compatibility",
+      "enum": ["v1"],
+      "examples": ["v1"]
+    },
+    "kind": {
+      "type": "string",
+      "description": "Response type identifier",
+      "const": "SessionList",
+      "examples": ["SessionList"]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata associated with the response",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "examples": [
+        {
+          "requestId": "req-123",
+          "timestamp": "2025-01-15T10:30:00Z",
+          "filter": "project=claude-pilot"
+        }
+      ]
+    },
+    "items": {
+      "type": "array",
+      "description": "Array of session objects",
+      "items": {
+        "type": "object",
+        "description": "Individual session data object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique session identifier (UUID format)",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable session name",
+            "minLength": 1,
+            "maxLength": 255,
+            "examples": ["my-dev-session", "api-testing"]
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional session description",
+            "maxLength": 1000,
+            "examples": ["Development session for API work"]
+          },
+          "project": {
+            "type": "string",
+            "description": "Optional project name or identifier",
+            "maxLength": 255,
+            "examples": ["claude-pilot", "my-web-app"]
+          },
+          "status": {
+            "type": "string",
+            "description": "Current session status",
+            "enum": ["active", "inactive", "suspended", "terminated"],
+            "examples": ["active", "inactive"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when session was created",
+            "examples": ["2025-01-15T10:00:00Z"]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when session was last updated",
+            "examples": ["2025-01-15T10:30:00Z"]
+          },
+          "attachedTo": {
+            "type": "string",
+            "description": "Optional identifier of what/who the session is attached to",
+            "maxLength": 255,
+            "examples": ["user-123", "terminal-session-1"]
+          },
+          "windowCount": {
+            "type": "integer",
+            "description": "Number of windows in the session",
+            "minimum": 0,
+            "examples": [3, 0]
+          },
+          "paneCount": {
+            "type": "integer",
+            "description": "Number of panes in the session",
+            "minimum": 0,
+            "examples": [5, 0]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "count": {
+      "type": "integer",
+      "description": "Total number of sessions in the response",
+      "minimum": 0,
+      "examples": [3, 0]
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schemaVersion": "v1",
+      "kind": "SessionList",
+      "metadata": {
+        "requestId": "req-123",
+        "filter": "project=claude-pilot"
+      },
+      "items": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "my-dev-session",
+          "description": "Development session for API work",
+          "project": "claude-pilot",
+          "status": "active",
+          "createdAt": "2025-01-15T10:00:00Z",
+          "updatedAt": "2025-01-15T10:30:00Z",
+          "attachedTo": "user-123",
+          "windowCount": 3,
+          "paneCount": 5
+        },
+        {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "test-session",
+          "project": "claude-pilot",
+          "status": "inactive",
+          "createdAt": "2025-01-15T09:00:00Z",
+          "updatedAt": "2025-01-15T09:30:00Z",
+          "windowCount": 1,
+          "paneCount": 2
+        }
+      ],
+      "count": 2
+    }
+  ]
+}
